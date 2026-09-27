@@ -832,12 +832,24 @@ def _alfred_v128_install():
             try: body = _J.loads(handler.rfile.read(n).decode("utf-8", "replace")) if n else {}
             except Exception: body = {}
             d = _db()
-            row = d.execute("SELECT rowid, email, password_hash FROM users WHERE rowid=?", (uid,)).fetchone()
+            _cols = [r[1] for r in d.execute("PRAGMA table_info(users)")]
+            _hc = "pw_hash" if "pw_hash" in _cols else "password_hash"
+            _sc = ", salt" if "salt" in _cols else ", ''"
+            row = d.execute("SELECT rowid, email, "+_hc+_sc+" FROM users WHERE rowid=?", (uid,)).fetchone()
             d.close()
             if not row: _json(handler, 401, {"ok": False, "error": "Not signed in"}); return True
             if (row[2] or "").startswith("oauth:"):
                 _json(handler, 200, {"ok": False, "error": "This account signs in with a provider (Google/GitHub/Discord)."}); return True
-            if not _layout() or not _verify(row[2], body.get("current") or ""):
+            _cur = body.get("current") or ""; _stored = row[2] or ""; _ok = False
+            if len(row) > 3 and row[3]:
+                try: _ok = (_hash_pw(_cur, row[3]) == _stored)
+                except Exception: _ok = False
+            if not _ok:
+                for _k2, _s2, _h2 in _splits(_stored):
+                    try:
+                        if _hash_pw(_cur, _s2) == _h2: _ok = True; break
+                    except Exception: pass
+            if not _ok:
                 _json(handler, 200, {"ok": False, "error": "Current password is incorrect (or security is warming up)."}); return True
             nw = body.get("next") or ""
             if not (len(nw) >= 8 and any(c.isalpha() for c in nw) and any(c.isdigit() for c in nw)):
@@ -868,7 +880,10 @@ def _alfred_v128_install():
             try: body = _J.loads(handler.rfile.read(n).decode("utf-8", "replace")) if n else {}
             except Exception: body = {}
             d = _db()
-            row = d.execute("SELECT rowid, email, password_hash FROM users WHERE rowid=?", (uid,)).fetchone()
+            _cols = [r[1] for r in d.execute("PRAGMA table_info(users)")]
+            _hc = "pw_hash" if "pw_hash" in _cols else "password_hash"
+            _sc = ", salt" if "salt" in _cols else ", ''"
+            row = d.execute("SELECT rowid, email, "+_hc+_sc+" FROM users WHERE rowid=?", (uid,)).fetchone()
             if not row: d.close(); _json(handler, 401, {"ok": False, "error": "Not signed in"}); return True
             email = row[1]; stored = row[2] or ""
             if stored.startswith("oauth:"):
@@ -1107,12 +1122,24 @@ def _alfred_v128_install():
             try: body = _J.loads(handler.rfile.read(n).decode("utf-8", "replace")) if n else {}
             except Exception: body = {}
             d = _db()
-            row = d.execute("SELECT rowid, email, password_hash FROM users WHERE rowid=?", (uid,)).fetchone()
+            _cols = [r[1] for r in d.execute("PRAGMA table_info(users)")]
+            _hc = "pw_hash" if "pw_hash" in _cols else "password_hash"
+            _sc = ", salt" if "salt" in _cols else ", ''"
+            row = d.execute("SELECT rowid, email, "+_hc+_sc+" FROM users WHERE rowid=?", (uid,)).fetchone()
             d.close()
             if not row: _json(handler, 401, {"ok": False, "error": "Not signed in"}); return True
             if (row[2] or "").startswith("oauth:"):
                 _json(handler, 200, {"ok": False, "error": "This account signs in with a provider (Google/GitHub/Discord)."}); return True
-            if not _layout() or not _verify(row[2], body.get("current") or ""):
+            _cur = body.get("current") or ""; _stored = row[2] or ""; _ok = False
+            if len(row) > 3 and row[3]:
+                try: _ok = (_hash_pw(_cur, row[3]) == _stored)
+                except Exception: _ok = False
+            if not _ok:
+                for _k2, _s2, _h2 in _splits(_stored):
+                    try:
+                        if _hash_pw(_cur, _s2) == _h2: _ok = True; break
+                    except Exception: pass
+            if not _ok:
                 _json(handler, 200, {"ok": False, "error": "Current password is incorrect (or security is warming up)."}); return True
             nw = body.get("next") or ""
             if not (len(nw) >= 8 and any(c.isalpha() for c in nw) and any(c.isdigit() for c in nw)):
@@ -1143,7 +1170,10 @@ def _alfred_v128_install():
             try: body = _J.loads(handler.rfile.read(n).decode("utf-8", "replace")) if n else {}
             except Exception: body = {}
             d = _db()
-            row = d.execute("SELECT rowid, email, password_hash FROM users WHERE rowid=?", (uid,)).fetchone()
+            _cols = [r[1] for r in d.execute("PRAGMA table_info(users)")]
+            _hc = "pw_hash" if "pw_hash" in _cols else "password_hash"
+            _sc = ", salt" if "salt" in _cols else ", ''"
+            row = d.execute("SELECT rowid, email, "+_hc+_sc+" FROM users WHERE rowid=?", (uid,)).fetchone()
             if not row: d.close(); _json(handler, 401, {"ok": False, "error": "Not signed in"}); return True
             email = row[1]; stored = row[2] or ""
             if stored.startswith("oauth:"):
