@@ -14,6 +14,15 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(HERE, "alfred.db")
 CONFIG = os.path.join(HERE, "brain_config.json")
+
+def chain_for(cfg, plan):  # v233: per-plan model chains from providers.json
+    try:
+        pj = json.load(open(os.path.join(HERE, "providers.json")))
+        c = (pj.get("chains") or {}).get(plan) or []
+        if c: return [str(m) for m in c if str(m)]
+    except Exception:
+        pass
+    return cfg.get("chain") or []
 PERSONA = os.path.join(HERE, "persona.md")
 ALLOWED = {"http://localhost:8080", "http://127.0.0.1:8080"}
 STARTED = time.time()
@@ -253,7 +262,8 @@ class Handler(BaseHTTPRequestHandler):
 
         cfg = config()
         key = api_key(cfg)
-        chain = cfg.get("chain") or []
+        _pl, _pc = self.plan_info(user, cfg)
+        chain = chain_for(cfg, _pl)
         if not key or not chain:
             self.json_out(503, {"ok": False,
                 "error": "No engine key configured yet - add GOOGLE_API_KEY or brain_config.json gemini_key."})
@@ -429,7 +439,9 @@ def _v130_install():
         cfg = config()
         if cfg.get("stream") is False:
             handler.json_out(501, {"ok": False, "error": "Streaming disabled."}); return
-        key = api_key(cfg); chain = cfg.get("chain") or []
+        key = api_key(cfg)
+        _pl2, _pc2 = handler.plan_info(user, cfg)
+        chain = chain_for(cfg, _pl2)
         if not key or not chain:
             handler.json_out(503, {"ok": False, "error": "No engine key configured yet."}); return
 
