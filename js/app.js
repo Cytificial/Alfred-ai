@@ -9266,3 +9266,45 @@ try { /* v163proc: native thinking card */
     });
   }).catch(function(){});
 })();
+
+/* ===== v229: chat reliability — error bubble + one-tap retry ===== */
+(function () {
+  if (window.__v229) return; window.__v229 = "1";
+  var of = window.fetch, last = null, el = null, tmr = null;
+  function bubble(msg){
+    if (!el) {
+      el = document.createElement("div");
+      el.style.cssText = "position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:999;"
+        + "background:#2a1420;border:1px solid rgba(255,107,107,.45);color:#ffd9d9;border-radius:14px;"
+        + "padding:10px 14px;font:13px system-ui;display:flex;gap:10px;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.45)";
+      var txt = document.createElement("span"), btn = document.createElement("button");
+      txt.id = "v229msg"; btn.type = "button"; btn.textContent = "Retry";
+      btn.style.cssText = "background:#ff6b6b;color:#fff;border:0;border-radius:9px;padding:6px 14px;font:600 13px system-ui";
+      btn.onclick = function(){
+        if (!last) return;
+        btn.textContent = "…"; btn.disabled = true;
+        of(last.u, last.o).then(function(){
+          el.style.display = "none"; btn.textContent = "Retry"; btn.disabled = false;
+        }).catch(function(){ btn.textContent = "Retry"; btn.disabled = false; });
+      };
+      el.appendChild(txt); el.appendChild(btn); document.body.appendChild(el);
+    }
+    document.getElementById("v229msg").textContent = "Alfred couldn't answer — " + msg;
+    el.style.display = "flex";
+    clearTimeout(tmr); tmr = setTimeout(function(){ if (el) el.style.display = "none"; }, 10000);
+  }
+  window.fetch = function (u, o) {
+    var p = of.apply(this, arguments), isChat = false;
+    try { var s = String(u); isChat = s.indexOf("/api/chat") > -1; } catch (e) {}
+    if (!isChat) return p;
+    if (o && o.method === "POST") {
+      try { last = { u: u, o: { method:"POST", headers:o.headers, body:o.body, credentials:o.credentials||"include" } }; } catch (e) {}
+    }
+    return p.then(function (r) {
+      if (!r.ok) bubble("server said " + r.status);
+      return r;
+    }).catch(function (e) {
+      bubble("connection failed"); throw e;
+    });
+  };
+})();
