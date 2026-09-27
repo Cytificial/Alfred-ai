@@ -9073,3 +9073,67 @@ try { /* v163proc: native thinking card */
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else setTimeout(boot, 200);
 })();
+
+/* ===== v224: Settings — profile, security, sessions, health ===== */
+(function () {
+  var view = document.getElementById("view-settings");
+  if (!view || view.dataset.set224) return;
+  view.dataset.set224 = "1";
+  function tok(){ try { return localStorage.getItem("alfred_token") || ""; } catch(e){ return ""; } }
+  function toast(m){ var t=document.createElement("div"); t.textContent=m;
+    t.style.cssText="position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#123;color:#cfe8ff;border:1px solid rgba(120,200,255,.4);padding:10px 18px;border-radius:12px;font:13px system-ui;z-index:99";
+    document.body.appendChild(t); setTimeout(function(){ t.remove(); },2600); }
+  function api(p,o){ return fetch(p, Object.assign({ credentials:"include",
+    headers:{ "Content-Type":"application/json", "X-Alfred-Token":tok() } }, o||{}))
+    .then(function(r){ return r.json(); }); }
+  var card="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:16px;margin-bottom:14px";
+  var lab="font-size:11px;letter-spacing:.12em;opacity:.6;margin-bottom:10px";
+  var inp="width:100%;box-sizing:border-box;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.14);border-radius:10px;color:#e8f2ff;padding:10px 12px;font:14px system-ui;margin:6px 0";
+  var btn="background:#2e7fd6;color:#fff;border:0;border-radius:10px;padding:10px 16px;font:600 13px system-ui;margin-top:8px;width:100%";
+  view.innerHTML =
+    '<div style="max-width:640px;margin:0 auto;padding:16px">'
+    + '<h1 style="font-size:26px;margin:4px 0 2px">Settings</h1>'
+    + '<p style="opacity:.7;margin:0 0 16px;font-size:13px">Tune Alfred to feel like yours.</p>'
+    + '<div style="'+card+'"><div style="'+lab+'">PROFILE</div><div id="s224-prof" style="opacity:.6;font-size:13px">loading…</div></div>'
+    + '<div style="'+card+'"><div style="'+lab+'">PASSWORD</div>'
+    + '<input id="s224-cur" type="password" placeholder="Current password" style="'+inp+'">'
+    + '<input id="s224-n1" type="password" placeholder="New password (8+ chars, letters & numbers)" style="'+inp+'">'
+    + '<input id="s224-n2" type="password" placeholder="Repeat new password" style="'+inp+'">'
+    + '<button id="s224-save" type="button" style="'+btn+'">Update password</button></div>'
+    + '<div style="'+card+'"><div style="'+lab+'">SESSIONS</div><div id="s224-sess" style="opacity:.7;font-size:13px">loading…</div>'
+    + '<button id="s224-revoke" type="button" style="'+btn+'">Sign out other devices</button></div>'
+    + '<div style="'+card+'"><div style="'+lab+'">SYSTEM</div><div id="s224-health" style="opacity:.7;font-size:13px">checking…</div></div>'
+    + '</div>';
+  api("/api/auth/me").then(function(j){
+    var u=j&&j.user;
+    document.getElementById("s224-prof").innerHTML = u
+      ? '<b>'+String(u.name||"—")+'</b> · '+String(u.email||"")+' · <span style="color:#9fd8ff">'+String(u.plan||"Free")+'</span>'
+      : 'Not signed in';
+  }).catch(function(){});
+  function sessions(){
+    api("/api/auth/sessions").then(function(j){
+      var r=(j&&j.sessions)||[]; var cur=r.filter(function(s){return s.current;}).length;
+      document.getElementById("s224-sess").textContent =
+        r.length+" active session"+(r.length===1?"":"s")+(cur?" · this device ✓":"");
+    }).catch(function(){});
+  }
+  sessions();
+  document.getElementById("s224-revoke").onclick=function(){
+    api("/api/auth/revoke-others",{method:"POST"}).then(function(j){
+      toast(j.ok?"Other devices signed out ✓":(j.error||"Failed")); sessions();
+    }).catch(function(){}); };
+  document.getElementById("s224-save").onclick=function(){
+    var c=document.getElementById("s224-cur").value, n=document.getElementById("s224-n1").value,
+        n2=document.getElementById("s224-n2").value;
+    if(!(n.length>=8 && /[a-zA-Z]/.test(n) && /[0-9]/.test(n))) return toast("New password needs 8+ chars, letters & numbers");
+    if(n!==n2) return toast("New passwords don't match");
+    api("/api/auth/change-password",{method:"POST",body:JSON.stringify({current:c,next:n})})
+      .then(function(j){
+        if(j&&j.ok){ toast("Password updated ✓"); ["s224-cur","s224-n1","s224-n2"].forEach(function(id){document.getElementById(id).value="";}); }
+        else toast((j&&j.error)||"Failed");
+      }).catch(function(){}); };
+  fetch("/api/health").then(function(r){return r.json();}).then(function(j){
+    document.getElementById("s224-health").textContent =
+      (j&&j.ok) ? "Alfred online — brain "+(j.brain||"ready")+" ✓" : "Alfred waking up…";
+  }).catch(function(){ document.getElementById("s224-health").textContent="Offline"; });
+})();
