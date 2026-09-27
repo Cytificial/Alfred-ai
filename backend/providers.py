@@ -62,6 +62,8 @@ def scan(pid):
         for m in d.get("data", []):
             models.append({"id": m.get("id"), "name": m.get("name") or m.get("id"),
                            "free": str((m.get("pricing") or {}).get("prompt", "1")) == "0"})
+    c.setdefault("tiers", {})[pid] = models
+    _save(c)
     return models
 
 def chains(plan, refs):
