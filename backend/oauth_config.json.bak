@@ -1,5 +1,0 @@
-{
-  "google":  { "client_id": "", "client_secret": "" },
-  "github":  { "client_id": "", "client_secret": "" },
-  "discord": { "client_id": "", "client_secret": "" }
-}
