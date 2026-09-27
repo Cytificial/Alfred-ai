@@ -9,12 +9,12 @@
  ],
  "chains": {
   "Free": [
-   "gemini-omni-flash-preview",
-   "gemini-3.1-flash-live-preview",
-   "gemini-3.1-flash-lite-preview",
-   "gemini-3-flash-preview",
+   "gemini-flash-latest",
    "gemini-flash-lite-latest",
-   "gemini-flash-latest"
+   "gemini-3-flash-preview",
+   "gemini-3.1-flash-lite-preview",
+   "gemini-3.1-flash-live-preview",
+   "gemini-omni-flash-preview"
   ],
   "Pro": [
    "gemini-2.5-pro",
