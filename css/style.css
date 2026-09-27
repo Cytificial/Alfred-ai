@@ -3557,3 +3557,8 @@ button, .adm-btn, .set-row, .faq-q { max-width: 100%; overflow-wrap: anywhere; }
 @media (min-width: 1024px) {
   .set-wrap { max-width: 860px; margin: 0 auto; }
 }
+/* ===== v240: admin dashboard fits every screen ===== */
+#view-admin, section[id*="admin"] { overflow-y: auto !important; overflow-x: hidden !important; -webkit-overflow-scrolling: touch; }
+#view-admin .adm-card { max-width: 100%; overflow-wrap: anywhere; }
+#view-admin .adm-t { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+#view-admin select, #view-admin input, #view-admin button { max-width: 100%; }

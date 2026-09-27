@@ -9472,3 +9472,22 @@ try { /* v163proc: native thinking card */
     });
   }).catch(function () {});
 })();
+
+/* ===== v240: single Admin row (dedupe, deepest wins) ===== */
+(function () {
+  if (window.__v240) return; window.__v240 = "1";
+  function depth(e) { var d = 0; while (e && e !== document.body) { d++; e = e.parentElement; } return d; }
+  function dedupe() {
+    var els = Array.prototype.slice.call(document.querySelectorAll("body *")).filter(function (e) {
+      return e.children.length <= 2 && (e.textContent || "").trim() === "Admin";
+    });
+    if (!els.length) return;
+    els.sort(function (a, b) { return depth(b) - depth(a); });
+    var kept = els[0];
+    kept.style.display = "";
+    kept.onclick = function () { location.hash = "#/admin"; };
+    els.slice(1).forEach(function (e) { if (!kept.contains(e)) e.style.display = "none"; });
+  }
+  [1200, 3200, 6000].forEach(function (t) { setTimeout(dedupe, t); });
+  addEventListener("hashchange", function () { setTimeout(dedupe, 600); });
+})();
