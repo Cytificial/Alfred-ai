@@ -9308,3 +9308,123 @@ try { /* v163proc: native thinking card */
     });
   };
 })();
+
+/* ===== v235: Providers tab — registry, rescan, chain editors ===== */
+(function () {
+  if (window.__v235) return; window.__v235 = "1";
+  var J = null;
+  function pf(p, o) {
+    o = o || {}; o.credentials = "include";
+    o.headers = Object.assign({ "Content-Type": "application/json",
+      "X-Alfred-Token": localStorage.getItem("alfred_token") || "" }, o.headers || {});
+    return fetch(p, o).then(function (r) { return r.json(); });
+  }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function toast(m) { var t = document.createElement("div"); t.className = "ex-toast"; t.textContent = m;
+    document.body.appendChild(t); setTimeout(function () { t.classList.add("bye"); }, 2400);
+    setTimeout(function () { t.remove(); }, 3000); }
+  function catalog() {
+    var out = [], tiers = (J && J.tiers) || {};
+    Object.keys(tiers).forEach(function (pid) {
+      (tiers[pid] || []).forEach(function (m) {
+        var id = (typeof m === "string") ? m : m.id;
+        if (id && out.indexOf(id) === -1) out.push(id); });
+    });
+    return out;
+  }
+  function render() {
+    var body = document.getElementById("adm-body"); if (!body) return;
+    body.innerHTML = '<div class="adm-card">Loading providers…</div>';
+    pf("/api/admin/providers").then(function (j) {
+      if (!j || !j.ok) { body.innerHTML = '<div class="adm-card">Providers API: ' + esc((j && j.error) || "failed") + '</div>'; return; }
+      J = j; paint(body);
+    });
+  }
+  function paint(body) {
+    var provs = J.providers || [], tiers = J.tiers || {}, chains = J.chains || {};
+    var h = '<div class="adm-card"><b>PROVIDERS</b><span style="opacity:.5;font-size:12px"> keys sealed — stored locally, never displayed</span>';
+    provs.forEach(function (p) {
+      h += '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07);flex-wrap:wrap">'
+        + '<b>' + esc(p.id) + '</b><span style="opacity:.55;font-size:12px">' + esc(p.type) + '</span>'
+        + '<span style="font-size:12px;color:' + (p.configured ? "#5fe8b0" : "#ff6b6b") + '">' + (p.configured ? "key ✓" : "no key") + '</span>'
+        + '<button type="button" class="adm-btn" data-scan="' + esc(p.id) + '" style="margin-left:auto;padding:4px 12px">rescan</button></div>';
+    });
+    h += '<details style="margin-top:10px"><summary style="cursor:pointer;opacity:.7;font-size:13px">+ add provider</summary>'
+      + '<div style="display:grid;gap:6px;margin-top:8px;max-width:420px">'
+      + '<input id="pv-id" class="adm-in" placeholder="id — e.g. openrouter">'
+      + '<select id="pv-type" class="adm-in"><option value="google">google</option><option value="openai">openai</option><option value="openrouter">openrouter</option></select>'
+      + '<input id="pv-url" class="adm-in" placeholder="base_url — e.g. https://api.openai.com/v1">'
+      + '<input id="pv-key" class="adm-in" type="password" placeholder="api key (sealed on disk, never shown)">'
+      + '<button type="button" class="adm-btn" id="pv-add">Add provider</button></div></details></div>';
+    ["Free", "Pro", "Ultra"].forEach(function (plan) {
+      var chain = chains[plan] || [];
+      h += '<div class="adm-card"><b>' + plan.toUpperCase() + ' CHAIN</b><span style="opacity:.5;font-size:12px"> 1 = default, falls through on fail/429</span>';
+      chain.forEach(function (m, i) {
+        h += '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:13px">'
+          + '<span style="opacity:.45;width:18px">' + (i + 1) + '</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis">' + esc(m) + '</span>'
+          + (i > 0 ? '<button type="button" class="adm-btn" data-up="' + plan + ':' + i + '" style="padding:2px 9px">↑</button>' : '')
+          + (i < chain.length - 1 ? '<button type="button" class="adm-btn" data-dn="' + plan + ':' + i + '" style="padding:2px 9px">↓</button>' : '')
+          + '<button type="button" class="adm-btn" data-rm="' + plan + ':' + i + '" style="padding:2px 9px;color:#ff6b6b">✕</button></div>';
+      });
+      var avail = catalog().filter(function (m) { return chain.indexOf(m) === -1; });
+      h += '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'
+        + '<select class="adm-in" data-addsel="' + plan + '" style="flex:1;min-width:180px">'
+        + avail.map(function (m) { return '<option>' + esc(m) + '</option>'; }).join("") + '</select>'
+        + '<button type="button" class="adm-btn" data-addm="' + plan + '" style="padding:4px 12px">+ add</button>'
+        + '<button type="button" class="adm-btn" data-save="' + plan + '" style="padding:4px 14px">Save chain</button></div></div>';
+    });
+    h += '<div class="adm-card"><details><summary style="cursor:pointer;opacity:.75"><b>FULL CATALOG</b> — '
+      + Object.keys(tiers).map(function (k) { return esc(k) + ": " + (tiers[k] || []).length; }).join(" · ") + '</summary>';
+    Object.keys(tiers).forEach(function (pid) {
+      h += '<div style="margin-top:8px"><b style="opacity:.65;font-size:12px">' + esc(pid) + '</b>';
+      (tiers[pid] || []).forEach(function (m) {
+        var id = (typeof m === "string") ? m : m.id, nm = (typeof m === "string") ? "" : (m.name || "");
+        h += '<div style="display:flex;gap:8px;font-size:12px;padding:2px 0"><span style="flex:1">' + esc(id) + '</span><span style="opacity:.45">' + esc(nm === id ? "" : nm) + '</span></div>';
+      });
+      h += '</div>';
+    });
+    h += '</details></div>';
+    body.innerHTML = h;
+    function mv(plan, i, d) { var c = J.chains[plan], j = i + d;
+      if (j < 0 || j >= c.length) return; var t = c[i]; c[i] = c[j]; c[j] = t; paint(body); }
+    body.querySelectorAll("[data-scan]").forEach(function (b) {
+      b.onclick = function () { b.textContent = "scanning…"; b.disabled = true;
+        pf("/api/admin/providers/scan", { method: "POST", body: JSON.stringify({ id: b.getAttribute("data-scan") }) })
+          .then(function (r) { toast(r.ok ? (r.count + " models scanned ✓") : ("scan failed — " + (r.error || "?"))); render(); }); };
+    });
+    var add = body.querySelector("#pv-add");
+    if (add) add.onclick = function () {
+      pf("/api/admin/providers/add", { method: "POST", body: JSON.stringify({
+        id: body.querySelector("#pv-id").value.trim(), type: body.querySelector("#pv-type").value,
+        base_url: body.querySelector("#pv-url").value.trim(), api_key: body.querySelector("#pv-key").value }) })
+        .then(function (r) { toast(r.ok ? "provider added ✓" : (r.error || "add failed")); render(); }); };
+    ["Free", "Pro", "Ultra"].forEach(function (plan) {
+      body.querySelectorAll('[data-up^="' + plan + ':"]').forEach(function (b) {
+        b.onclick = function () { mv(plan, +b.getAttribute("data-up").split(":")[1], -1); }; });
+      body.querySelectorAll('[data-dn^="' + plan + ':"]').forEach(function (b) {
+        b.onclick = function () { mv(plan, +b.getAttribute("data-dn").split(":")[1], 1); }; });
+      body.querySelectorAll('[data-rm^="' + plan + ':"]').forEach(function (b) {
+        b.onclick = function () { J.chains[plan].splice(+b.getAttribute("data-rm").split(":")[1], 1); paint(body); }; });
+      var ab = body.querySelector('[data-addm="' + plan + '"]');
+      if (ab) ab.onclick = function () {
+        var sel = body.querySelector('[data-addsel="' + plan + '"]');
+        if (sel && sel.value) { J.chains[plan].push(sel.value); paint(body); } };
+      var sb = body.querySelector('[data-save="' + plan + '"]');
+      if (sb) sb.onclick = function () {
+        pf("/api/admin/providers/chains", { method: "POST", body: JSON.stringify({ plan: plan, models: J.chains[plan] }) })
+          .then(function (r) { toast(r.ok ? (plan + " chain saved ✓ — live on next message") : (r.error || "save failed")); }); };
+    });
+  }
+  function boot() {
+    var btns = Array.prototype.slice.call(document.querySelectorAll("button")), anchor = null;
+    for (var i = 0; i < btns.length; i++) if ((btns[i].textContent || "").trim() === "Models & Brain") { anchor = btns[i]; break; }
+    if (!anchor || document.getElementById("pv-tab")) return !!anchor;
+    var b = document.createElement("button");
+    b.id = "pv-tab"; b.textContent = "Providers"; b.className = anchor.className;
+    b.onclick = render;
+    anchor.parentNode.insertBefore(b, anchor.nextSibling);
+    return true;
+  }
+  var iv = setInterval(function () { if (boot()) clearInterval(iv); }, 1200);
+})();
