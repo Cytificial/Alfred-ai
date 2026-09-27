@@ -9137,3 +9137,49 @@ try { /* v163proc: native thinking card */
       (j&&j.ok) ? "Alfred online — brain "+(j.brain||"ready")+" ✓" : "Alfred waking up…";
   }).catch(function(){ document.getElementById("s224-health").textContent="Offline"; });
 })();
+
+/* ===== v227: Admin card (visible only to admins) ===== */
+(function () {
+  var view = document.getElementById("view-settings");
+  if (!view || view.dataset.admin227) return;
+  view.dataset.admin227 = "1";
+  function tok(){ try { return localStorage.getItem("alfred_token") || ""; } catch(e){ return ""; } }
+  function call(p, o){ return fetch(p, Object.assign({ credentials:"include",
+    headers:{ "Content-Type":"application/json", "X-Alfred-Token":tok() } }, o||{})).then(function(r){ return r.json(); }); }
+  call("/api/admin/overview").then(function (j) {
+    if (!j || !j.ok) return;                            /* non-admins: card never appears */
+    var wrap = view.querySelector("div"); if (!wrap) return;
+    var card = document.createElement("div");
+    card.style.cssText = "background:rgba(255,255,255,.05);border:1px solid rgba(255,80,80,.25);border-radius:16px;padding:16px;margin-bottom:14px";
+    function row(u){
+      var r = document.createElement("div");
+      r.style.cssText = "display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07)";
+      var sel = document.createElement("select");
+      sel.style.cssText = "background:rgba(0,0,0,.3);color:#e8f2ff;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:4px 6px;font:12px system-ui";
+      ["Free","Pro","Ultra"].forEach(function(p){
+        var o=document.createElement("option"); o.value=p; o.textContent=p; if(p===u.plan)o.selected=true; sel.appendChild(o); });
+      sel.onchange = function(){ call("/api/admin/users/plan",{method:"POST",body:JSON.stringify({email:u.email,plan:sel.value})})
+        .then(function(x){ sel.style.outline = x.ok ? "1px solid #5fe8b0" : "1px solid #ff6b6b"; setTimeout(function(){sel.style.outline="";},1200); }); };
+      var del = document.createElement("button");
+      del.type="button"; del.textContent="delete";
+      del.style.cssText = "margin-left:auto;background:transparent;color:#ff6b6b;border:1px solid rgba(255,107,107,.4);border-radius:8px;padding:4px 10px;font:12px system-ui";
+      var armed = 0;
+      del.onclick = function(){
+        if (!armed) { armed=1; del.textContent="sure?"; del.style.background="rgba(255,107,107,.15)";
+          setTimeout(function(){ armed=0; del.textContent="delete"; del.style.background="transparent"; }, 3000); return; }
+        call("/api/admin/users/delete",{method:"POST",body:JSON.stringify({email:u.email})})
+          .then(function(x){ if(x.ok){ r.remove(); } else { del.textContent=x.error||"fail"; } }); };
+      var em = document.createElement("span");
+      em.style.cssText = "font:13px system-ui;color:#e8f2ff;overflow:hidden;text-overflow:ellipsis";
+      em.textContent = u.email;
+      r.appendChild(em); r.appendChild(sel); r.appendChild(del);
+      return r;
+    }
+    var head = document.createElement("div");
+    head.style.cssText = "font-size:11px;letter-spacing:.12em;opacity:.6;margin-bottom:10px";
+    head.textContent = "ADMIN — " + (j.users||[]).length + " USERS";
+    card.appendChild(head);
+    (j.users||[]).forEach(function(u){ card.appendChild(row(u)); });
+    wrap.appendChild(card);
+  }).catch(function(){});
+})();
