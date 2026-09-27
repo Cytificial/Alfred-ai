@@ -14,6 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(HERE, "alfred.db")
 CONFIG = os.path.join(HERE, "brain_config.json")
+_IMG = {"list": []}  # v237.1: current-turn images (handlers set, builders read)
 
 def chain_for(cfg, plan):  # v233: per-plan model chains from providers.json
     try:
@@ -86,6 +87,11 @@ def gemini(model, key, system, turns):
           urllib.parse.quote(model, safe="") + ":generateContent?" + \
           urllib.parse.urlencode({"key": key})
     contents = [{"role": role, "parts": [{"text": text}]} for role, text in turns]
+    if _IMG["list"]:
+        try:
+            for _im in _IMG["list"][-2:]:
+                contents[-1]["parts"].append({"inline_data": {"mime_type": _im.get("mime","image/jpeg"), "data": _im["data"]}})
+        except Exception: pass
     payload = {
         "systemInstruction": {"parts": [{"text": system}]},
         "contents": contents,
@@ -263,6 +269,8 @@ class Handler(BaseHTTPRequestHandler):
         cfg = config()
         key = api_key(cfg)
         _pl, _pc = self.plan_info(user, cfg)
+        try: _IMG["list"] = [x for x in (data.get("images") or []) if isinstance(x, dict) and x.get("data")][-2:]
+        except Exception: _IMG["list"] = []
         chain = chain_for(cfg, _pl)
         if not key or not chain:
             self.json_out(503, {"ok": False,
@@ -411,6 +419,11 @@ def _v130_install():
               urllib.parse.quote(model, safe="") + ":generateContent?" + \
               urllib.parse.urlencode({"key": key})
         contents = [{"role": role, "parts": [{"text": text}]} for role, text in turns]
+        if _IMG["list"]:
+            try:
+                for _im in _IMG["list"][-2:]:
+                    contents[-1]["parts"].append({"inline_data": {"mime_type": _im.get("mime","image/jpeg"), "data": _im["data"]}})
+            except Exception: pass
         payload = {"systemInstruction": {"parts": [{"text": system}]}, "contents": contents,
                    "generationConfig": {"temperature": 0.8, "maxOutputTokens": GEM_MAXTOK}}
         req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
@@ -441,6 +454,8 @@ def _v130_install():
             handler.json_out(501, {"ok": False, "error": "Streaming disabled."}); return
         key = api_key(cfg)
         _pl2, _pc2 = handler.plan_info(user, cfg)
+        try: _IMG["list"] = [x for x in (data.get("images") or []) if isinstance(x, dict) and x.get("data")][-2:]
+        except Exception: _IMG["list"] = []
         chain = chain_for(cfg, _pl2)
         if not key or not chain:
             handler.json_out(503, {"ok": False, "error": "No engine key configured yet."}); return
@@ -508,6 +523,11 @@ def _v130_install():
                        urllib.parse.quote(model, safe="") +
                        ":streamGenerateContent?alt=sse&" + urllib.parse.urlencode({"key": key}))
                 contents = [{"role": role, "parts": [{"text": text}]} for role, text in turns]
+                if _IMG["list"]:
+                    try:
+                        for _im in _IMG["list"][-2:]:
+                            contents[-1]["parts"].append({"inline_data": {"mime_type": _im.get("mime","image/jpeg"), "data": _im["data"]}})
+                    except Exception: pass
                 payload = {"systemInstruction": {"parts": [{"text": persona(user.get("name"))}]},
                            "contents": contents,
                            "generationConfig": {"temperature": 0.8, "maxOutputTokens": GEM_MAXTOK}}
