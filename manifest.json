@@ -1,0 +1,12 @@
+{
+  "name": "ALFRED AI",
+  "short_name": "Alfred",
+  "start_url": "/#/chat",
+  "display": "standalone",
+  "background_color": "#0a1220",
+  "theme_color": "#0a1220",
+  "description": "Alfred — an AI that turns chats into worlds",
+  "icons": [
+    { "src": "/assets/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
