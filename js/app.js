@@ -9347,3 +9347,74 @@ try { /* v163proc: native thinking card */
   }
   var iv = setInterval(function () { if (boot()) clearInterval(iv); }, 1200);
 })();
+
+/* ===== v237: uploads — attach/image buttons live, preview strip, vision ===== */
+(function () {
+  if (window.__v237) return; window.__v237 = "1";
+  var pending = [];
+  function toast(m){ var t=document.createElement("div"); t.className="ex-toast"; t.textContent=m;
+    document.body.appendChild(t); setTimeout(function(){t.classList.add("bye");},2200); setTimeout(function(){t.remove();},2800); }
+  function shrink(url, cb) {
+    var im = new Image();
+    im.onload = function () {
+      var s = Math.min(1, 1024 / Math.max(im.width, im.height));
+      var c = document.createElement("canvas"); c.width = Math.round(im.width*s); c.height = Math.round(im.height*s);
+      c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+      var d = c.toDataURL("image/jpeg", .85);
+      cb({ mime: "image/jpeg", data: d.split(",")[1], url: d });
+    }; im.src = url;
+  }
+  function strip() {
+    var el = document.getElementById("v237strip"); if (!el) return;
+    el.style.display = pending.length ? "flex" : "none"; el.innerHTML = "";
+    pending.forEach(function (p, i) {
+      var w = document.createElement("div"); w.style.cssText = "position:relative;flex:0 0 auto";
+      if (p.url) { var im = document.createElement("img"); im.src = p.url;
+        im.style.cssText = "height:52px;border-radius:10px;border:1px solid rgba(255,255,255,.25)"; w.appendChild(im); }
+      else { var t = document.createElement("span"); t.textContent = "📄 " + (p.name || "file");
+        t.style.cssText = "font:12px system-ui;color:#e8f2ff;background:rgba(0,0,0,.35);padding:14px 10px;border-radius:10px;display:inline-block"; w.appendChild(t); }
+      var x = document.createElement("button"); x.type = "button"; x.textContent = "✕";
+      x.style.cssText = "position:absolute;top:-6px;right:-6px;background:#ff6b6b;color:#fff;border:0;border-radius:50%;width:20px;height:20px;font:11px/20px system-ui";
+      x.onclick = function () { pending.splice(i, 1); strip(); }; w.appendChild(x); el.appendChild(w);
+    });
+  }
+  function wire() {
+    var form = document.getElementById("composer");
+    if (!form || form.dataset.v237) return; form.dataset.v237 = "1";
+    var st = document.createElement("div"); st.id = "v237strip";
+    st.style.cssText = "display:none;gap:8px;padding:6px 12px;overflow-x:auto"; form.insertBefore(st, form.firstChild);
+    function mk(accept) { var i = document.createElement("input"); i.type = "file"; i.accept = accept;
+      i.style.display = "none"; form.appendChild(i); return i; }
+    var iAny = mk("image/*,application/pdf,text/plain"), iImg = mk("image/*");
+    var bA = form.querySelector('.c-ic[aria-label="Attach"]'), bI = form.querySelector('.c-ic[aria-label="Image"]');
+    if (bA) bA.onclick = function () { iAny.click(); };
+    if (bI) bI.onclick = function () { iImg.click(); };
+    function add(files) {
+      Array.prototype.slice.call(files).slice(0, 2).forEach(function (f) {
+        if (f.size > 8 * 1024 * 1024) return toast("Too big — max 8MB");
+        if (!/^(image\/|application\/pdf|text\/plain)/.test(f.type)) return toast("Images, PDF and txt for now");
+        var r = new FileReader();
+        r.onload = function () {
+          if (/^image\//.test(f.type)) shrink(r.result, function (p) { pending.push(p); strip(); });
+          else { pending.push({ mime: f.type, data: String(r.result).split(",")[1], name: f.name }); strip(); }
+        }; r.readAsDataURL(f);
+      });
+    }
+    iAny.onchange = function () { add(iAny.files); iAny.value = ""; };
+    iImg.onchange = function () { add(iImg.files); iImg.value = ""; };
+    var of = window.fetch;
+    window.fetch = function (u, o) {
+      try {
+        var s = String(u || "");
+        if (pending.length && o && o.method === "POST" && s.indexOf("/api/chat") > -1 &&
+            typeof o.body === "string" && o.body.indexOf('"images"') === -1) {
+          var b = JSON.parse(o.body); b.images = pending.map(function (p) { return { mime: p.mime, data: p.data }; });
+          o = Object.assign({}, o, { body: JSON.stringify(b) });
+          pending = []; strip();
+        }
+      } catch (e) {}
+      return of.apply(this, arguments);
+    };
+  }
+  setInterval(function () { try { wire(); } catch (e) {} }, 900);
+})();
