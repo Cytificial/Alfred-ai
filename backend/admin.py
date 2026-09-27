@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 """ALFRED admin API - v216. Wired into server.py after the auth block."""
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import providers as _prov
 import time as _t  # v228.1: stats needs time
 import json, os, sqlite3, time, urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -180,6 +183,28 @@ def maybe_handle(handler, method):
         n = db.execute("DELETE FROM sessions WHERE user_id=?", (r[0],)).rowcount
         db.commit(); db.close()
         return _send(handler, 200, {"ok": True, "revoked": n})
+
+    if method == "GET" and p == "/api/admin/providers":
+        return _send(handler, 200, _prov.public())
+
+    if method == "POST" and p == "/api/admin/providers/add":
+        b = _body(handler)
+        try: _prov.add(b.get("id"), b.get("type"), b.get("base_url"), b.get("api_key"))
+        except Exception as e: return _send(handler, 400, {"ok": False, "error": str(e)[:120]})
+        return _send(handler, 200, {"ok": True})
+
+    if method == "POST" and p == "/api/admin/providers/scan":
+        b = _body(handler)
+        try: ms = _prov.scan(str(b.get("id", "")))
+        except Exception as e: return _send(handler, 200, {"ok": False, "error": str(e)[:120]})
+        return _send(handler, 200, {"ok": True, "count": len(ms), "models": ms[:80]})
+
+    if method == "POST" and p == "/api/admin/providers/chains":
+        b = _body(handler); plan = str(b.get("plan", "")).capitalize()
+        if plan not in ("Free", "Pro", "Ultra") or not isinstance(b.get("models"), list):
+            return _send(handler, 400, {"ok": False, "error": "need plan + models[]"})
+        _prov.chains(plan, b["models"])
+        return _send(handler, 200, {"ok": True, "plan": plan})
 
     if method == "GET" and p == "/api/admin/brain":
         c = _cfg(); c["gemini_key"] = "***set***" if c.get("gemini_key") else ""

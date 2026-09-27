@@ -1,0 +1,16 @@
+{
+ "providers": [
+  {
+   "id": "google",
+   "type": "google",
+   "base_url": "https://generativelanguage.googleapis.com/v1beta",
+   "enabled": true
+  }
+ ],
+ "chains": {
+  "Free": [],
+  "Pro": [],
+  "Ultra": []
+ },
+ "tiers": {}
+}
