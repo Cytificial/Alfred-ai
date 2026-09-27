@@ -9473,21 +9473,39 @@ try { /* v163proc: native thinking card */
   }).catch(function () {});
 })();
 
-/* ===== v240: single Admin row (dedupe, deepest wins) ===== */
+/* v240 dedupe retired in v241 */
+
+/* ===== v241: admin row fixed (visible wins), live plan sync for level badges ===== */
 (function () {
-  if (window.__v240) return; window.__v240 = "1";
-  function depth(e) { var d = 0; while (e && e !== document.body) { d++; e = e.parentElement; } return d; }
-  function dedupe() {
+  if (window.__v241) return; window.__v241 = "1";
+  function vis(e) { return !!(e && e.offsetParent !== null); }
+  function fix() {
     var els = Array.prototype.slice.call(document.querySelectorAll("body *")).filter(function (e) {
-      return e.children.length <= 2 && (e.textContent || "").trim() === "Admin";
-    });
-    if (!els.length) return;
-    els.sort(function (a, b) { return depth(b) - depth(a); });
-    var kept = els[0];
-    kept.style.display = "";
-    kept.onclick = function () { location.hash = "#/admin"; };
-    els.slice(1).forEach(function (e) { if (!kept.contains(e)) e.style.display = "none"; });
+      return e.children.length <= 2 && (e.textContent || "").trim() === "Admin"; });
+    var shown = els.filter(vis);
+    shown.forEach(function (e, i) { e.style.display = i ? "none" : ""; if (!i) e.onclick = function () { location.hash = "#/admin"; }; });
+    if (!shown.length) {
+      var set = Array.prototype.slice.call(document.querySelectorAll("body *")).filter(function (e) {
+        return vis(e) && e.children.length <= 2 && (e.textContent || "").trim() === "Settings"; })[0];
+      if (set) { var row = set.cloneNode(true);
+        Array.prototype.forEach.call(row.querySelectorAll("*"), function (x) { if (!x.children.length) x.textContent = "Admin"; });
+        row.onclick = function () { location.hash = "#/admin"; };
+        set.parentNode.insertBefore(row, set.nextSibling); }
+    }
   }
-  [1200, 3200, 6000].forEach(function (t) { setTimeout(dedupe, t); });
-  addEventListener("hashchange", function () { setTimeout(dedupe, 600); });
+  function sync() {
+    fetch("/api/auth/me", { credentials: "include" }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || !j.ok || !j.user) return;
+      var plan = j.user.plan || "Free", marks = ["Free", "Pro", "Ultra"];
+      document.querySelectorAll('[class*="tint-"],[class*="lvldisc-"],[class*="lvl105-t-"]').forEach(function (e) {
+        var cls = e.className.split(/\s+/).filter(function (c) {
+          return !marks.some(function (m) { return c.indexOf(m) > -1; }); });
+        var tag = cls.filter(function (c) { return /^(tint|lvldisc|lvl105-t)-/.test(c); })[0];
+        if (tag) { cls.push(tag.split("-")[0] + "-" + plan); e.className = cls.join(" "); }
+      });
+    }).catch(function () {});
+  }
+  [1500, 4000].forEach(function (t) { setTimeout(fix, t); });
+  addEventListener("hashchange", function () { setTimeout(fix, 700); });
+  setInterval(sync, 6000); sync();
 })();
