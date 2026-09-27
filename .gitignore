@@ -30,3 +30,4 @@ backend/oauth_config.json.*
 backend/brain_config.json
 backend/engine_state.json
 *.bak*
+*.pre-v*

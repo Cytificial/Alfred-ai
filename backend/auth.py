@@ -642,7 +642,7 @@ def _alfred_guard3_install():
     globals()["maybe_handle"] = guarded
     print("guard3: maybe_handle wrapped — lockout, honeypot, password policy, audit ARMED", flush=True)
 
-_alfred_guard3_install()
+# v226: second guard3 install retired (double-wrap fix)
 
 # ===== v128: recovery + security center =====
 def _alfred_v128_install():
