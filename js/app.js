@@ -76,7 +76,7 @@ try { window.__v155b = "1"; } catch (e) {}
     }
     if (instant || shown) { land(); return; }
     var poll = setInterval(function () {
-      var barDone = window.__v207barFin && (Date.now() - T0 >= 1400);
+      var barDone = window.__v207barFin && (Date.now() - T0 >= 400);
       var tooLong = Date.now() - T0 > 3000;
       if (seq !== routeSeq) { clearInterval(poll); return; }
       if (barDone || tooLong) {
