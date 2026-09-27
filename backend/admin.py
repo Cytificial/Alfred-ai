@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """ALFRED admin API - v216. Wired into server.py after the auth block."""
+import time as _t  # v228.1: stats needs time
 import json, os, sqlite3, time, urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 DBP  = os.path.join(HERE, "alfred.db")
