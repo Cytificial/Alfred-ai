@@ -27,3 +27,4 @@ backend/engine.lock
 backend/.doctor.lock
 backend/.auth_target
 backend/oauth_config.json.*
+backend/brain_config.json
