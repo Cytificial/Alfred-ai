@@ -9186,11 +9186,11 @@ try { /* v163proc: native thinking card */
 
 /* v236: settings admin console retired - one admin surface: the dashboard */
 
-/* ===== v229: chat reliability — error bubble + one-tap retry ===== */
+/* ===== v229.2: reliability - real failures only (5xx/network), auth 401 silent ===== */
 (function () {
   if (window.__v229) return; window.__v229 = "1";
   var of = window.fetch, last = null, el = null, tmr = null;
-  function bubble(msg){
+  function bubble(msg) {
     if (!el) {
       el = document.createElement("div");
       el.style.cssText = "position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:999;"
@@ -9199,34 +9199,31 @@ try { /* v163proc: native thinking card */
       var txt = document.createElement("span"), btn = document.createElement("button");
       txt.id = "v229msg"; btn.type = "button"; btn.textContent = "Retry";
       btn.style.cssText = "background:#ff6b6b;color:#fff;border:0;border-radius:9px;padding:6px 14px;font:600 13px system-ui";
-      btn.onclick = function(){
+      btn.onclick = function () {
         if (!last) return;
-        btn.textContent = "…"; btn.disabled = true;
-        of(last.u, last.o).then(function(){
-          el.style.display = "none"; btn.textContent = "Retry"; btn.disabled = false;
-        }).catch(function(){ btn.textContent = "Retry"; btn.disabled = false; });
+        btn.textContent = "..."; btn.disabled = true;
+        of(last.u, last.o).then(function () { el.style.display = "none"; btn.textContent = "Retry"; btn.disabled = false; })
+          .catch(function () { btn.textContent = "Retry"; btn.disabled = false; });
       };
       el.appendChild(txt); el.appendChild(btn); document.body.appendChild(el);
     }
-    document.getElementById("v229msg").textContent = "Alfred couldn't answer — " + msg;
+    document.getElementById("v229msg").textContent = "Alfred couldn't answer - " + msg;
     el.style.display = "flex";
-    clearTimeout(tmr); tmr = setTimeout(function(){ if (el) el.style.display = "none"; }, 10000);
+    clearTimeout(tmr); tmr = setTimeout(function () { if (el) el.style.display = "none"; }, 8000);
   }
   window.fetch = function (u, o) {
-    var p = of.apply(this, arguments), isChat = false;
-    try { var s = String(u); isChat = s.indexOf("/api/chat") > -1; } catch (e) {}
-    if (!isChat) return p;
-    if (o && o.method === "POST") {
-      try { last = { u: u, o: { method:"POST", headers:o.headers, body:o.body, credentials:o.credentials||"include" } }; } catch (e) {}
-    }
+    var s = ""; try { s = String(u); } catch (e) {}
+    var p = of.apply(this, arguments);
+    if (s.indexOf("/api/chat") === -1 || s.indexOf("/api/auth") > -1 || !o || o.method !== "POST") return p;
+    try { last = { u: u, o: { method: "POST", headers: o.headers, body: o.body, credentials: o.credentials || "include" } }; } catch (e) {}
     return p.then(function (r) {
-      if (!r.ok) bubble("server said " + r.status);
+      if (r.status >= 500) bubble("server trouble (" + r.status + ")");
+      else if (r.status === 429) bubble("slow down - a moment, then Retry");
       return r;
-    }).catch(function (e) {
-      bubble("connection failed"); throw e;
-    });
+    }).catch(function (e) { bubble("connection failed"); throw e; });
   };
 })();
+
 
 /* ===== v235: Providers tab — registry, rescan, chain editors ===== */
 (function () {
@@ -9417,4 +9414,61 @@ try { /* v163proc: native thinking card */
     };
   }
   setInterval(function () { try { wire(); } catch (e) {} }, 900);
+})();
+
+/* ===== v239: admin row restored, dashboard user controls, profile fill ===== */
+(function () {
+  if (window.__v239) return; window.__v239 = "1";
+  function pf(p, o) { o = o || {}; o.credentials = "include";
+    o.headers = Object.assign({ "X-Alfred-Token": localStorage.getItem("alfred_token") || "" }, o.headers || {});
+    return fetch(p, o).then(function (r) { return r.json(); }); }
+  pf("/api/admin/overview").then(function (j) {
+    if (!j || !j.ok) return;
+    var rows = Array.prototype.slice.call(document.querySelectorAll("aside *, .sidebar *, #drawer *, nav *"))
+      .filter(function (e) { return e.children.length <= 2 && /^(Settings|Admin)$/i.test((e.textContent || "").trim()); });
+    var set = rows.filter(function (e) { return /^Settings$/i.test((e.textContent || "").trim()); })[0];
+    var row = rows.filter(function (e) { return /^Admin$/i.test((e.textContent || "").trim()); })[0];
+    if (!row && set) { row = set.cloneNode(true); set.parentNode.insertBefore(row, set.nextSibling); }
+    if (!row) return;
+    row.id = "v239-adminrow"; row.style.display = "";
+    Array.prototype.forEach.call(row.querySelectorAll("*"), function (e) {
+      if (!e.children.length && /Settings/i.test(e.textContent || "")) e.textContent = "Admin";
+    });
+    if (!row.children.length) row.textContent = "Admin";
+    row.onclick = function () { location.hash = "#/admin"; };
+  }).catch(function () {});
+  var body = document.getElementById("adm-body");
+  if (body && !body.dataset.v239) {
+    body.dataset.v239 = "1"; var t = null;
+    function aug() {
+      body.querySelectorAll("tr").forEach(function (tr) {
+        if (tr.dataset.v239r || !tr.querySelector("select")) return;
+        var sv = tr.querySelector("button[data-em]"); if (!sv) return;
+        tr.dataset.v239r = "1"; var email = sv.getAttribute("data-em");
+        var td = document.createElement("td"); td.style.whiteSpace = "nowrap";
+        [["logout", "#ffb46b", function (b) {
+            pf("/api/admin/users/revoke", { method: "POST", body: JSON.stringify({ email: email }) })
+              .then(function (x) { b.textContent = x.ok ? "out ✓" : "fail"; setTimeout(function () { b.textContent = "logout"; }, 1400); }); }],
+         ["delete", "#ff6b6b", function (b) {
+            if (b.textContent !== "sure?") { b.textContent = "sure?"; setTimeout(function () { b.textContent = "delete"; }, 2500); return; }
+            pf("/api/admin/users/delete", { method: "POST", body: JSON.stringify({ email: email }) })
+              .then(function (x) { b.textContent = x.ok ? "gone ✓" : "fail"; }); }]].forEach(function (c) {
+          var b = document.createElement("button"); b.type = "button"; b.textContent = c[0];
+          b.style.cssText = "background:transparent;color:" + c[1] + ";border:1px solid " + c[1] + "66;border-radius:8px;padding:3px 9px;font:12px system-ui;margin-left:6px";
+          b.onclick = function () { c[2](b); }; td.appendChild(b);
+        });
+        tr.appendChild(td);
+      });
+    }
+    new MutationObserver(function () { clearTimeout(t); t = setTimeout(aug, 150); }).observe(body, { childList: true, subtree: true });
+    aug();
+  }
+  pf("/api/auth/me").then(function (j) {
+    if (!j || !j.ok || !j.user) return;
+    var inp = document.querySelector('#view-settings input[placeholder*="call you"]');
+    if (inp) inp.value = j.user.name || "";
+    Array.prototype.forEach.call(document.querySelectorAll("#view-settings *"), function (e) {
+      if (!e.children.length && /Not signed in/i.test(e.textContent || "")) e.textContent = "Signed in as " + (j.user.email || "");
+    });
+  }).catch(function () {});
 })();
