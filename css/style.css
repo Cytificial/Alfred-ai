@@ -3543,3 +3543,17 @@ html.rm *{ animation-duration:.001s !important; transition-duration:.001s !impor
   animation:v130pulse 1.1s ease-in-out infinite;
 }
 @keyframes v130pulse{ 0%,100%{ opacity:.9; transform:scale(1);} 50%{ opacity:.5; transform:scale(.8);} }
+/* ===== v236: fit every screen ===== */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+img, svg, video, canvas { max-width: 100%; height: auto; }
+.adm-t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+button, .adm-btn, .set-row, .faq-q { max-width: 100%; overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+  .adm-card, .set-card { padding: 12px !important; }
+  h1, h2 { font-size: clamp(20px, 6vw, 28px) !important; }
+  select, textarea, input { font-size: 16px !important; }
+}
+@media (min-width: 1024px) {
+  .set-wrap { max-width: 860px; margin: 0 auto; }
+}
