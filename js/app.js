@@ -9183,3 +9183,86 @@ try { /* v163proc: native thinking card */
     wrap.appendChild(card);
   }).catch(function(){});
 })();
+
+/* ===== v228: Admin Console — stats, sessions, brain config ===== */
+(function () {
+  var view = document.getElementById("view-settings");
+  if (!view || view.dataset.console228) return;
+  view.dataset.console228 = "1";
+  function tok(){ try { return localStorage.getItem("alfred_token") || ""; } catch(e){ return ""; } }
+  function call(p, o){ return fetch(p, Object.assign({ credentials:"include",
+    headers:{ "Content-Type":"application/json", "X-Alfred-Token":tok() } }, o||{})).then(function(r){ return r.json(); }); }
+  function tile(v, l){ var d=document.createElement("div");
+    d.style.cssText="flex:1;background:rgba(0,0,0,.22);border-radius:12px;padding:10px;text-align:center;min-width:70px";
+    d.innerHTML='<b style="font-size:20px;color:#9fd8ff">'+v+'</b><div style="font-size:10px;opacity:.6;margin-top:2px">'+l+'</div>'; return d; }
+  call("/api/admin/overview").then(function (j) {
+    if (!j || !j.ok) return;
+    var wrap = view.querySelector("div"); if (!wrap) return;
+    var old = Array.prototype.filter.call(wrap.children, function(c){
+      var h = c.firstChild && c.firstChild.textContent || ""; return h.indexOf("ADMIN — ") === 0; });
+    old.forEach(function(c){ c.remove(); });              /* supersede v227 card */
+    call("/api/admin/stats").then(function (st) {
+      var card = document.createElement("div");
+      card.style.cssText = "background:rgba(255,255,255,.05);border:1px solid rgba(159,216,255,.3);border-radius:16px;padding:16px;margin-bottom:14px";
+      var head = document.createElement("div");
+      head.style.cssText = "font-size:11px;letter-spacing:.12em;opacity:.6;margin-bottom:10px";
+      head.textContent = "ADMIN CONSOLE";
+      card.appendChild(head);
+      var t = document.createElement("div");
+      t.style.cssText = "display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap";
+      t.appendChild(tile(st.users_total, "users"));
+      t.appendChild(tile("+" + st.users_new_7d, "new 7d"));
+      t.appendChild(tile(st.active_sessions, "sessions"));
+      t.appendChild(tile(Object.keys(st.plans||{}).map(function(k){return k[0]+":"+st.plans[k];}).join(" "), "plans"));
+      var e = st.engine || {};
+      t.appendChild(tile(e.ok ? "UP" : "DOWN", "engine"));
+      card.appendChild(t);
+      var act = document.createElement("div");
+      act.style.cssText = "font-size:11px;opacity:.55;margin-bottom:12px";
+      var a = st.auth_24h || {};
+      act.textContent = "24h activity — " + Object.keys(a).map(function(k){ return k+" "+a[k]; }).join(" · ");
+      card.appendChild(act);
+      (j.users||[]).forEach(function(u){
+        var r = document.createElement("div");
+        r.style.cssText = "display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.07)";
+        var em = document.createElement("span");
+        em.style.cssText = "font:13px system-ui;color:#e8f2ff;flex:1;overflow:hidden;text-overflow:ellipsis";
+        em.textContent = u.email + " · " + u.plan;
+        var sel = document.createElement("select");
+        sel.style.cssText = "background:rgba(0,0,0,.3);color:#e8f2ff;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:4px 6px;font:12px system-ui";
+        ["Free","Pro","Ultra"].forEach(function(p){
+          var o=document.createElement("option"); o.value=p; o.textContent=p; if(p===u.plan)o.selected=true; sel.appendChild(o); });
+        sel.onchange = function(){ call("/api/admin/users/plan",{method:"POST",body:JSON.stringify({email:u.email,plan:sel.value})})
+          .then(function(x){ em.textContent = u.email + " · " + (x.ok?sel.value:u.plan); }); };
+        var rv = document.createElement("button"); rv.type="button"; rv.textContent="logout";
+        rv.style.cssText = "background:transparent;color:#ffb46b;border:1px solid rgba(255,180,107,.4);border-radius:8px;padding:4px 8px;font:12px system-ui";
+        rv.onclick = function(){ call("/api/admin/users/revoke",{method:"POST",body:JSON.stringify({email:u.email})})
+          .then(function(x){ rv.textContent = x.ok ? "out ✓" : "fail"; setTimeout(function(){ rv.textContent="logout"; },1500); }); };
+        var del = document.createElement("button"); del.type="button"; del.textContent="delete";
+        del.style.cssText = "background:transparent;color:#ff6b6b;border:1px solid rgba(255,107,107,.4);border-radius:8px;padding:4px 8px;font:12px system-ui";
+        var armed = 0;
+        del.onclick = function(){
+          if (!armed) { armed=1; del.textContent="sure?"; del.style.background="rgba(255,107,107,.15)";
+            setTimeout(function(){ armed=0; del.textContent="delete"; del.style.background="transparent"; },3000); return; }
+          call("/api/admin/users/delete",{method:"POST",body:JSON.stringify({email:u.email})})
+            .then(function(x){ if(x.ok){ r.remove(); } else { del.textContent = x.error || "fail"; } }); };
+        r.appendChild(em); r.appendChild(sel); r.appendChild(rv); r.appendChild(del);
+        card.appendChild(r);
+      });
+      var mindiv = document.createElement("div");
+      mindiv.style.cssText = "margin-top:12px;font:12px system-ui;color:#cfe8ff";
+      var mc = st.brain && st.brain.minute_limit || 6;
+      mindiv.innerHTML = 'minute limit: <b id="a228-mc">'+mc+'</b> ';
+      var mb = document.createElement("button"); mb.type="button"; mb.textContent="± edit";
+      mb.style.cssText = "background:rgba(0,0,0,.3);color:#9fd8ff;border:1px solid rgba(159,216,255,.3);border-radius:8px;padding:3px 8px;font:12px system-ui";
+      mb.onclick = function(){
+        var v = prompt("Requests per minute (1-60):", String(mc));
+        if (!v) return; v = Math.max(1, Math.min(60, parseInt(v,10)||6));
+        call("/api/admin/brain",{method:"POST",body:JSON.stringify({minute_limit:v})})
+          .then(function(x){ document.getElementById("a228-mc").textContent = x.ok ? v : mc; }); };
+      mindiv.appendChild(mb);
+      card.appendChild(mindiv);
+      wrap.appendChild(card);
+    });
+  }).catch(function(){});
+})();

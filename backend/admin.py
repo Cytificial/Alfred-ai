@@ -154,6 +154,32 @@ def maybe_handle(handler, method):
         db.commit(); db.close()
         return _send(handler, 200, {"ok": n > 0, "deleted": email})
 
+    if method == "GET" and p == "/api/admin/stats":
+        db = sqlite3.connect(DBP); db.row_factory = sqlite3.Row
+        wk = _t.time() - 7*86400; dy = _t.time() - 86400
+        total = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        new7  = db.execute("SELECT COUNT(*) FROM users WHERE created>?", (wk,)).fetchone()[0]
+        plans = {r["plan"]: r["n"] for r in db.execute("SELECT plan, COUNT(*) n FROM users GROUP BY plan")}
+        sess  = db.execute("SELECT COUNT(*) FROM sessions WHERE expires>?", (_t.time(),)).fetchone()[0]
+        acts  = {r["reason"]: r["n"] for r in db.execute("SELECT reason, COUNT(*) n FROM auth_log WHERE ts>? GROUP BY reason", (dy,))}
+        db.close()
+        return _send(handler, 200, {"ok": True, "users_total": total, "users_new_7d": new7,
+                    "plans": plans, "active_sessions": sess, "auth_24h": acts,
+                    "engine": _engine(), "brain": _cfg()})
+
+    if method == "POST" and p == "/api/admin/users/revoke":
+        b = _body(handler)
+        email = str(b.get("email", "")).strip().lower()
+        if not email:
+            return _send(handler, 400, {"ok": False, "error": "need email"})
+        db = sqlite3.connect(DBP)
+        r = db.execute("SELECT id FROM users WHERE lower(email)=?", (email,)).fetchone()
+        if not r:
+            db.close(); return _send(handler, 404, {"ok": False, "error": "no such user"})
+        n = db.execute("DELETE FROM sessions WHERE user_id=?", (r[0],)).rowcount
+        db.commit(); db.close()
+        return _send(handler, 200, {"ok": True, "revoked": n})
+
     if method == "GET" and p == "/api/admin/brain":
         c = _cfg(); c["gemini_key"] = "***set***" if c.get("gemini_key") else ""
         return _send(handler, 200, {"ok": True, "config": c, "engine": _engine()})
