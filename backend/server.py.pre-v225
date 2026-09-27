@@ -148,7 +148,7 @@ class H(SimpleHTTPRequestHandler):
                 open(tmp, "w").write(json.dumps(data[-60:]))
                 os.replace(tmp, fp)
             return self._json(200, item)
-        if self.path == "/api/chat":                     # the brain (Gemini)
+        if self.path == "/api/chat-v217b-retired":  # v217b: dead duplicate — frontend uses :8082 only                     # the brain (Gemini)
             n = int(self.headers.get("Content-Length", 0) or 0)
             body = json.loads(self.rfile.read(n) or b"{}")
             key = KEYS.get("GOOGLE_API_KEY")
@@ -194,12 +194,10 @@ try:
             print("[auth] wired into", _c.__name__)
 except Exception as _e:
     print("[auth] init failed:", _e)
-ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever()
-
-# ---- v216admin: dashboard API (runs before auth fallback) ----
+# ---- v216admin: dashboard API (must sit BEFORE serve_forever) ----
 try:
     import admin as _v216adm
-    def _v216wrap(_cls, _name, _meth):
+    def _v216admwrap(_cls, _name, _meth):
         _orig = getattr(_cls, _name, None)
         if _orig is None: return
         def _patched(self, *a, **k):
@@ -211,7 +209,9 @@ try:
         setattr(_cls, _name, _patched)
     for _c in [v for v in list(globals().values()) if isinstance(v, type)]:
         if hasattr(_c, "do_POST") and hasattr(_c, "do_GET"):
-            _v216wrap(_c, "do_GET", "GET"); _v216wrap(_c, "do_POST", "POST")
+            _v216admwrap(_c, "do_GET", "GET"); _v216admwrap(_c, "do_POST", "POST")
             print("[admin] wired into", _c.__name__)
 except Exception as _e:
     print("[admin] init failed:", _e)
+
+ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever()
