@@ -1,0 +1,42 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Alfred auth test</title>
+<h1>Alfred auth test</h1>
+<p>Requests omit cookies; nothing is saved on this page.</p>
+<form id="f">
+  <input id="email" type="email" placeholder="Email" required>
+  <input id="password" type="password" placeholder="Password" required>
+  <label><input id="remember" type="checkbox"> Remember me</label>
+  <button>Test login</button>
+</form>
+<pre id="out">Ready.</pre>
+<script>
+const out = document.getElementById("out");
+document.getElementById("f").addEventListener("submit", async e => {
+  e.preventDefault();
+  out.textContent = "Sending login request…";
+  try {
+    const r = await fetch("/api/auth/login", {
+      method: "POST", credentials: "omit", cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: document.getElementById("email").value.trim(),
+        password: document.getElementById("password").value,
+        remember: document.getElementById("remember").checked
+      })
+    });
+    const text = await r.text();
+    let data; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+    const lines = ["LOGIN HTTP: " + r.status, "LOGIN BODY: " + JSON.stringify(data, null, 2)];
+    const me0 = await fetch("/api/auth/me", { credentials: "omit", cache: "no-store" });
+    lines.push("/me without credentials: HTTP " + me0.status);
+    if (r.ok && data && data.token) {
+      const me = await fetch("/api/auth/me", { credentials: "omit", cache: "no-store",
+        headers: { "X-Alfred-Token": data.token } });
+      lines.push("/me with returned token: HTTP " + me.status);
+      lines.push("/me body: " + (await me.text()));
+    }
+    out.textContent = lines.join("\n");
+  } catch (err) { out.textContent = "REQUEST FAILED: " + err; }
+});
+</script>

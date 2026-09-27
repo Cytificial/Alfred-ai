@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+"""ALFRED admin API - v216. Wired into server.py after the auth block."""
+import json, os, sqlite3, time, urllib.request
+HERE = os.path.dirname(os.path.abspath(__file__))
+DBP  = os.path.join(HERE, "alfred.db")
+CFG  = os.path.join(HERE, "brain_config.json")
+ADMIN = "fred@test.com"
+PLANS = ("Free", "Pro", "Ultra")
+
+def _send(h, code, obj):
+    b = json.dumps(obj).encode()
+    h.send_response(code); h.send_header("Content-Type", "application/json")
+    h.send_header("Content-Length", str(len(b))); h.end_headers(); h.wfile.write(b)
+
+def _me(h):
+    tok = h.headers.get("X-Alfred-Token", "")
+    if not tok:
+        for part in (h.headers.get("Cookie", "") or "").split(";"):
+            if "=" in part and part.split("=", 1)[0].strip() in ("alfred_token", "token"):
+                tok = part.split("=", 1)[1].strip()
+    if not tok: return None
+    db = None
+    try:
+        db = sqlite3.connect(DBP)
+        cols = [r[1] for r in db.execute("PRAGMA table_info(sessions)")]
+        tcol = next((c for c in cols if "token" in c.lower() or c.lower() in ("key", "sess", "sid")), None)
+        if not tcol:
+            print("[admin] sessions cols:", cols, flush=True); return None
+        ucol = next((c for c in cols if c.lower() in ("user_id", "uid", "userid")), cols[0])
+        row = db.execute("SELECT %s FROM sessions WHERE %s=?" % (ucol, tcol), (tok,)).fetchone()
+        if not row: return None
+        ecol = next((c for c in cols if "exp" in c.lower()), None)
+        if ecol:
+            ev = db.execute("SELECT %s FROM sessions WHERE %s=?" % (ecol, tcol), (tok,)).fetchone()[0]
+            try:
+                ev = float(ev)
+                if ev < 1e12: ev *= 1000.0          # seconds -> ms
+                if ev < time.time() * 1000.0: return None
+            except Exception: pass
+        uc = [r[1] for r in db.execute("PRAGMA table_info(users)")]
+        e2 = next((c for c in uc if "email" in c.lower()), "email")
+        n2 = next((c for c in uc if "name" in c.lower()), "name")
+        p2 = next((c for c in uc if "plan" in c.lower()), "plan")
+        i2 = next((c for c in uc if c.lower() in ("id", "user_id")), "id")
+        return db.execute("SELECT %s,%s,%s FROM users WHERE %s=?" % (e2, n2, p2, i2), (row[0],)).fetchone()
+    except Exception as e:
+        print("[admin] _me:", str(e)[:140], flush=True)
+        return None
+    finally:
+        if db: db.close()
+
+def _body(h):
+    n = int(h.headers.get("Content-Length", 0) or 0)
+    try: return json.loads(h.rfile.read(n) or b"{}")
+    except Exception: return {}
+
+def _cfg():
+    try: return json.load(open(CFG))
+    except Exception: return {"chain": [], "daily_caps": {}, "minute_limit": 6, "context_messages": 12, "public_names": {}}
+
+def _engine():
+    try: return json.load(urllib.request.urlopen("http://127.0.0.1:8082/health", timeout=3))
+    except Exception as e: return {"ok": False, "error": str(e)[:80]}
+
+def maybe_handle(handler, method):
+    p = handler.path.split("?")[0]
+    if not p.startswith("/api/admin/"): return False
+    me = _me(handler)
+    if not me or (me[0] or "").lower() != ADMIN:
+        _send(handler, 403, {"ok": False, "error": "admin only"}); return True
+
+    if method == "GET" and p == "/api/admin/overview":
+        db = sqlite3.connect(DBP); db.row_factory = sqlite3.Row
+        users = [dict(r) for r in db.execute("SELECT id,email,name,plan FROM users ORDER BY id")]
+        logs  = [dict(r) for r in db.execute("SELECT ts,email,ok,reason FROM auth_log ORDER BY ts DESC LIMIT 30")]
+        db.close()
+        by = {}
+        for u in users: by[u["plan"]] = by.get(u["plan"], 0) + 1
+        return _send(handler, 200, {"ok": True, "users": users, "byPlan": by,
+                                    "logs": logs, "engine": _engine(), "brain": _cfg()})
+
+    if method == "POST" and p == "/api/admin/users/plan":
+        b = _body(handler)
+        plan = str(b.get("plan", "")).capitalize()
+        email = str(b.get("email", "")).strip().lower()
+        if plan not in PLANS or not email:
+            return _send(handler, 400, {"ok": False, "error": "need email + plan Free/Pro/Ultra"})
+        db = sqlite3.connect(DBP)
+        n = db.execute("UPDATE users SET plan=? WHERE lower(email)=?", (plan, email)).rowcount
+        db.commit(); db.close()
+        return _send(handler, 200, {"ok": n > 0, "plan": plan})
+
+    if method == "GET" and p == "/api/admin/brain":
+        c = _cfg(); c["gemini_key"] = "***set***" if c.get("gemini_key") else ""
+        return _send(handler, 200, {"ok": True, "config": c, "engine": _engine()})
+
+    if method == "POST" and p == "/api/admin/brain":
+        b = _body(handler); c = _cfg()
+        if isinstance(b.get("chain"), list):
+            c["chain"] = [str(m).strip() for m in b["chain"] if str(m).strip()][:6]
+        if isinstance(b.get("daily_caps"), dict):
+            c["daily_caps"] = {str(k).capitalize(): max(1, min(9999, int(v)))
+                               for k, v in b["daily_caps"].items() if str(k).capitalize() in PLANS}
+        if "minute_limit" in b: c["minute_limit"] = max(1, min(60, int(b["minute_limit"])))
+        if "context_messages" in b: c["context_messages"] = max(2, min(40, int(b["context_messages"])))
+        if isinstance(b.get("public_names"), dict):
+            c["public_names"] = {str(k).capitalize(): str(v)[:24]
+                                 for k, v in b["public_names"].items() if str(k).capitalize() in PLANS}
+        tmp = CFG + ".tmp"; open(tmp, "w").write(json.dumps(c, indent=1)); os.replace(tmp, CFG)
+        return _send(handler, 200, {"ok": True, "config": c})
+
+    return _send(handler, 404, {"ok": False, "error": "unknown admin route"})

@@ -1,0 +1,17 @@
+<!doctype html><meta charset="utf-8"><title>Alfred diag</title>
+<body style="background:#070b16;color:#9fd4ff;font:13px monospace;padding:14px;white-space:pre-wrap">
+<div id="o">checking…</div>
+<script>
+var o=document.getElementById("o"),L=[];
+function p(m){L.push(m);o.textContent=L.join("\n");}
+var t=localStorage.getItem("alfred_token")||"";
+p("token: "+(t?t.length+" chars":"NONE"));
+p("alfred_authed: "+localStorage.getItem("alfred_authed"));
+fetch("http://"+location.hostname+":8082/api/usage",{credentials:"include",headers:{"X-Alfred-Token":t}})
+ .then(function(r){return r.json().then(function(j){return{s:r.status,j:j};});})
+ .then(function(x){p("usage: HTTP "+x.s+" "+JSON.stringify(x.j).slice(0,160));})
+ .catch(function(e){p("usage: DIED "+e);});
+fetch("js/app.js",{cache:"no-store"}).then(function(r){return r.text();}).then(function(s){
+  p("app.js: v157a="+(s.indexOf("__v157a")>-1)+" v157b="+(s.indexOf("__v157b")>-1)+" len="+s.length);
+});
+</script>

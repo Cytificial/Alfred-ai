@@ -1,0 +1,19 @@
+{
+ "chain": [
+  "gemini-3.8-flash",
+  "gemini-3.5-flash-lite"
+ ],
+ "daily_caps": {
+  "Free": 20,
+  "Pro": 120,
+  "Ultra": 500
+ },
+ "minute_limit": 6,
+ "context_messages": 12,
+ "public_names": {
+  "Free": "Astra mini",
+  "Pro": "Astra Pro",
+  "Ultra": "Apex"
+ },
+ "gemini_key": ""
+}

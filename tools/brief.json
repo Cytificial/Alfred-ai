@@ -1,0 +1,17 @@
+{
+  "style": "cinematic sci-fi interface art, deep navy (#060e1f) base, cyan (#4fc3ff) and amber (#ffb347) accent lighting, volumetric glow, soft bloom, subtle film grain, ultra clean, high detail, dark background, no text, no watermark",
+  "items": [
+    { "id": "nebula-plate",  "size": "1536x1024", "prompt": "vast deep-space nebula field, layered blue and violet gas clouds, scattered bright stars, a single brilliant white star with soft light rays at the centre, faint orbital arc sweeping through" },
+    { "id": "city-hero",     "size": "1024x1536", "prompt": "rain-slicked megacity skyline at night seen through a glass tower window, neon cyan and amber signage, shallow depth of field, cinematic haze, bokeh" },
+    { "id": "login-art",     "size": "1024x1536", "prompt": "abstract dark glass panels floating in volumetric light, thin cyan edge glow, soft particles, moody studio lighting, premium tech brand background" },
+    { "id": "empty-explore", "size": "1024x1024", "prompt": "a small glowing holographic constellation floating above a dark reflective surface, minimal, elegant, futuristic" },
+    { "id": "tile-chat",     "size": "1024x1024", "prompt": "isometric 3D glass app icon of a chat bubble, frosted translucent material, cyan inner glow" },
+    { "id": "tile-code",     "size": "1024x1024", "prompt": "isometric 3D glass app icon of angle brackets, frosted translucent material, amber inner glow" },
+    { "id": "tile-image",    "size": "1024x1024", "prompt": "isometric 3D glass app icon of a framed picture, frosted translucent material, magenta inner glow" },
+    { "id": "tile-voice",    "size": "1024x1024", "prompt": "isometric 3D glass app icon of a microphone, frosted translucent material, green inner glow" },
+    { "id": "tile-search",   "size": "1024x1024", "prompt": "isometric 3D glass app icon of a magnifier globe, frosted translucent material, teal inner glow" },
+    { "id": "tile-file",     "size": "1024x1024", "prompt": "isometric 3D glass app icon of a document with a chart, frosted translucent material, blue inner glow" },
+    { "id": "tile-writing",  "size": "1024x1024", "prompt": "isometric 3D glass app icon of a quill and page, frosted translucent material, orange inner glow" },
+    { "id": "tile-reason",   "size": "1024x1024", "prompt": "isometric 3D glass app icon of a small neural node cluster, frosted translucent material, violet inner glow" }
+  ]
+}

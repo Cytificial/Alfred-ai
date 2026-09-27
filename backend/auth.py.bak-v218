@@ -1,0 +1,1327 @@
+import json, os, re, sqlite3, threading, time, hashlib, hmac, secrets
+
+DB   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "alfred.db")
+LOCK = threading.Lock()
+ITERS = 120000
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+_rate, RLOCK = {}, threading.Lock()
+
+def _conn():
+    c = sqlite3.connect(DB, timeout=10)
+    c.execute("""CREATE TABLE IF NOT EXISTS users(
+      id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE, pw_hash TEXT NOT NULL, salt TEXT NOT NULL,
+      plan TEXT NOT NULL DEFAULT 'Free', created REAL NOT NULL)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS sessions(
+      token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL, expires REAL NOT NULL)""")
+    return c
+
+def _hash_pw(pw, salt):
+    return hashlib.pbkdf2_hmac("sha256", pw.encode(), bytes.fromhex(salt), ITERS).hex()
+
+def _json(h, code, obj, cookie=None):
+    b = json.dumps(obj).encode()
+    h.send_response(code)
+    h.send_header("Content-Type", "application/json")
+    h.send_header("Content-Length", str(len(b)))
+    h.send_header("Cache-Control", "no-store")
+    if cookie: h.send_header("Set-Cookie", cookie)
+    h.end_headers()
+    try: h.wfile.write(b)
+    except Exception: pass
+
+def _cookie(h):
+    raw = h.headers.get("Cookie") or ""
+    for part in raw.split(";"):
+        if "=" in part:
+            k, v = part.strip().split("=", 1)
+            if k == "alfred_session": return v
+    return None
+
+def _user_from_session(h):
+    tok = _cookie(h)
+    if not tok: return None
+    th = hashlib.sha256(tok.encode()).hexdigest()
+    with LOCK:
+        c = _conn()
+        row = c.execute("""SELECT u.id,u.name,u.email,u.plan FROM sessions s
+          JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires>?
+          """, (th, time.time())).fetchone()
+        c.close()
+    return {"name": row[1], "email": row[2], "plan": row[3]} if row else None
+
+def _rate_ok(ip):
+    now = time.time()
+    with RLOCK:
+        q = [t for t in _rate.get(ip, []) if now - t < 600]
+        if len(q) >= 20: _rate[ip] = q; return False
+        q.append(now); _rate[ip] = q; return True
+
+def maybe_handle(handler, method):
+    try:
+        path = (handler.path or "").split("?")[0]
+        if not path.startswith("/api/auth/"): return False
+        ip = handler.client_address[0] if handler.client_address else "?"
+
+        if path == "/api/auth/me" and method == "GET":
+            u = _user_from_session(handler) or _user_from_token(handler)
+            _json(handler, 200 if u else 401, {"ok": bool(u), "user": u} if u else {"ok": False, "error": "Not signed in"})
+            return True
+
+        body = {}
+        if method == "POST":
+            n = int(handler.headers.get("Content-Length") or 0)
+            if n > 16384: _json(handler, 413, {"ok": False, "error": "Request too large"}); return True
+            if n: 
+                try: body = json.loads(handler.rfile.read(n).decode() or "{}")
+                except Exception: body = {}
+            if path == "/api/auth/logout":
+                tok = _cookie(handler)
+                if tok:
+                    th = hashlib.sha256(tok.encode()).hexdigest()
+                    with LOCK:
+                        c = _conn(); c.execute("DELETE FROM sessions WHERE token_hash=?", (th,)); c.commit(); c.close()
+                _json(handler, 200, {"ok": True}, "alfred_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0")
+                return True
+            if path not in ("/api/auth/login", "/api/auth/register"):
+                _json(handler, 404, {"ok": False, "error": "Unknown auth endpoint"}); return True
+        else:
+            _json(handler, 405, {"ok": False, "error": "Method not allowed"}); return True
+
+        if not _rate_ok(ip):
+            _json(handler, 429, {"ok": False, "error": "Too many attempts. Wait a few minutes."}); return True
+
+        email = (body.get("email") or "").strip().lower()
+        pw    = body.get("password") or ""
+        name  = (body.get("name") or "").strip()
+        if not EMAIL_RE.match(email): _json(handler, 400, {"ok": False, "error": "Enter a valid email address."}); return True
+        if len(pw) < 8: _json(handler, 400, {"ok": False, "error": "Password must be at least 8 characters."}); return True
+
+        register = path.endswith("/register")
+        if register and not (2 <= len(name) <= 40):
+            _json(handler, 400, {"ok": False, "error": "Enter your name."}); return True
+
+        with LOCK:
+            c = _conn()
+            c.execute("DELETE FROM sessions WHERE expires < ?", (time.time(),))
+            if register:
+                salt = secrets.token_hex(16)
+                try:
+                    c.execute("INSERT INTO users(name,email,pw_hash,salt,plan,created) VALUES(?,?,?,?,?,?)",
+                              (name, email, _hash_pw(pw, salt), salt, "Free", time.time()))
+                    c.commit()
+                except sqlite3.IntegrityError:
+                    c.close(); _json(handler, 409, {"ok": False, "error": "An account with this email already exists. Try signing in."}); return True
+            row = c.execute("SELECT id,name,pw_hash,salt,plan FROM users WHERE email=?", (email,)).fetchone()
+            if register and row:
+                uid, uname, plan = row[0], row[1], row[4]
+            else:
+                if row:
+                    uid, uname, plan = row[0], row[1], row[4]
+                    if not hmac.compare_digest(row[2], _hash_pw(pw, row[3])):
+                        c.close(); _json(handler, 401, {"ok": False, "error": "Email or password is incorrect."}); return True
+                else:
+                    _hash_pw(pw, secrets.token_hex(16))  # timing equalizer
+                    c.close(); _json(handler, 401, {"ok": False, "error": "Email or password is incorrect."}); return True
+            tok = secrets.token_urlsafe(32)
+            days = 90 if (body.get("remember") or register) else 1
+            exp = time.time() + days * 86400
+            c.execute("INSERT OR REPLACE INTO sessions(token_hash,user_id,expires) VALUES(?,?,?)",
+                      (hashlib.sha256(tok.encode()).hexdigest(), uid, exp))
+            c.commit(); c.close()
+        cookie = "alfred_session=%s; Path=/; HttpOnly; SameSite=Lax; Max-Age=%d" % (tok, days * 86400)
+        _json(handler, 200, {"ok": True, "user": {"name": uname, "email": email, "plan": plan}, "token": tok}, cookie)
+        return True
+    except Exception as e:
+        try: print("[auth]", repr(e))
+        except Exception: pass
+        try: _json(handler, 500, {"ok": False, "error": "Auth system error"})
+        except Exception: pass
+        return True
+
+# ===== v126: guard — lockout, bot trap, password policy, audit =====
+def _alfred_guard_install():
+    import os, random, time as _t, sqlite3 as _sq
+    DBP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "alfred.db")
+    def _db(): return _sq.connect(DBP)
+    d = _db()
+    d.execute("CREATE TABLE IF NOT EXISTS guard_state(email TEXT PRIMARY KEY, fails INTEGER, lock_until REAL)")
+    d.execute("CREATE TABLE IF NOT EXISTS auth_log(ts REAL, email TEXT, ok INTEGER, reason TEXT)")
+    d.commit(); d.close()
+    COMMON = {"password","12345678","123456789","qwerty123","password1","password123",
+              "iloveyou","admin123","letmein","welcome1","dragon","monkey","abc123456",
+              "qwertyuiop","superman1","trustno1","sunshine1","princess1","master123",
+              "starwars1","football1","baseball1","freedom1","whatever1","chicken1",
+              "michael1","shadow123","abcd1234","test1234","qwe12345","1q2w3e4r"}
+    def _log(email, ok, reason):
+        try:
+            d = _db()
+            d.execute("INSERT INTO auth_log VALUES(?,?,?,?)",
+                      (_t.time(), (email or "")[:80], 1 if ok else 0, (reason or "")[:40]))
+            d.commit(); d.close()
+        except Exception: pass
+    def _mins_left(email):
+        d = _db()
+        r = d.execute("SELECT lock_until FROM guard_state WHERE email=?", (email,)).fetchone()
+        d.close()
+        return max(0, int((r[0] - _t.time()) // 60) + 1) if r and r[0] and r[0] > _t.time() else 0
+    def _bump(email):
+        try:
+            _pc = _db()
+            _rc = _pc.execute("SELECT COUNT(*) FROM auth_log WHERE email=? AND ok=1 AND ts>?",
+                               (email, _t.time() - 1.5)).fetchone()[0]
+            _pc.close()
+        except Exception:
+            _rc = 0
+        if _rc:
+            try:
+                _ph = _db()   # v165b: phantom after a real ok - audited, never counts
+                _ph.execute("INSERT INTO auth_log VALUES(?,?,?,?)",
+                            (_t.time(), (email or "")[:80], 0, "phantom"))
+                _ph.commit(); _ph.close()
+            except Exception: pass
+            return
+        d = _db()
+        r = d.execute("SELECT fails FROM guard_state WHERE email=?", (email,)).fetchone()
+        f = (r[0] + 1) if r else 1
+        lock = min(15 * (2 ** (f - 5)), 60) if f >= 5 else 0
+        d.execute("INSERT INTO guard_state VALUES(?,?,?) "
+                  "ON CONFLICT(email) DO UPDATE SET fails=excluded.fails, lock_until=excluded.lock_until",
+                  (email, f, (_t.time() + lock * 60) if lock else 0))
+        d.commit(); d.close()
+        _t.sleep(random.uniform(0.25, 0.45))
+    def _clear(email):
+        d = _db(); d.execute("DELETE FROM guard_state WHERE email=?", (email,)); d.commit(); d.close()
+    def _prune(uid):
+        try:
+            d = _db()
+            d.execute("DELETE FROM sessions WHERE expires < ?", (_t.time(),))
+            rows = d.execute("SELECT rowid FROM sessions WHERE user_id=? ORDER BY rowid DESC", (uid,)).fetchall()
+            for r in rows[10:]:
+                d.execute("DELETE FROM sessions WHERE rowid=?", (r[0],))
+            d.commit(); d.close()
+        except Exception: pass
+    def _pwd_ok(p):
+        p = p or ""
+        return (len(p) >= 8 and any(c.isalpha() for c in p) and any(c.isdigit() for c in p)
+                and p.lower() not in COMMON)
+    def _body(a, k):
+        for x in list(a) + list(k.values()):
+            if isinstance(x, dict): return x
+        return None
+    def _wrap(fn, kind):
+        if getattr(fn, "_g_ok", False): return fn
+        def guarded(*a, **k):
+            body = _body(a, k)
+            if kind == "login":
+                email = ((body.get("email") if body else "") or "").strip().lower()
+                if email and "@" in email:
+                    m = _mins_left(email)
+                    if m:
+                        _log(email, 0, "locked")
+                        return {"ok": False, "error": "Too many attempts. Try again in %d minutes." % m}
+                res = fn(*a, **k)
+                if isinstance(res, dict) and res.get("ok"):
+                    if email: _clear(email)
+                    uid = None
+                    try: uid = (res.get("user") or {}).get("id") or (res.get("user") or {}).get("user_id")
+                    except Exception: pass
+                    if not uid and email:
+                        try:
+                            d = _db()
+                            r = d.execute("SELECT rowid FROM users WHERE email=?", (email,)).fetchone()
+                            uid = r[0] if r else None; d.close()
+                        except Exception: pass
+                    if uid: _prune(uid)
+                    _log(email, 1, "ok"); _clear(email)   # v165b: real login resets fails
+                elif isinstance(res, dict) and email and "@" in email:
+                    _log(email, 0, "bad")
+                    _bump(email)
+                    res = {"ok": False, "error": "Email or password is incorrect."}
+                return res
+            if kind == "register":
+                if body and (body.get("website") or body.get("honeypot")):
+                    _log("bot", 0, "honeypot")
+                    return {"ok": False, "error": "Could not create your account. Please check the fields and try again."}
+                if not body: return fn(*a, **k)
+                email = ((body.get("email") or "") or "").strip().lower()
+                name  = (body.get("name") or "") or ""
+                pwd   = (body.get("password") or "") or ""
+                if len(name) > 40:
+                    return {"ok": False, "error": "Name is too long."}
+                if not email or "@" not in email or len(email) > 120:
+                    return {"ok": False, "error": "Enter a valid email address."}
+                if not _pwd_ok(pwd):
+                    _log(email, 0, "weak-pw")
+                    return {"ok": False, "error": "Password needs 8+ characters with letters and numbers (not a common one)."}
+                res = fn(*a, **k)
+                _log(email, isinstance(res, dict) and res.get("ok"), "reg")
+                return res
+            return fn(*a, **k)
+        guarded._g_ok = True
+        return guarded
+    L = ("login","signin","log_in","authenticate")
+    R = ("register","signup","create_user")
+    O = ("logout","log_out")
+    done = []
+    for name, fn in list(globals().items()):
+        if not callable(fn) or getattr(fn, "_g_ok", False): continue
+        n = name.lower()
+        if n in L:   globals()[name] = _wrap(fn, "login");    done.append(name)
+        elif n in R: globals()[name] = _wrap(fn, "register"); done.append(name)
+        elif n in O: globals()[name] = _wrap(fn, "logout");   done.append(name)
+    print("guard: wrapped " + (", ".join(done) if done else "NO TARGETS FOUND"), flush=True)
+
+_alfred_guard_install()
+
+# ===== v126b: guard v2 — substring + positional-arg aware =====
+def _alfred_guard2_install():
+    import re, random, time as _t, sqlite3 as _sq, os as _os
+    DBP = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "alfred.db")
+    def _db(): return _sq.connect(DBP)
+    def _log(email, ok, reason):
+        try:
+            d = _db(); d.execute("INSERT INTO auth_log VALUES(?,?,?,?)",
+                (_t.time(), (email or "")[:80], 1 if ok else 0, (reason or "")[:40]))
+            d.commit(); d.close()
+        except Exception: pass
+    def _mins_left(email):
+        d = _db()
+        r = d.execute("SELECT lock_until FROM guard_state WHERE email=?", (email,)).fetchone()
+        d.close()
+        return max(0, int((r[0] - _t.time()) // 60) + 1) if r and r[0] and r[0] > _t.time() else 0
+    def _bump(email):
+        try:
+            _pc = _db()
+            _rc = _pc.execute("SELECT COUNT(*) FROM auth_log WHERE email=? AND ok=1 AND ts>?",
+                               (email, _t.time() - 1.5)).fetchone()[0]
+            _pc.close()
+        except Exception:
+            _rc = 0
+        if _rc:
+            try:
+                _ph = _db()   # v165b: phantom after a real ok - audited, never counts
+                _ph.execute("INSERT INTO auth_log VALUES(?,?,?,?)",
+                            (_t.time(), (email or "")[:80], 0, "phantom"))
+                _ph.commit(); _ph.close()
+            except Exception: pass
+            return
+        d = _db()
+        r = d.execute("SELECT fails FROM guard_state WHERE email=?", (email,)).fetchone()
+        f = (r[0] + 1) if r else 1
+        lock = min(15 * (2 ** (f - 5)), 60) if f >= 5 else 0
+        d.execute("INSERT INTO guard_state VALUES(?,?,?) ON CONFLICT(email) DO UPDATE "
+                  "SET fails=excluded.fails, lock_until=excluded.lock_until",
+                  (email, f, (_t.time() + lock * 60) if lock else 0))
+        d.commit(); d.close()
+        _t.sleep(random.uniform(0.25, 0.45))
+    def _clear(email):
+        d = _db(); d.execute("DELETE FROM guard_state WHERE email=?", (email,)); d.commit(); d.close()
+    def _prune(uid):
+        try:
+            d = _db()
+            d.execute("DELETE FROM sessions WHERE expires < ?", (_t.time(),))
+            rows = d.execute("SELECT rowid FROM sessions WHERE user_id=? ORDER BY rowid DESC", (uid,)).fetchall()
+            for r in rows[10:]: d.execute("DELETE FROM sessions WHERE rowid=?", (r[0],))
+            d.commit(); d.close()
+        except Exception: pass
+    def _creds(a, k):                      # finds (email, password) however they're passed
+        for x in list(a) + list(k.values()):
+            if isinstance(x, dict):
+                return ((x.get("email") or "").strip().lower(), x.get("password") or "", x)
+        strs = [x for x in a if isinstance(x, str)]
+        for i, s in enumerate(strs):
+            if "@" in s and i + 1 < len(strs):
+                return (s.strip().lower(), strs[i + 1], None)
+        return ("", "", None)
+    def _wrap(fn, kind):
+        if getattr(fn, "_g_ok", False): return fn
+        def guarded(*a, **k):
+            email, pwd, body = _creds(a, k)
+            if kind == "login":
+                if email and "@" in email:
+                    m = _mins_left(email)
+                    if m:
+                        _log(email, 0, "locked")
+                        return {"ok": False, "error": "Too many attempts. Try again in %d minutes." % m}
+                res = fn(*a, **k)
+                if isinstance(res, dict) and res.get("ok"):
+                    if email: _clear(email)
+                    uid = None
+                    try: uid = (res.get("user") or {}).get("id") or (res.get("user") or {}).get("user_id")
+                    except Exception: pass
+                    if not uid and email:
+                        try:
+                            d = _db(); r = d.execute("SELECT rowid FROM users WHERE email=?", (email,)).fetchone()
+                            uid = r[0] if r else None; d.close()
+                        except Exception: pass
+                    if uid: _prune(uid)
+                    _log(email, 1, "ok"); _clear(email)   # v165b: real login resets fails
+                elif isinstance(res, dict) and email and "@" in email:
+                    _log(email, 0, "bad"); _bump(email)
+                    res = {"ok": False, "error": "Email or password is incorrect."}
+                return res
+            if kind == "register":
+                if body and (body.get("website") or body.get("honeypot")):
+                    _log("bot", 0, "honeypot")
+                    return {"ok": False, "error": "Could not create your account. Please check the fields and try again."}
+                if email and pwd:
+                    if not (len(pwd) >= 8 and any(c.isalpha() for c in pwd) and any(c.isdigit() for c in pwd)):
+                        _log(email, 0, "weak-pw")
+                        return {"ok": False, "error": "Password needs 8+ characters with letters and numbers."}
+                res = fn(*a, **k)
+                _log(email, isinstance(res, dict) and res.get("ok"), "reg")
+                return res
+            return fn(*a, **k)
+        guarded._g_ok = True
+        return guarded
+    done = []
+    for name, fn in list(globals().items()):
+        if not callable(fn) or getattr(fn, "_g_ok", False): continue
+        if name.startswith("_"): continue
+        n = name.lower()
+        if re.search(r"login|signin|log_?in|authenticate", n):
+            globals()[name] = _wrap(fn, "login");    done.append(name)
+        elif re.search(r"register|signup|create_?user|create_?account", n):
+            globals()[name] = _wrap(fn, "register"); done.append(name)
+        elif re.search(r"logout|log_?out", n):
+            globals()[name] = _wrap(fn, "logout");   done.append(name)
+    print("guard2: wrapped " + (", ".join(done) if done else "STILL NO TARGETS"), flush=True)
+
+_alfred_guard2_install()
+
+# ===== v126c: guard v3 — wraps maybe_handle (the real front door) =====
+def _alfred_guard3_install():
+    import io, json as _jsonmod, random, time as _t, sqlite3 as _sq, os as _os
+    DBP = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "alfred.db")
+    def _db(): return _sq.connect(DBP)
+    def _log(email, ok, reason):
+        try:
+            d = _db(); d.execute("INSERT INTO auth_log VALUES(?,?,?,?)",
+                (_t.time(), (email or "")[:80], 1 if ok else 0, (reason or "")[:40]))
+            d.commit(); d.close()
+        except Exception: pass
+    def _mins_left(email):
+        d = _db()
+        r = d.execute("SELECT lock_until FROM guard_state WHERE email=?", (email,)).fetchone()
+        d.close()
+        return max(0, int((r[0] - _t.time()) // 60) + 1) if r and r[0] and r[0] > _t.time() else 0
+    def _bump(email):
+        try:
+            _pc = _db()
+            _rc = _pc.execute("SELECT COUNT(*) FROM auth_log WHERE email=? AND ok=1 AND ts>?",
+                               (email, _t.time() - 1.5)).fetchone()[0]
+            _pc.close()
+        except Exception:
+            _rc = 0
+        if _rc:
+            try:
+                _ph = _db()   # v165b: phantom after a real ok - audited, never counts
+                _ph.execute("INSERT INTO auth_log VALUES(?,?,?,?)",
+                            (_t.time(), (email or "")[:80], 0, "phantom"))
+                _ph.commit(); _ph.close()
+            except Exception: pass
+            return
+        d = _db()
+        r = d.execute("SELECT fails FROM guard_state WHERE email=?", (email,)).fetchone()
+        f = (r[0] + 1) if r else 1
+        lock = min(15 * (2 ** (f - 5)), 60) if f >= 5 else 0
+        d.execute("INSERT INTO guard_state VALUES(?,?,?) ON CONFLICT(email) DO UPDATE "
+                  "SET fails=excluded.fails, lock_until=excluded.lock_until",
+                  (email, f, (_t.time() + lock * 60) if lock else 0))
+        d.commit(); d.close()
+        _t.sleep(random.uniform(0.2, 0.4))
+    def _clear(email):
+        d = _db(); d.execute("DELETE FROM guard_state WHERE email=?", (email,)); d.commit(); d.close()
+    def _prune(uid):
+        try:
+            d = _db()
+            d.execute("DELETE FROM sessions WHERE expires < ?", (_t.time(),))
+            rows = d.execute("SELECT rowid FROM sessions WHERE user_id=? ORDER BY rowid DESC", (uid,)).fetchall()
+            for r in rows[10:]: d.execute("DELETE FROM sessions WHERE rowid=?", (r[0],))
+            d.commit(); d.close()
+        except Exception: pass
+    def _uid(email):
+        try:
+            d = _db(); r = d.execute("SELECT rowid FROM users WHERE email=?", (email,)).fetchone()
+            d.close(); return r[0] if r else None
+        except Exception: return None
+
+    orig_handle = maybe_handle
+    box = {"cap": None, "on": False}
+    _real_json = _json
+    def _json_cap(h, code, obj, cookie=None):
+        if box["on"]: box["cap"] = (code, obj)
+        return _real_json(h, code, obj, cookie)
+
+    def guarded(handler, method):
+        path = getattr(handler, "path", "") or ""
+        base = path.split("?")[0]
+        if method != "POST" or base not in ("/api/auth/login", "/api/auth/register"):
+            return orig_handle(handler, method)
+        try: n = int(handler.headers.get("Content-Length") or 0)
+        except Exception: n = 0
+        raw = handler.rfile.read(n) if n > 0 else b""
+        handler.rfile = io.BytesIO(raw)              # re-readable body for the original
+        try: body = _jsonmod.loads(raw.decode("utf-8", "replace")) if raw else {}
+        except Exception: body = {}
+        email = ((body.get("email") or "") or "").strip().lower()
+        if base == "/api/auth/login":
+            if email and "@" in email:
+                m = _mins_left(email)
+                if m:
+                    _log(email, 0, "locked")
+                    _real_json(handler, 401, {"ok": False,
+                        "error": "Too many attempts. Try again in %d minutes." % m})
+                    return True
+        else:
+            if body.get("website"):
+                _log("bot", 0, "honeypot")
+                _real_json(handler, 200, {"ok": False,
+                    "error": "Could not create your account. Please check the fields and try again."})
+                return True
+            pwd = body.get("password") or ""
+            if email and pwd and not (len(pwd) >= 8 and any(c.isalpha() for c in pwd) and any(c.isdigit() for c in pwd)):
+                _log(email, 0, "weak-pw")
+                _real_json(handler, 200, {"ok": False,
+                    "error": "Password needs 8+ characters with letters and numbers."})
+                return True
+        globals()["_json"] = _json_cap
+        box["on"] = True; box["cap"] = None
+        try:
+            res = orig_handle(handler, method)
+        finally:
+            box["on"] = False
+            globals()["_json"] = _real_json
+        cap = box["cap"] or (None, {})
+        ok = bool(cap[1].get("ok"))
+        if email and "@" in email:
+            if base == "/api/auth/login":
+                if ok:
+                    _clear(email)
+                    uid = None
+                    try: uid = (cap[1].get("user") or {}).get("id")
+                    except Exception: uid = None
+                    if not uid: uid = _uid(email)
+                    if uid: _prune(uid)
+                    _log(email, 1, "ok"); _clear(email)   # v165b: real login resets fails
+                else:
+                    _log(email, 0, "bad")
+                    _bump(email)
+            else:
+                _log(email, ok, "reg")
+        return res
+
+    globals()["maybe_handle"] = guarded
+    print("guard3: maybe_handle wrapped — lockout, honeypot, password policy, audit ARMED", flush=True)
+
+_alfred_guard3_install()
+
+# ===== v126c: guard v3 — wraps maybe_handle (the real front door) =====
+def _alfred_guard3_install():
+    import io, json as _jsonmod, random, time as _t, sqlite3 as _sq, os as _os
+    DBP = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "alfred.db")
+    def _db(): return _sq.connect(DBP)
+    def _log(email, ok, reason):
+        try:
+            d = _db(); d.execute("INSERT INTO auth_log VALUES(?,?,?,?)",
+                (_t.time(), (email or "")[:80], 1 if ok else 0, (reason or "")[:40]))
+            d.commit(); d.close()
+        except Exception: pass
+    def _mins_left(email):
+        d = _db()
+        r = d.execute("SELECT lock_until FROM guard_state WHERE email=?", (email,)).fetchone()
+        d.close()
+        return max(0, int((r[0] - _t.time()) // 60) + 1) if r and r[0] and r[0] > _t.time() else 0
+    def _bump(email):
+        try:
+            _pc = _db()
+            _rc = _pc.execute("SELECT COUNT(*) FROM auth_log WHERE email=? AND ok=1 AND ts>?",
+                               (email, _t.time() - 1.5)).fetchone()[0]
+            _pc.close()
+        except Exception:
+            _rc = 0
+        if _rc:
+            try:
+                _ph = _db()   # v165b: phantom after a real ok - audited, never counts
+                _ph.execute("INSERT INTO auth_log VALUES(?,?,?,?)",
+                            (_t.time(), (email or "")[:80], 0, "phantom"))
+                _ph.commit(); _ph.close()
+            except Exception: pass
+            return
+        d = _db()
+        r = d.execute("SELECT fails FROM guard_state WHERE email=?", (email,)).fetchone()
+        f = (r[0] + 1) if r else 1
+        lock = min(15 * (2 ** (f - 5)), 60) if f >= 5 else 0
+        d.execute("INSERT INTO guard_state VALUES(?,?,?) ON CONFLICT(email) DO UPDATE "
+                  "SET fails=excluded.fails, lock_until=excluded.lock_until",
+                  (email, f, (_t.time() + lock * 60) if lock else 0))
+        d.commit(); d.close()
+        _t.sleep(random.uniform(0.2, 0.4))
+    def _clear(email):
+        d = _db(); d.execute("DELETE FROM guard_state WHERE email=?", (email,)); d.commit(); d.close()
+    def _prune(uid):
+        try:
+            d = _db()
+            d.execute("DELETE FROM sessions WHERE expires < ?", (_t.time(),))
+            rows = d.execute("SELECT rowid FROM sessions WHERE user_id=? ORDER BY rowid DESC", (uid,)).fetchall()
+            for r in rows[10:]: d.execute("DELETE FROM sessions WHERE rowid=?", (r[0],))
+            d.commit(); d.close()
+        except Exception: pass
+    def _uid(email):
+        try:
+            d = _db(); r = d.execute("SELECT rowid FROM users WHERE email=?", (email,)).fetchone()
+            d.close(); return r[0] if r else None
+        except Exception: return None
+
+    orig_handle = maybe_handle
+    box = {"cap": None, "on": False}
+    _real_json = _json
+    def _json_cap(h, code, obj, cookie=None):
+        if box["on"]: box["cap"] = (code, obj)
+        return _real_json(h, code, obj, cookie)
+
+    def guarded(handler, method):
+        path = getattr(handler, "path", "") or ""
+        base = path.split("?")[0]
+        if method != "POST" or base not in ("/api/auth/login", "/api/auth/register"):
+            return orig_handle(handler, method)
+        try: n = int(handler.headers.get("Content-Length") or 0)
+        except Exception: n = 0
+        raw = handler.rfile.read(n) if n > 0 else b""
+        handler.rfile = io.BytesIO(raw)              # re-readable body for the original
+        try: body = _jsonmod.loads(raw.decode("utf-8", "replace")) if raw else {}
+        except Exception: body = {}
+        email = ((body.get("email") or "") or "").strip().lower()
+        if base == "/api/auth/login":
+            if email and "@" in email:
+                m = _mins_left(email)
+                if m:
+                    _log(email, 0, "locked")
+                    _real_json(handler, 401, {"ok": False,
+                        "error": "Too many attempts. Try again in %d minutes." % m})
+                    return True
+        else:
+            if body.get("website"):
+                _log("bot", 0, "honeypot")
+                _real_json(handler, 200, {"ok": False,
+                    "error": "Could not create your account. Please check the fields and try again."})
+                return True
+            pwd = body.get("password") or ""
+            if email and pwd and not (len(pwd) >= 8 and any(c.isalpha() for c in pwd) and any(c.isdigit() for c in pwd)):
+                _log(email, 0, "weak-pw")
+                _real_json(handler, 200, {"ok": False,
+                    "error": "Password needs 8+ characters with letters and numbers."})
+                return True
+        globals()["_json"] = _json_cap
+        box["on"] = True; box["cap"] = None
+        try:
+            res = orig_handle(handler, method)
+        finally:
+            box["on"] = False
+            globals()["_json"] = _real_json
+        cap = box["cap"] or (None, {})
+        ok = bool(cap[1].get("ok"))
+        if email and "@" in email:
+            if base == "/api/auth/login":
+                if ok:
+                    _clear(email)
+                    uid = None
+                    try: uid = (cap[1].get("user") or {}).get("id")
+                    except Exception: uid = None
+                    if not uid: uid = _uid(email)
+                    if uid: _prune(uid)
+                    _log(email, 1, "ok"); _clear(email)   # v165b: real login resets fails
+                else:
+                    _log(email, 0, "bad")
+                    _bump(email)
+            else:
+                _log(email, ok, "reg")
+        return res
+
+    globals()["maybe_handle"] = guarded
+    print("guard3: maybe_handle wrapped — lockout, honeypot, password policy, audit ARMED", flush=True)
+
+_alfred_guard3_install()
+
+# ===== v128: recovery + security center =====
+def _alfred_v128_install():
+    import io, json as _J, re as _re, secrets as _sec, time as _t, sqlite3 as _sq
+    import os as _os, hashlib as _hl, urllib.request as _ur
+    DBP = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "alfred.db")
+    def _db(): return _sq.connect(DBP)
+    PW = {"layout": None}
+    def _kvget():
+        try:
+            d = _db()
+            r = d.execute("SELECT v FROM kv WHERE k='pw_layout'").fetchone()
+            d.close(); return r[0] if r else None
+        except Exception: return None
+    def _kvset(v):
+        d = _db()
+        d.execute("CREATE TABLE IF NOT EXISTS kv(k TEXT PRIMARY KEY, v TEXT)")
+        d.execute("INSERT INTO kv VALUES('pw_layout',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", (v,))
+        d.commit(); d.close()
+    def _splits(stored):
+        out = []
+        for sep in ("$", ":", " "):
+            i = stored.find(sep)
+            if 0 < i < len(stored) - 4:
+                out.append((("sep", sep), stored[:i], stored[i+1:]))
+        for n in (16, 32, 64):
+            if len(stored) > n + 8 and _re.fullmatch(r"[0-9a-f]+", stored[:n] or "x"):
+                out.append((("prefix", n), stored[:n], stored[n:]))
+        return out
+    def _render(kind, salt, h):
+        return salt + kind[1] + h if kind[0] == "sep" else salt + h
+    def _calibrate(email, known_pw):
+        d = _db()
+        r = d.execute("SELECT rowid, password_hash FROM users WHERE email=?", (email,)).fetchone()
+        d.close()
+        if not r or not r[1] or r[1].startswith("oauth:"): return False
+        stored = r[1]
+        for kind, salt, h in _splits(stored):
+            try:
+                if _render(kind, salt, _hash_pw(known_pw, salt)) == stored:
+                    PW["layout"] = (kind, salt); _kvset(_J.dumps([kind[0], kind[1], len(salt)])); return True
+            except Exception: pass
+        return False
+    def _layout():
+        if PW["layout"]: return PW["layout"]
+        v = _kvget()
+        if v:
+            try:
+                k0, k1, n = _J.loads(v); PW["layout"] = ((k0, k1), "x" * n); return PW["layout"]
+            except Exception: pass
+        return None
+    def _verify(stored, pw):
+        L = _layout()
+        if not L: return False
+        kind, salt = L[0], (L[1] if L[1] != "x" * len(L[1]) else None)
+        for k2, s2, h2 in _splits(stored):
+            if k2 == kind or (kind[0] == "prefix" and k2[0] == "prefix" and len(s2) == int(kind[1])):
+                try: return _hash_pw(pw, s2) == h2
+                except Exception: return False
+        return False
+    def _setpw(uid, newpw):
+        L = _layout()
+        if not L: return False
+        kind = L[0]; salt = _sec.token_hex(16 if kind[0] == "prefix" and int(kind[1]) == 16 else 32)[:int(kind[1])] if kind[0] == "prefix" else _sec.token_hex(16)
+        d = _db()
+        d.execute("UPDATE users SET password_hash=? WHERE rowid=?",
+                  (_render(kind, salt, _hash_pw(newpw, salt)), uid))
+        d.commit(); d.close(); return True
+    def _cfg():
+        try: c = _J.load(open(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "mail_config.json")))
+        except Exception: return ("", "")
+        return (c.get("resend_key") or "", c.get("from_email") or "Alfred AI <onboarding@resend.dev>")
+    def _mail(to, subj, html):
+        key, frm = _cfg()
+        if not key: return False
+        try:
+            req = _ur.Request("https://api.resend.com/emails",
+                data=_J.dumps({"from": frm, "to": [to], "subject": subj, "html": html}).encode(),
+                headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"})
+            _ur.urlopen(req, timeout=20); return True
+        except Exception: return False
+    def _mailpg(title, body):
+        return ("<div style='font-family:system-ui;background:#0a1428;color:#dfeaf8;padding:34px;border-radius:16px;max-width:520px'>"
+                "<h2 style='color:#8fd0ff;margin:0 0 10px'>Alfred AI</h2><p style='font-size:15px;line-height:1.6'>" + body + "</p></div>")
+    def _log2(email, reason):
+        try:
+            d = _db(); d.execute("INSERT INTO auth_log VALUES(?,?,?,?)", (_t.time(), (email or "")[:80], 1, reason[:40])); d.commit(); d.close()
+        except Exception: pass
+    def _sess_req(handler):
+        tok = None
+        try: tok = _cookie(handler)
+        except Exception: pass
+        if not tok: return None, None
+        th = _hl.sha256(tok.encode()).hexdigest()
+        d = _db()
+        r = d.execute("SELECT user_id FROM sessions WHERE token_hash=? AND expires>?", (th, _t.time())).fetchone()
+        d.close()
+        return (r[0] if r else None), th
+
+    inner = maybe_handle
+    def guarded(handler, method):
+        path = (getattr(handler, "path", "") or "").split("?")[0]
+        # ---- routes we own completely ----
+        if path == "/api/auth/forgot" and method == "POST":
+            n = int(handler.headers.get("Content-Length") or 0)
+            try: body = _J.loads(handler.rfile.read(n).decode("utf-8", "replace")) if n else {}
+            except Exception: body = {}
+            email = ((body.get("email") or "") or "").strip().lower()
+            d = _db()
+            hour_ago = _t.time() - 3600
+            sent = d.execute("SELECT COUNT(*) FROM auth_log WHERE email=? AND reason='forgot' AND ts>?", (email, hour_ago)).fetchone()[0]
+            r = d.execute("SELECT rowid FROM users WHERE email=?", (email,)).fetchone()
+            dev = True
+            if r and sent < 5:
+                raw = _sec.token_urlsafe(32)
+                d.execute("CREATE TABLE IF NOT EXISTS reset_tokens(token_hash TEXT PRIMARY KEY, user_id INTEGER, expires REAL)")
+                d.execute("INSERT INTO reset_tokens VALUES(?,?,?)",
+                          (_hl.sha256(raw.encode()).hexdigest(), r[0], _t.time() + 1800))
+                d.commit()
+                link = "http://localhost:8080/#/reset?token=" + raw
+                ok = _mail(email, "Reset your Alfred password",
+                           _mailpg("Reset", "Tap below to choose a new password. The link expires in 30 minutes.<br><br>"
+                                   "<a href='" + link + "' style='display:inline-block;background:#2e7fd6;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none'>Reset password</a>"
+                                   "<br><br><span style='font-size:12px;color:#93a7c4'>If you did not request this, ignore this email.</span>"))
+                if not ok:
+                    print("RESET LINK for %s: %s" % (email, link), flush=True)
+                    dev = True
+                else: dev = False
+                _log2(email, "forgot")
+            d.close()
+            _json(handler, 200, {"ok": True, "message": "If that email exists, a reset link has been sent. It expires in 30 minutes.", "dev": dev})
+            return True
+        if path == "/api/auth/reset" and method == "POST":
+            n = int(handler.headers.get("Content-Length") or 0)
+            try: body = _J.loads(handler.rfile.read(n).decode("utf-8", "replace")) if n else {}
+            except Exception: body = {}
+            pw = body.get("password") or ""
+            if not (len(pw) >= 8 and any(c.isalpha() for c in pw) and any(c.isdigit() for c in pw)):
+                _json(handler, 200, {"ok": False, "error": "Password needs 8+ characters with letters and numbers."}); return True
+            if not _layout():
+                _json(handler, 200, {"ok": False, "error": "Reset is warming up - try again in a minute."}); return True
+            th = _hl.sha256(((body.get("token") or "")).encode()).hexdigest()
+            d = _db()
+            r = d.execute("SELECT user_id FROM reset_tokens WHERE token_hash=? AND expires>?", (th, _t.time())).fetchone()
+            if not r:
+                d.close(); _json(handler, 200, {"ok": False, "error": "This reset link is invalid or expired."}); return True
+            if not _setpw(r[0], pw):
+                d.close(); _json(handler, 200, {"ok": False, "error": "Reset is warming up - try again in a minute."}); return True
+            d.execute("DELETE FROM reset_tokens WHERE token_hash=?", (th,))
+            d.execute("DELETE FROM sessions WHERE user_id=?", (r[0],))
+            em = d.execute("SELECT email FROM users WHERE rowid=?", (r[0],)).fetchone()
+            d.commit(); d.close()
+            _log2((em or [""])[0], "reset")
+            _json(handler, 200, {"ok": True, "message": "Password updated. Sign in with your new password."}); return True
+        if path == "/api/auth/change-password" and method == "POST":
+            uid, th = _sess_req(handler)
+            if not uid: _json(handler, 401, {"ok": False, "error": "Not signed in"}); return True
+            n = int(handler.headers.get("Content-Length") or 0)
+            try: body = _J.loads(handler.rfile.read(n).decode("utf-8", "replace")) if n else {}
+            except Exception: body = {}
+            d = _db()
+            row = d.execute("SELECT rowid, email, password_hash FROM users WHERE rowid=?", (uid,)).fetchone()
+            d.close()
+            if not row: _json(handler, 401, {"ok": False, "error": "Not signed in"}); return True
+            if (row[2] or "").startswith("oauth:"):
+                _json(handler, 200, {"ok": False, "error": "This account signs in with a provider (Google/GitHub/Discord)."}); return True
+            if not _layout() or not _verify(row[2], body.get("current") or ""):
+                _json(handler, 200, {"ok": False, "error": "Current password is incorrect (or security is warming up)."}); return True
+            nw = body.get("next") or ""
+            if not (len(nw) >= 8 and any(c.isalpha() for c in nw) and any(c.isdigit() for c in nw)):
+                _json(handler, 200, {"ok": False, "error": "New password needs 8+ characters with letters and numbers."}); return True
+            if not _setpw(uid, nw):
+                _json(handler, 200, {"ok": False, "error": "Security is warming up - try again in a minute."}); return True
+            d = _db(); d.execute("DELETE FROM sessions WHERE user_id=? AND token_hash!=?", (uid, th)); d.commit(); d.close()
+            _log2(row[1], "chpw")
+            _json(handler, 200, {"ok": True, "message": "Password changed. Other devices were signed out."}); return True
+        if path == "/api/auth/sessions" and method == "GET":
+            uid, th = _sess_req(handler)
+            if not uid: _json(handler, 401, {"ok": False, "error": "Not signed in"}); return True
+            d = _db()
+            rows = [{"current": r[0] == th, "expires": r[1]}
+                    for r in d.execute("SELECT token_hash, expires FROM sessions WHERE user_id=? AND expires>? ORDER BY rowid DESC", (uid, _t.time()))]
+            d.close(); _json(handler, 200, {"ok": True, "sessions": rows}); return True
+        if path == "/api/auth/revoke-others" and method == "POST":
+            uid, th = _sess_req(handler)
+            if not uid: _json(handler, 401, {"ok": False, "error": "Not signed in"}); return True
+            d = _db()
+            cur = d.execute("SELECT COUNT(*) FROM sessions WHERE user_id=? AND expires>?", (uid, _t.time())).fetchone()[0]
+            d.execute("DELETE FROM sessions WHERE user_id=? AND token_hash!=?", (uid, th)); d.commit(); d.close()
+            _json(handler, 200, {"ok": True, "revoked": max(0, cur - 1)}); return True
+        if path == "/api/auth/delete-account" and method == "POST":
+            uid, th = _sess_req(handler)
+            if not uid: _json(handler, 401, {"ok": False, "error": "Not signed in"}); return True
+            n = int(handler.headers.get("Content-Length") or 0)
+            try: body = _J.loads(handler.rfile.read(n).decode("utf-8", "replace")) if n else {}
+            except Exception: body = {}
+            d = _db()
+            row = d.execute("SELECT rowid, email, password_hash FROM users WHERE rowid=?", (uid,)).fetchone()
+            if not row: d.close(); _json(handler, 401, {"ok": False, "error": "Not signed in"}); return True
+            email = row[1]; stored = row[2] or ""
+            if stored.startswith("oauth:"):
+                if (body.get("confirm") or "") != "DELETE":
+                    d.close(); _json(handler, 200, {"ok": False, "error": "Type DELETE to confirm."}); return True
+            else:
+                if not _layout() or not _verify(stored, body.get("password") or ""):
+                    d.close(); _json(handler, 200, {"ok": False, "error": "Password is incorrect (or security is warming up)."}); return True
+            for stmt, args in (("DELETE FROM sessions WHERE user_id=?", (uid,)),
+                               ("DELETE FROM guard_state WHERE email=?", (email,)),
+                               ("DELETE FROM auth_log WHERE email=?", (email,)),
+                               ("DELETE FROM reset_tokens WHERE user_id=?", (uid,)),
+                               ("DELETE FROM users WHERE rowid=?", (uid,))):
+                try: d.execute(stmt, args)
+                except Exception: pass
+            d.commit(); d.close(); _log2(email, "deleted")
+            _json(handler, 200, {"ok": True, "message": "Account deleted. Goodbye from Alfred."}); return True
+        # ---- login/register pass-through (remember-me + calibration) ----
+        if path in ("/api/auth/login", "/api/auth/register") and method == "POST":
+            n = int(handler.headers.get("Content-Length") or 0)
+            raw = handler.rfile.read(n) if n else b""
+            handler.rfile = io.BytesIO(raw)
+            try: body = _J.loads(raw.decode("utf-8", "replace"))
+            except Exception: body = {}
+            swap = path == "/api/auth/login" and "remember" in body and not body.get("remember")
+            real_w = handler.wfile
+            if swap: handler.wfile = io.BytesIO()
+            try:
+                res = inner(handler, method)
+            finally:
+                if swap:
+                    buf = handler.wfile; handler.wfile = real_w
+                    try:
+                        data = buf.getvalue().replace(b"\r\n\r\n", b"\n\n", 1)
+                        data = _re.sub(rb"Max-Age=\d+; ?", b"", data)
+                        real_w.write(data)
+                    except Exception:
+                        real_w.write(buf.getvalue())
+            if isinstance(body, dict) and body.get("email") and body.get("password"):
+                em = body["email"].strip().lower()
+                if path == "/api/auth/register" or not _layout():
+                    _calibrate(em, body["password"])
+            return res
+        return inner(handler, method)
+    globals()["maybe_handle"] = guarded
+    print("v128: recovery + security center ARMED (forgot/reset/change/sessions/revoke/delete/remember)", flush=True)
+
+_alfred_v128_install()
+
+# ===== v128: recovery + security center =====
+def _alfred_v128_install():
+    import io, json as _J, re as _re, secrets as _sec, time as _t, sqlite3 as _sq
+    import os as _os, hashlib as _hl, urllib.request as _ur
+    DBP = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "alfred.db")
+    def _db(): return _sq.connect(DBP)
+    PW = {"layout": None}
+    def _kvget():
+        try:
+            d = _db()
+            r = d.execute("SELECT v FROM kv WHERE k='pw_layout'").fetchone()
+            d.close(); return r[0] if r else None
+        except Exception: return None
+    def _kvset(v):
+        d = _db()
+        d.execute("CREATE TABLE IF NOT EXISTS kv(k TEXT PRIMARY KEY, v TEXT)")
+        d.execute("INSERT INTO kv VALUES('pw_layout',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", (v,))
+        d.commit(); d.close()
+    def _splits(stored):
+        out = []
+        for sep in ("$", ":", " "):
+            i = stored.find(sep)
+            if 0 < i < len(stored) - 4:
+                out.append((("sep", sep), stored[:i], stored[i+1:]))
+        for n in (16, 32, 64):
+            if len(stored) > n + 8 and _re.fullmatch(r"[0-9a-f]+", stored[:n] or "x"):
+                out.append((("prefix", n), stored[:n], stored[n:]))
+        return out
+    def _render(kind, salt, h):
+        return salt + kind[1] + h if kind[0] == "sep" else salt + h
+    def _calibrate(email, known_pw):
+        d = _db()
+        r = d.execute("SELECT rowid, password_hash FROM users WHERE email=?", (email,)).fetchone()
+        d.close()
+        if not r or not r[1] or r[1].startswith("oauth:"): return False
+        stored = r[1]
+        for kind, salt, h in _splits(stored):
+            try:
+                if _render(kind, salt, _hash_pw(known_pw, salt)) == stored:
+                    PW["layout"] = (kind, salt); _kvset(_J.dumps([kind[0], kind[1], len(salt)])); return True
+            except Exception: pass
+        return False
+    def _layout():
+        if PW["layout"]: return PW["layout"]
+        v = _kvget()
+        if v:
+            try:
+                k0, k1, n = _J.loads(v); PW["layout"] = ((k0, k1), "x" * n); return PW["layout"]
+            except Exception: pass
+        return None
+    def _verify(stored, pw):
+        L = _layout()
+        if not L: return False
+        kind = L[0]
+        for k2, s2, h2 in _splits(stored):
+            if k2 == kind or (kind[0] == "prefix" and k2[0] == "prefix" and len(s2) == int(kind[1])):
+                try: return _hash_pw(pw, s2) == h2
+                except Exception: return False
+        return False
+    def _setpw(uid, newpw):
+        L = _layout()
+        if not L: return False
+        kind = L[0]
+        salt = _sec.token_hex(16 if kind[0] == "prefix" and int(kind[1]) == 16 else 32)
+        if kind[0] == "prefix": salt = salt[:int(kind[1])]
+        d = _db()
+        d.execute("UPDATE users SET password_hash=? WHERE rowid=?",
+                  (_render(kind, salt, _hash_pw(newpw, salt)), uid))
+        d.commit(); d.close(); return True
+    def _cfg():
+        try: c = _J.load(open(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "mail_config.json")))
+        except Exception: return ("", "")
+        return (c.get("resend_key") or "", c.get("from_email") or "Alfred AI <onboarding@resend.dev>")
+    def _mail(to, subj, html):
+        key, frm = _cfg()
+        if not key: return False
+        try:
+            req = _ur.Request("https://api.resend.com/emails",
+                data=_J.dumps({"from": frm, "to": [to], "subject": subj, "html": html}).encode(),
+                headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"})
+            _ur.urlopen(req, timeout=20); return True
+        except Exception: return False
+    def _mailpg(title, body):
+        return ("<div style='font-family:system-ui;background:#0a1428;color:#dfeaf8;padding:34px;border-radius:16px;max-width:520px'>"
+                "<h2 style='color:#8fd0ff;margin:0 0 10px'>Alfred AI</h2><p style='font-size:15px;line-height:1.6'>" + body + "</p></div>")
+    def _log2(email, reason):
+        try:
+            d = _db(); d.execute("INSERT INTO auth_log VALUES(?,?,?,?)", (_t.time(), (email or "")[:80], 1, reason[:40])); d.commit(); d.close()
+        except Exception: pass
+    def _sess_req(handler):
+        tok = None
+        try: tok = _cookie(handler)
+        except Exception: pass
+        if not tok: return None, None
+        th = _hl.sha256(tok.encode()).hexdigest()
+        d = _db()
+        r = d.execute("SELECT user_id FROM sessions WHERE token_hash=? AND expires>?", (th, _t.time())).fetchone()
+        d.close()
+        return (r[0] if r else None), th
+
+    inner = maybe_handle
+    def guarded(handler, method):
+        path = (getattr(handler, "path", "") or "").split("?")[0]
+        if path == "/api/auth/forgot" and method == "POST":
+            n = int(handler.headers.get("Content-Length") or 0)
+            try: body = _J.loads(handler.rfile.read(n).decode("utf-8", "replace")) if n else {}
+            except Exception: body = {}
+            email = ((body.get("email") or "") or "").strip().lower()
+            d = _db()
+            hour_ago = _t.time() - 3600
+            sent = d.execute("SELECT COUNT(*) FROM auth_log WHERE email=? AND reason='forgot' AND ts>?", (email, hour_ago)).fetchone()[0]
+            r = d.execute("SELECT rowid FROM users WHERE email=?", (email,)).fetchone()
+            dev = True
+            if r and sent < 5:
+                raw = _sec.token_urlsafe(32)
+                d.execute("CREATE TABLE IF NOT EXISTS reset_tokens(token_hash TEXT PRIMARY KEY, user_id INTEGER, expires REAL)")
+                d.execute("INSERT INTO reset_tokens VALUES(?,?,?)",
+                          (_hl.sha256(raw.encode()).hexdigest(), r[0], _t.time() + 1800))
+                d.commit()
+                link = "http://localhost:8080/#/reset?token=" + raw
+                ok = _mail(email, "Reset your Alfred password",
+                           _mailpg("Reset", "Tap below to choose a new password. The link expires in 30 minutes.<br><br>"
+                                   "<a href='" + link + "' style='display:inline-block;background:#2e7fd6;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none'>Reset password</a>"
+                                   "<br><br><span style='font-size:12px;color:#93a7c4'>If you did not request this, ignore this email.</span>"))
+                if not ok:
+                    print("RESET LINK for %s: %s" % (email, link), flush=True)
+                    dev = True
+                else: dev = False
+                _log2(email, "forgot")
+            d.close()
+            _json(handler, 200, {"ok": True, "message": "If that email exists, a reset link has been sent. It expires in 30 minutes.", "dev": dev})
+            return True
+        if path == "/api/auth/reset" and method == "POST":
+            n = int(handler.headers.get("Content-Length") or 0)
+            try: body = _J.loads(handler.rfile.read(n).decode("utf-8", "replace")) if n else {}
+            except Exception: body = {}
+            pw = body.get("password") or ""
+            if not (len(pw) >= 8 and any(c.isalpha() for c in pw) and any(c.isdigit() for c in pw)):
+                _json(handler, 200, {"ok": False, "error": "Password needs 8+ characters with letters and numbers."}); return True
+            if not _layout():
+                _json(handler, 200, {"ok": False, "error": "Reset is warming up - try again in a minute."}); return True
+            th = _hl.sha256(((body.get("token") or "")).encode()).hexdigest()
+            d = _db()
+            r = d.execute("SELECT user_id FROM reset_tokens WHERE token_hash=? AND expires>?", (th, _t.time())).fetchone()
+            if not r:
+                d.close(); _json(handler, 200, {"ok": False, "error": "This reset link is invalid or expired."}); return True
+            if not _setpw(r[0], pw):
+                d.close(); _json(handler, 200, {"ok": False, "error": "Reset is warming up - try again in a minute."}); return True
+            d.execute("DELETE FROM reset_tokens WHERE token_hash=?", (th,))
+            d.execute("DELETE FROM sessions WHERE user_id=?", (r[0],))
+            em = d.execute("SELECT email FROM users WHERE rowid=?", (r[0],)).fetchone()
+            d.commit(); d.close()
+            _log2((em or [""])[0], "reset")
+            _json(handler, 200, {"ok": True, "message": "Password updated. Sign in with your new password."}); return True
+        if path == "/api/auth/change-password" and method == "POST":
+            uid, th = _sess_req(handler)
+            if not uid: _json(handler, 401, {"ok": False, "error": "Not signed in"}); return True
+            n = int(handler.headers.get("Content-Length") or 0)
+            try: body = _J.loads(handler.rfile.read(n).decode("utf-8", "replace")) if n else {}
+            except Exception: body = {}
+            d = _db()
+            row = d.execute("SELECT rowid, email, password_hash FROM users WHERE rowid=?", (uid,)).fetchone()
+            d.close()
+            if not row: _json(handler, 401, {"ok": False, "error": "Not signed in"}); return True
+            if (row[2] or "").startswith("oauth:"):
+                _json(handler, 200, {"ok": False, "error": "This account signs in with a provider (Google/GitHub/Discord)."}); return True
+            if not _layout() or not _verify(row[2], body.get("current") or ""):
+                _json(handler, 200, {"ok": False, "error": "Current password is incorrect (or security is warming up)."}); return True
+            nw = body.get("next") or ""
+            if not (len(nw) >= 8 and any(c.isalpha() for c in nw) and any(c.isdigit() for c in nw)):
+                _json(handler, 200, {"ok": False, "error": "New password needs 8+ characters with letters and numbers."}); return True
+            if not _setpw(uid, nw):
+                _json(handler, 200, {"ok": False, "error": "Security is warming up - try again in a minute."}); return True
+            d = _db(); d.execute("DELETE FROM sessions WHERE user_id=? AND token_hash!=?", (uid, th)); d.commit(); d.close()
+            _log2(row[1], "chpw")
+            _json(handler, 200, {"ok": True, "message": "Password changed. Other devices were signed out."}); return True
+        if path == "/api/auth/sessions" and method == "GET":
+            uid, th = _sess_req(handler)
+            if not uid: _json(handler, 401, {"ok": False, "error": "Not signed in"}); return True
+            d = _db()
+            rows = [{"current": r[0] == th, "expires": r[1]}
+                    for r in d.execute("SELECT token_hash, expires FROM sessions WHERE user_id=? AND expires>? ORDER BY rowid DESC", (uid, _t.time()))]
+            d.close(); _json(handler, 200, {"ok": True, "sessions": rows}); return True
+        if path == "/api/auth/revoke-others" and method == "POST":
+            uid, th = _sess_req(handler)
+            if not uid: _json(handler, 401, {"ok": False, "error": "Not signed in"}); return True
+            d = _db()
+            cur = d.execute("SELECT COUNT(*) FROM sessions WHERE user_id=? AND expires>?", (uid, _t.time())).fetchone()[0]
+            d.execute("DELETE FROM sessions WHERE user_id=? AND token_hash!=?", (uid, th)); d.commit(); d.close()
+            _json(handler, 200, {"ok": True, "revoked": max(0, cur - 1)}); return True
+        if path == "/api/auth/delete-account" and method == "POST":
+            uid, th = _sess_req(handler)
+            if not uid: _json(handler, 401, {"ok": False, "error": "Not signed in"}); return True
+            n = int(handler.headers.get("Content-Length") or 0)
+            try: body = _J.loads(handler.rfile.read(n).decode("utf-8", "replace")) if n else {}
+            except Exception: body = {}
+            d = _db()
+            row = d.execute("SELECT rowid, email, password_hash FROM users WHERE rowid=?", (uid,)).fetchone()
+            if not row: d.close(); _json(handler, 401, {"ok": False, "error": "Not signed in"}); return True
+            email = row[1]; stored = row[2] or ""
+            if stored.startswith("oauth:"):
+                if (body.get("confirm") or "") != "DELETE":
+                    d.close(); _json(handler, 200, {"ok": False, "error": "Type DELETE to confirm."}); return True
+            else:
+                if not _layout() or not _verify(stored, body.get("password") or ""):
+                    d.close(); _json(handler, 200, {"ok": False, "error": "Password is incorrect (or security is warming up)."}); return True
+            for stmt, args in (("DELETE FROM sessions WHERE user_id=?", (uid,)),
+                               ("DELETE FROM guard_state WHERE email=?", (email,)),
+                               ("DELETE FROM auth_log WHERE email=?", (email,)),
+                               ("DELETE FROM reset_tokens WHERE user_id=?", (uid,)),
+                               ("DELETE FROM users WHERE rowid=?", (uid,))):
+                try: d.execute(stmt, args)
+                except Exception: pass
+            d.commit(); d.close(); _log2(email, "deleted")
+            _json(handler, 200, {"ok": True, "message": "Account deleted. Goodbye from Alfred."}); return True
+        if path in ("/api/auth/login", "/api/auth/register") and method == "POST":
+            n = int(handler.headers.get("Content-Length") or 0)
+            raw = handler.rfile.read(n) if n else b""
+            handler.rfile = io.BytesIO(raw)
+            try: body = _J.loads(raw.decode("utf-8", "replace"))
+            except Exception: body = {}
+            swap = path == "/api/auth/login" and "remember" in body and not body.get("remember")
+            real_w = handler.wfile
+            if swap: handler.wfile = io.BytesIO()
+            try:
+                res = inner(handler, method)
+            finally:
+                if swap:
+                    buf = handler.wfile; handler.wfile = real_w
+                    try:
+                        data = buf.getvalue().replace(b"\r\n\r\n", b"\n\n", 1)
+                        data = _re.sub(rb"Max-Age=\d+; ?", b"", data)
+                        real_w.write(data)
+                    except Exception:
+                        real_w.write(buf.getvalue())
+            if path == "/api/auth/register" and isinstance(body, dict) and body.get("email") and body.get("password"):
+                _calibrate(body["email"].strip().lower(), body["password"])
+            return res
+        return inner(handler, method)
+    globals()["maybe_handle"] = guarded
+    print("v128: recovery + security center ARMED (forgot/reset/change/sessions/revoke/delete/remember)", flush=True)
+
+_alfred_v128_install()
+
+# ===== v135: serialize auth gate (kills the login response race) =====
+def _alfred_v135_install():
+    import threading as _th
+    _L = _th.Lock()
+    _orig = globals().get("maybe_handle")
+    def _v135_maybe(handler, method):
+        try:
+            _p = getattr(handler, "path", "") or ""
+            if method == "POST" and ("/api/auth/login" in _p or "/api/auth/register" in _p):
+                with _L:
+                    return _orig(handler, method)
+        except Exception:
+            pass
+        return _orig(handler, method)
+    _v135_maybe._v135 = True
+    globals()["maybe_handle"] = _v135_maybe
+
+try:
+    _alfred_v135_install()
+except Exception:
+    import traceback as _tb; _tb.print_exc()
+
+# ===== v136: single-shot shield (outermost; swap runs under lock) =====
+def _alfred_v136_install():
+    import threading as _th
+    _cur = globals().get("maybe_handle")
+    if getattr(_cur, "_v136", False): return
+    _prev = _cur
+    _real_json = globals()["_json"]
+    _L = _th.Lock()
+
+    def _v136_maybe(handler, method):
+        _p = (getattr(handler, "path", "") or "")
+        if "POST" in str(method) and ("/api/auth/login" in _p or "/api/auth/register" in _p):
+            if getattr(handler, "_v136_done", False):
+                return True                       # phantom re-entry: swallow silently
+            with _L:                              # swap + call + restore = atomic
+                def _mark(h, code, obj, cookie=None):
+                    if getattr(h, "_v136_done", False):
+                        return                    # nested 2nd execution: no socket write
+                    h._v136_done = True
+                    return _real_json(h, code, obj, cookie)
+                globals()["_json"] = _mark
+                try:
+                    return _prev(handler, method)
+                finally:
+                    globals()["_json"] = _real_json
+        return _prev(handler, method)
+
+    _v136_maybe._v136 = True
+    globals()["maybe_handle"] = _v136_maybe
+
+try:
+    _alfred_v136_install()
+except Exception:
+    import traceback as _tb; _tb.print_exc()
+
+# ===== v137: bearer-token fallback for session resolution =====
+def _alfred_v137_auth_install():
+    _prev = globals().get("_user_from_session")
+    if getattr(_prev, "_v137", False): return
+    def _with_token(h):
+        try:
+            r = _prev(h)
+            if r: return r
+        except Exception: pass
+        tok = (h.headers.get("X-Alfred-Token") or "").strip()
+        if not tok:
+            authz = h.headers.get("Authorization") or ""
+            if authz.lower().startswith("bearer "): tok = authz[7:].strip()
+        if not tok: return None
+        th = hashlib.sha256(tok.encode()).hexdigest()
+        with LOCK:
+            c = _conn()
+            row = c.execute("SELECT u.name,u.email,u.plan FROM sessions s "
+                            "JOIN users u ON u.id=s.user_id "
+                            "WHERE s.token_hash=? AND s.expires>?",
+                            (th, time.time())).fetchone()
+            c.close()
+        return {"name": row[0], "email": row[1], "plan": row[2]} if row else None
+    _with_token._v137 = True
+    globals()["_user_from_session"] = _with_token
+
+try:
+    _alfred_v137_auth_install()
+except Exception:
+    import traceback as _tb; _tb.print_exc()
+
+
+def _user_from_token(h):
+    tok = (h.headers.get("X-Alfred-Token") or "").strip()
+    if not tok: return None
+    th = hashlib.sha256(tok.encode()).hexdigest()
+    with LOCK:
+        c = _conn()
+        row = c.execute("""SELECT u.id,u.name,u.email,u.plan FROM sessions s
+          JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires>?
+          """, (th, time.time())).fetchone()
+        c.close()
+    return {"name": row[1], "email": row[2], "plan": row[3]} if row else None
+
+# ===== v175: /api/auth/plan — admin-gated plan authority =====
+def _alfred_v175_install():
+    _prev = globals().get("maybe_handle")
+    if getattr(_prev, "_v175", False):
+        return
+    import json as _js, hashlib as _hl, time as _tm, datetime as _dt, sqlite3 as _sq, os as _os
+
+    HERE = _os.path.dirname(_os.path.abspath(__file__))
+    DBP = _os.path.join(HERE, "alfred.db")
+
+    def _conn():
+        return _sq.connect(DBP, timeout=15)
+
+    def _admins():
+        raw = (_os.environ.get("ALFRED_ADMIN_EMAIL") or "fred@test.com").lower()
+        return set(e.strip() for e in raw.split(",") if e.strip())
+
+    def _user(handler):
+        tok = ""
+        for part in (handler.headers.get("Cookie") or "").split(";"):
+            p = part.strip()
+            if p.startswith("alfred_session="):
+                tok = p.split("=", 1)[1]; break
+        if not tok:
+            tok = (handler.headers.get("X-Alfred-Token") or "").strip()
+        if not tok:
+            return None
+        th = _hl.sha256(tok.encode()).hexdigest()
+        d = _conn()
+        row = d.execute(
+            "SELECT u.id,u.email,u.plan FROM sessions s JOIN users u ON u.id=s.user_id "
+            "WHERE s.token_hash=? AND s.expires>?", (th, _tm.time())).fetchone()
+        d.close()
+        return {"uid": row[0], "email": row[1], "plan": row[2]} if row else None
+
+    def _cap(plan):
+        try:
+            with open(_os.path.join(HERE, "brain_config.json"), encoding="utf-8") as f:
+                caps = (_js.load(f).get("daily_caps") or {})
+            return int(caps.get(plan, 20))
+        except Exception:
+            return 20
+
+    def _remaining(uid, plan):
+        day = _dt.datetime.now(_dt.timezone.utc).date().isoformat()
+        used = 0
+        try:
+            d = _conn()
+            r = d.execute("SELECT count FROM usage WHERE user_id=? AND day=?", (uid, day)).fetchone()
+            d.close()
+            used = int(r[0]) if r else 0
+        except Exception:
+            pass
+        return max(0, _cap(plan) - used)
+
+    def _v175_maybe(handler, method):
+        try:
+            path = (getattr(handler, "path", "") or "").split("?")[0]
+            if path == "/api/auth/plan" and str(method).upper() == "POST":
+                J = globals()["_json"]
+                u = _user(handler)
+                if not u:
+                    J(handler, 401, {"ok": False, "error": "Please sign in first."}); return True
+                if str(u.get("email") or "").lower() not in _admins():
+                    J(handler, 403, {"ok": False, "error": "Only the admin can change plans."}); return True
+                n = int(handler.headers.get("Content-Length") or 0)
+                body = {}
+                if 0 < n < 2048:
+                    try: body = _js.loads(handler.rfile.read(n).decode() or "{}")
+                    except Exception: body = {}
+                p = str(body.get("plan") or "").strip().lower()
+                if p not in ("free", "pro", "ultra"):
+                    J(handler, 400, {"ok": False, "error": "Plan must be free, pro, or ultra."}); return True
+                label = p.capitalize()
+                d = _conn()
+                d.execute("UPDATE users SET plan=? WHERE id=?", (label, u["uid"]))
+                d.commit(); d.close()
+                J(handler, 200, {"ok": True, "plan": label, "remaining": _remaining(u["uid"], label)})
+                return True
+        except Exception:
+            import traceback as _tb; _tb.print_exc()
+        return _prev(handler, method)
+
+    _v175_maybe._v175 = True
+    globals()["maybe_handle"] = _v175_maybe
+
+try:
+    _alfred_v175_install()
+except Exception:
+    import traceback as _tb; _tb.print_exc()

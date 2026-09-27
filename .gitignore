@@ -1,0 +1,12 @@
+backend/alfred.db
+backend/*.db
+backend/backups/
+backend/keys.env
+backend/.env
+backend/mail_config.json
+backend/cache/
+backend/engine.log
+backend/doctor.log
+backend/explore.json
+backend/__pycache__/
+*.pyc
