@@ -134,20 +134,28 @@ def _prov_route(model, system, turns):
     if "/" not in model or model.startswith("models/"): return None
     pid, m2 = model.split("/", 1)
     if pid == "openrouter": return None          # existing handler owns it
+        if pid == "pollinations": m2 = "openai"  # keyless default brain
     try:
         key = (_pv._keys() or {}).get(pid, "")
         provs = (_pv._load() or {}).get("providers") or []
         rec = [x for x in provs if x.get("id") == pid]
-        if not rec or not key: return None
+        if not rec: return None
+        if pid != "pollinations" and not key: return None
         base = (rec[0].get("base_url") or "").rstrip("/")
-        if base.endswith("/v1"): base = base[:-3]
+        if base.endswith("/openai"):
+            url = base                                   # pollinations: /openai IS the endpoint
+        else:
+            if base.endswith("/v1"): base = base[:-3]
+            url = base + "/v1/chat/completions"
         msgs = [{"role": "system", "content": system}] + [{"role": r, "content": t} for r, t in turns]
         body = json.dumps({"model": m2, "messages": msgs, "max_tokens": 1200}).encode()
-        rq = urllib.request.Request(base + "/v1/chat/completions", data=body,
-             headers={"Content-Type": "application/json", "Authorization": "Bearer " + key}, method="POST")
+        _hs = {"Content-Type": "application/json"}
+        if key: _hs["Authorization"] = "Bearer " + key
+        rq = urllib.request.Request(url, data=body, headers=_hs, method="POST")
         with _open_retry(rq, timeout=90) as r:
             d2 = json.loads(r.read().decode())
-        txt = ((d2.get("choices") or [{}])[0].get("message") or {}).get("text") or ""
+        _mm = ((d2.get("choices") or [{}])[0].get("message") or {})
+        txt = (_mm.get("content") or _mm.get("text") or "")
         return txt or None
     except Exception:
         raise RuntimeError("alt provider failed: " + pid)

@@ -617,3 +617,45 @@
   });
   try { if ((location.hash || "").indexOf("#/admin") === 0) open(); } catch (e) {}
 })();
+
+/* ===== v300: option text truth, bars off user rows, prompt-true explore images ===== */
+(function () {
+  if (window.__v300) return; window.__v300 = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    [].slice.call(document.querySelectorAll("select option")).forEach(function (o) {
+      var v = o.value || o.textContent;
+      if ((v === "Free" || v === "Pro" || v === "Ultra") && o.textContent !== v) o.textContent = v;
+    });
+  }, 1200);
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat"); if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll(".msg")).forEach(function (row) {
+      var bars = row.querySelectorAll(".v274row"); if (!bars.length) return;
+      var r = row.getBoundingClientRect();
+      if (row.classList.contains("fx-user") || r.left > window.innerWidth * 0.45) {
+        [].slice.call(bars).forEach(function (b) { b.remove(); }); return;
+      }
+      for (var i = 0; i < bars.length - 1; i++) bars[i].remove();
+    });
+  }, 1500);
+  setInterval(function () {
+    if (document.hidden) return;
+    var x = document.getElementById("view-explore"); if (!x || x.offsetParent === null) return;
+    [].slice.call(x.querySelectorAll("*")).forEach(function (e) {
+      if (e.getAttribute && e.getAttribute("data-v300")) return;
+      var bi = (e.style && e.style.backgroundImage || "");
+      var src = e.tagName === "IMG" ? (e.getAttribute("src") || "") : "";
+      var raw = bi.indexOf("/api/image") > -1 ? bi : (src.indexOf("/api/image") === 0 ? src : "");
+      if (!raw) return;
+      var m = raw.match(/prompt=([^&"']+)/); if (!m) return;
+      if (e.setAttribute) e.setAttribute("data-v300", "1");
+      var p; try { p = decodeURIComponent(m[1].replace(/\+/g, " ")); } catch (err) { p = m[1]; }
+      var u = "https://image.pollinations.ai/prompt/" + encodeURIComponent(p) +
+              "?width=768&height=768&nologo=true&model=flux&nofeed=true&enhance=false&seed=" + Math.floor(Math.random() * 999999);
+      if (bi) e.style.backgroundImage = "url('" + u + "')";
+      if (src) e.setAttribute("src", u);
+    });
+  }, 2200);
+})();
