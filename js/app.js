@@ -9481,60 +9481,7 @@ try { /* v163proc: native thinking card */
 
 /* v243 row block retired in v244 */
 
-/* ===== v244: Admin row — shield icon, tight persistence ===== */
-(function () {
-  if (window.__v244) return; window.__v244 = "1";
-  var SHIELD = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#9fd8ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-2.9 8.2-7 10-4.1-1.8-7-5.6-7-10V6l7-3z"/></svg>';
-  function pf(p) { return fetch(p, { credentials: "include",
-    headers: { "X-Alfred-Token": localStorage.getItem("alfred_token") || "" } }).then(function (r) { return r.json(); }); }
-  var isAdmin = null;
-  pf("/api/admin/overview").then(function (j) { isAdmin = !!(j && j.ok); }).catch(function () { isAdmin = false; });
-  function vis(e) { return e.offsetParent !== null; }
-  function txt(e) { return (e.textContent || "").trim(); }
-  function buildFrom(set) {
-    var row = set.cloneNode(true);
-    Array.prototype.forEach.call(row.querySelectorAll("svg"), function (s) { s.remove(); });
-    Array.prototype.forEach.call(row.querySelectorAll("*"), function (x) {
-      if (!x.children.length && /Settings/i.test(x.textContent || "")) x.textContent = "Admin"; });
-    if (!row.children.length) row.textContent = "Admin";
-    var ic = row.querySelector("span, i, b, div") || row;
-    var wrap = document.createElement("span");
-    wrap.style.cssText = "display:inline-flex;align-items:center;margin-right:4px";
-    wrap.innerHTML = SHIELD;
-    ic.insertBefore(wrap, ic.firstChild);
-    row.style.display = ""; row.onclick = function () { location.hash = "#/admin"; };
-    set.parentNode.insertBefore(row, set.nextSibling);
-    return row;
-  }
-  function tick() {
-    try {
-      var mine = Array.prototype.slice.call(document.querySelectorAll("body *")).filter(function (e) {
-        return e.children.length <= 3 && txt(e) === "Admin" && vis(e); });
-      if (isAdmin === false) mine.forEach(function (e) { e.style.display = "none"; });
-      else {
-        mine.slice(0, -1).forEach(function (e) { e.style.display = "none"; });
-        var k = mine[mine.length - 1];
-        if (k) { k.style.display = ""; k.onclick = function () { location.hash = "#/admin"; }; }
-        else {
-          var set = Array.prototype.slice.call(document.querySelectorAll("body *")).filter(function (e) {
-            return vis(e) && e.children.length <= 3 && txt(e) === "Settings"; })[0];
-          if (set) buildFrom(set);
-        }
-      }
-      killCard();
-    } catch (e) {}
-    setTimeout(tick, 1200);
-  }
-  function killCard() {
-    var vs = document.getElementById("view-settings"); if (!vs) return;
-    function depth(e) { var d = 0; while (e && e !== vs) { d++; e = e.parentElement; } return d; }
-    var cand = Array.prototype.slice.call(vs.querySelectorAll("*")).filter(function (e) {
-      return e.querySelectorAll("select").length >= 2 && /ADMIN\s*[—-]/i.test(e.textContent || "");
-    }).sort(function (a, b) { return depth(a) - depth(b); });
-    if (cand.length) cand[0].remove();
-  }
-  setTimeout(tick, 1000);
-})();
+/* retired in v245 */
 
 /* ===== v244: modules — first render behaves like a real tier tap ===== */
 (function () {
@@ -9556,4 +9503,44 @@ try { /* v163proc: native thinking card */
     if ((location.hash || "").indexOf("modules") > -1) { clearTimeout(t); t = setTimeout(kick, 450); }
   });
   setTimeout(kick, 1600);
+})();
+
+/* ===== v245: Admin row — always visible, outerHTML twin with shield ===== */
+(function () {
+  if (window.__v245row) return; window.__v245row = "1";
+  var SHIELD = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#9fd8ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-2.9 8.2-7 10-4.1-1.8-7-5.6-7-10V6l7-3z"/></svg>';
+  function vis(e) { return e.offsetParent !== null; }
+  function tick() {
+    try {
+      if (!document.getElementById("v245-adminrow")) {
+        var set = Array.prototype.slice.call(document.querySelectorAll("body *")).filter(function (e) {
+          return vis(e) && (e.textContent || "").trim() === "Settings" && e.querySelector("svg, i, img, span"); })[0];
+        if (set) {
+          var html = set.outerHTML.replace(/Settings/g, "Admin");
+          html = html.replace(/<svg[\s\S]*?<\/svg>/, SHIELD);
+          var tmp = document.createElement("div"); tmp.innerHTML = html;
+          var row = tmp.firstElementChild;
+          if (row) {
+            row.id = "v245-adminrow"; row.style.display = "";
+            row.removeAttribute("href"); row.onclick = function () { location.hash = "#/admin"; };
+            set.parentNode.insertBefore(row, set);
+          }
+        }
+      } else {
+        var k = document.getElementById("v245-adminrow");
+        if (!vis(k)) k.style.display = "";
+      }
+      killCard();
+    } catch (e) {}
+    setTimeout(tick, 1500);
+  }
+  function killCard() {
+    var vs = document.getElementById("view-settings"); if (!vs) return;
+    function depth(e) { var d = 0; while (e && e !== vs) { d++; e = e.parentElement; } return d; }
+    var cand = Array.prototype.slice.call(vs.querySelectorAll("*")).filter(function (e) {
+      return e.querySelectorAll("select").length >= 2 && /ADMIN\s*[—-]/i.test(e.textContent || "");
+    }).sort(function (a, b) { return depth(a) - depth(b); });
+    if (cand.length) cand[0].remove();
+  }
+  setTimeout(tick, 900);
 })();
