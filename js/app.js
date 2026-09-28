@@ -9629,3 +9629,39 @@ try { /* v163proc: native thinking card */
   setInterval(sweep, 1200);
   document.addEventListener("DOMContentLoaded", sweep);
 })();
+
+/* ===== v247: single Admin row - final authority over all injector generations ===== */
+(function () {
+  if (window.__v247) return; window.__v247 = "1";
+  function scope() { return document.querySelector("aside,nav,[class*='sidebar'],[class*='drawer']") || document; }
+  function go(ev) {
+    if (ev) { ev.preventDefault(); ev.stopImmediatePropagation(); }
+    try { location.hash = "#/admin"; } catch (e) {}
+    setTimeout(function () {
+      var v = document.getElementById("view-admin");
+      if (!v || v.offsetParent === null) {
+        [].slice.call(document.querySelectorAll(".view")).forEach(function (x) { x.style.display = "none"; });
+        if (v) v.style.display = "block";
+      }
+    }, 260);
+  }
+  setInterval(function () {
+    var sc = scope(), keep = document.getElementById("v2451-admin-row"), leaves = [];
+    [].slice.call(sc.querySelectorAll("*")).forEach(function (e) {
+      if (!e.children.length && (e.textContent || "").trim() === "Admin") leaves.push(e);
+    });
+    if (!leaves.length) return;
+    var rows = leaves.map(function (leaf) {
+      var r = leaf;
+      while (r.parentElement && r.parentElement !== sc && (r.parentElement.textContent || "").trim() === "Admin") r = r.parentElement;
+      return r;
+    });
+    rows = rows.filter(function (r, i) { return rows.indexOf(r) === i; });
+    if (!keep) {
+      keep = rows[0]; keep.id = "v2451-admin-row";
+      keep.addEventListener("click", go, true);
+      keep.addEventListener("pointerdown", function (e) { e.stopImmediatePropagation(); }, true);
+    }
+    rows.forEach(function (r) { if (r !== keep && r.parentNode) r.parentNode.removeChild(r); });
+  }, 1200);
+})();
