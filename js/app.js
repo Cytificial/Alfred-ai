@@ -9484,66 +9484,10 @@ try { /* v163proc: native thinking card */
 /* retired in v245 */
 
 /* ===== v244: modules — first render behaves like a real tier tap ===== */
-(function () {
-  if (window.__v244mod) return; window.__v244mod = "1";
-  var plan = null;
-  fetch("/api/auth/me", { credentials: "include" }).then(function (r) { return r.json(); })
-    .then(function (j) { if (j && j.ok && j.user) plan = j.user.plan || "Free"; }).catch(function () {});
-  function kick() {
-    var v = document.getElementById("view-modules");
-    if (!v || v.offsetParent === null) return;
-    var chips = Array.prototype.slice.call(v.querySelectorAll("button, [role=button], .chip, span"))
-      .filter(function (e) { return /^(Free|Pro|Ultra)$/i.test((e.textContent || "").trim()) && e.offsetParent !== null; });
-    if (!chips.length) return;
-    var target = chips.filter(function (e) { return (e.textContent || "").trim().toLowerCase() === (plan || "").toLowerCase(); })[0] || chips[0];
-    target.click();
-  }
-  var t = null;
-  addEventListener("hashchange", function () {
-    if ((location.hash || "").indexOf("modules") > -1) { clearTimeout(t); t = setTimeout(kick, 450); }
-  });
-  setTimeout(kick, 1600);
-})();
+/* retired v247.1 */
 
 /* ===== v245: Admin row — always visible, outerHTML twin with shield ===== */
-(function () {
-  if (window.__v245row) return; window.__v245row = "1";
-  var SHIELD = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#9fd8ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-2.9 8.2-7 10-4.1-1.8-7-5.6-7-10V6l7-3z"/></svg>';
-  function vis(e) { return e.offsetParent !== null; }
-  function tick() {
-    try {
-      if (!document.getElementById("v245-adminrow")) {
-        var set = Array.prototype.slice.call(document.querySelectorAll("body *")).filter(function (e) {
-          return vis(e) && (e.textContent || "").trim() === "Settings" && e.querySelector("svg, i, img, span"); })[0];
-        if (set) {
-          var html = set.outerHTML.replace(/Settings/g, "Admin");
-          html = html.replace(/<svg[\s\S]*?<\/svg>/, SHIELD);
-          var tmp = document.createElement("div"); tmp.innerHTML = html;
-          var row = tmp.firstElementChild;
-          if (row) {
-            row.id = "v245-adminrow"; row.style.display = "";
-            row.removeAttribute("href"); row.onclick = function () { location.hash = "#/admin"; };
-            set.parentNode.insertBefore(row, set);
-          }
-        }
-      } else {
-        var k = document.getElementById("v245-adminrow");
-        if (!vis(k)) k.style.display = "";
-      }
-      killCard();
-    } catch (e) {}
-    setTimeout(tick, 1500);
-  }
-  function killCard() {
-    var vs = document.getElementById("view-settings"); if (!vs) return;
-    function depth(e) { var d = 0; while (e && e !== vs) { d++; e = e.parentElement; } return d; }
-    var cand = Array.prototype.slice.call(vs.querySelectorAll("*")).filter(function (e) {
-      return e.querySelectorAll("select").length >= 2 && /ADMIN\s*[—-]/i.test(e.textContent || "");
-    }).sort(function (a, b) { return depth(a) - depth(b); });
-    if (cand.length) cand[0].remove();
-  }
-  setTimeout(tick, 900);
-})();
+/* retired v247.1 */
 
 /* ===== v245.1: Admin row — event-isolated, routes to dashboard ===== */
 (function () {

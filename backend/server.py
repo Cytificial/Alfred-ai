@@ -25,6 +25,18 @@ _EXLOCK = threading.Lock()
 _RATE = {}
 
 class H(SimpleHTTPRequestHandler):
+    def send_head(self):
+        if self.path.split("?")[0].startswith("/api/"):
+            try:
+                self.send_response(404)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"ok": false, "error": "Not found"}')
+            except Exception:
+                pass
+            return None
+        return super().send_head()
+
     def __init__(self, *a, **kw): super().__init__(*a, directory=ROOT, **kw)
     def log_message(self, *a): pass
     # v196: the app's own files are NEVER cached by browsers (fix-stale-forever)
