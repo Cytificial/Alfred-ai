@@ -790,3 +790,35 @@
     }
   }, 2000);
 })();
+
+/* ===== v302: share Alfred's answers — organic growth loop ===== */
+(function () {
+  if (window.__v302) return; window.__v302 = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll(".msg")).forEach(function (row) {
+      var bar = row.querySelector(".v274row");
+      if (!bar || row.querySelector(".v302sh")) return;
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = "↗";
+      b.title = "Share this answer";
+      b.style.cssText = "background:transparent;color:#9fd8ff;" +
+        "border:1px solid rgba(159,216,255,.35);border-radius:8px;" +
+        "padding:3px 10px;font:11px system-ui;cursor:pointer";
+      b.onclick = function () {
+        var t = (row.textContent || "").replace("↗", "").trim();
+        t = t.slice(0, 400);
+        if (navigator.share) {
+          navigator.share({ title: "Alfred AI", text: t })
+            .catch(function () {});
+        } else if (navigator.clipboard) {
+          navigator.clipboard.writeText(t);
+          if (window.toast) toast("Copied ✓");
+        }
+      };
+      bar.appendChild(b);
+    });
+  }, 1800);
+})();
