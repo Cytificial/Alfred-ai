@@ -3613,3 +3613,10 @@ aside, nav, [class*="sidebar"] { background-color: rgba(8,13,24,.93) !important;
 .side-head .badge img { display: block !important; }      /* sidebar header mark - KEEP */
 .model .m-av img, header .m-av img { display: block !important; } /* top bar mark - KEEP */
 .nav .nav-item { display: flex !important; opacity: 1 !important; visibility: visible !important; }
+/* v258: truth sweeps + scroll lanes */
+.nc-ic { display: none !important; }
+.side-head .nc-ic, .model .nc-ic, header .nc-ic { display: block !important; }
+.nav-item { display: flex !important; opacity: 1 !important; visibility: visible !important; }
+#v248b-strip { display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+#v248b-strip > * { flex: 0 0 auto; max-width: 72vw; }
+#view-admin > * { max-width: 100%; }
