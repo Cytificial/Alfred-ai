@@ -367,6 +367,53 @@ def maybe_handle(handler, method):
             {"ok": True, "up": up, "down": dn,
              "recent": recent})
 
+    if method == "POST" and p == "/api/admin/login":
+        import os as _os, sqlite3 as _sq, hmac as _hm, secrets as _sc, time as _tm
+        _now = _tm.time()
+        _ip = handler.client_address[0]
+        _lt = globals().setdefault("_LOGIN_T", {})
+        if _now - _lt.get(_ip, 0) < 2:
+            return _send(handler, 429, {"ok": False, "error": "slow down"})
+        _lt[_ip] = _now
+        b = _body(handler)
+        want = ""
+        _kp = _os.path.join(_os.path.dirname(DBP), "keys.env")
+        if _os.path.exists(_kp):
+            for _ln in open(_kp):
+                if _ln.startswith("ADMIN_PASS="):
+                    want = _ln.split("=", 1)[1].strip()
+        try:
+            _ok = _hm.compare_digest(str(b.get("password", "")), want)
+        except Exception:
+            _ok = False
+        if not want or not _ok:
+            return _send(handler, 403, {"ok": False, "error": "wrong password"})
+        con = _sq.connect(DBP, timeout=10)
+        try:
+            _cols = [r[1] for r in con.execute("PRAGMA table_info(sessions)")]
+            _tcol = next((c for c in _cols if "token" in c.lower()), None)
+            _ucol = "user_id" if "user_id" in _cols else ("uid" if "uid" in _cols else None)
+            if not _tcol or not _ucol:
+                return _send(handler, 500, {"ok": False, "error": "sessions schema: " + ",".join(_cols)})
+            _au = con.execute("SELECT id FROM users WHERE role='admin' ORDER BY id LIMIT 1").fetchone()
+            if not _au:
+                return _send(handler, 500, {"ok": False, "error": "no admin user in db"})
+            _tok = _sc.token_urlsafe(32)
+            _extra = []
+            for _c in _cols:
+                if _c in (_ucol, _tcol): continue
+                if "expire" in _c.lower(): _extra.append((_c, _now + 86400 * 7))
+                elif _c in ("created", "ts", "time"): _extra.append((_c, int(_now)))
+            _names = [_ucol, _tcol] + [c for c, _v in _extra]
+            _vals = [_au[0], _tok] + [v for _c, v in _extra]
+            con.execute("INSERT INTO sessions(%s) VALUES(%s)" % (",".join(_names), ",".join(["?"] * len(_vals))), _vals)
+            con.commit()
+            return _send(handler, 200, {"ok": True, "token": _tok})
+        except Exception as _e:
+            return _send(handler, 500, {"ok": False, "error": str(_e)[:120]})
+        finally:
+            con.close()
+
     if method == "GET" and p == "/api/admin/providers":
         return _send(handler, 200, _prov.public())
 

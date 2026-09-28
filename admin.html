@@ -1,0 +1,158 @@
+<!doctype html><html lang=en><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Alfred Console</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:#0b0f14;color:#e8eef5;font:14px/1.5 system-ui,-apple-system,sans-serif}
+#login{max-width:340px;margin:14vh auto;text-align:center;padding:22px}
+#login input{width:100%;margin:12px 0 8px;padding:11px;font-size:14px}
+.hdr{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #1c2733;position:sticky;top:0;background:#0b0f14;z-index:5}
+.hdr b{letter-spacing:.12em;font-size:13px}
+.tabs{display:flex;gap:6px;padding:10px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tabs button{flex:0 0 auto;background:transparent;border:1px solid #24313f;color:#9fb4c8;border-radius:99px;padding:7px 14px;font:12px system-ui;cursor:pointer}
+.tabs button.on{background:#2e7fd6;border-color:#2e7fd6;color:#fff}
+main{padding:14px 16px 60px;max-width:1080px;margin:0 auto}
+.card{background:#101720;border:1px solid #1c2733;border-radius:14px;padding:13px;margin-bottom:12px;overflow-x:auto}
+.card h4{margin:0 0 9px;font-size:13px;color:#cfe4f5}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.kpi{background:#101720;border:1px solid #1c2733;border-radius:14px;padding:13px}
+.kpi b{display:block;font-size:24px;color:#7fc4ff}
+.kpi span{font-size:11px;color:#8ba1b5}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid #1c2733;white-space:nowrap}
+th{color:#8ba1b5;font-weight:600}
+input,select,textarea{background:#0b0f14;border:1px solid #24313f;color:#e8eef5;border-radius:9px;padding:8px 10px;font:12px system-ui}
+textarea{width:100%;min-height:84px;resize:vertical}
+.act{background:#2e7fd6;color:#fff;border:0;border-radius:9px;padding:8px 14px;font:12px system-ui;cursor:pointer}
+.ghost{background:transparent;color:#9fb4c8;border:1px solid #24313f;border-radius:9px;padding:8px 12px;font:12px system-ui;cursor:pointer}
+.mut{color:#8ba1b5;font-size:11px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.hide{display:none!important}
+</style></head><body>
+<div id=login class=card style="overflow:visible">
+ <div style="font-size:30px">◈</div><h3 style="margin:6px 0 2px">Alfred Console</h3>
+ <p class=mut>Private — admins only</p>
+ <input id=pw type=password placeholder="Console password" onkeydown="if(event.key=='Enter')go()">
+ <button class=act style="width:100%" onclick="go()">Unlock</button>
+ <p class=mut id=lmsg></p>
+</div>
+<div id=app class=hide>
+ <div class=hdr><b>ALFRED CONSOLE</b>
+  <button class=ghost style="margin-left:auto" onclick="sessionStorage.removeItem('ac_tok');location.reload()">Lock</button></div>
+ <div class=tabs id=tabs></div>
+ <main id=main></main>
+</div>
+<script>
+var TOK=sessionStorage.getItem("ac_tok")||"";
+function api(p,o){o=o||{};o.headers=Object.assign({"X-Alfred-Token":TOK,"Content-Type":"application/json"},o.headers||{});
+ if(o.body&&typeof o.body!="string")o.body=JSON.stringify(o.body);
+ return fetch(p,o).then(function(r){return r.json().catch(function(){return{}})})}
+function el(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e}
+function go(){
+ var p=document.getElementById("pw").value;
+ api("/api/admin/login",{method:"POST",body:{password:p}}).then(function(j){
+  if(j.ok){TOK=j.token;try{sessionStorage.setItem("ac_tok",TOK)}catch(e){}boot()}
+  else document.getElementById("lmsg").textContent=j.error||"wrong password";
+ })}
+function boot(){
+ document.getElementById("login").classList.add("hide");
+ document.getElementById("app").classList.remove("hide");
+ nav(0);
+ api("/api/admin/metrics").then(function(j){if(!j.ok)location.reload()})}
+var TABS=[["Overview",vOver],["Users",vUsers],["Brain",vBrain],["Providers",vProv],["Memory",vMem],["Showcase",vShow]];
+function nav(i){
+ var t=document.getElementById("tabs");t.innerHTML="";
+ TABS.forEach(function(x,k){var b=el("button","",x[0]);if(k==i)b.className="on";b.onclick=function(){nav(k)};t.appendChild(b)});
+ var m=document.getElementById("main");m.innerHTML="";TABS[i][1](m)}
+function kpi(v,l){return '<div class=kpi><b>'+(v==null?"—":v)+"</b><span>"+l+"</span></div>"}
+function vOver(m){
+ api("/api/admin/metrics").then(function(j){var x=j.metrics||{};
+  m.appendChild(el("div","kpis",kpi(x.msgs_24h,"Messages 24h")+kpi(x.chats_total,"Chats")+kpi(x.active_sessions,"Active sessions")+kpi(x.failed_24h,"Failed 24h")))});
+ api("/api/admin/overview").then(function(j){
+  var rows=(j.users||[]).map(function(u){return "<tr><td>"+u.id+"</td><td>"+(u.email||"")+"</td><td>"+(u.name||"")+"</td><td>"+(u.plan||"")+"</td></tr>"}).join("");
+  m.appendChild(el("div","card","<h4>Users</h4><table><tr><th>ID</th><th>Email</th><th>Name</th><th>Plan</th></tr>"+rows+"</table>"))})}
+function vUsers(m){
+ api("/api/admin/overview").then(function(j){
+  var c=el("div","card");c.appendChild(el("h4","","Plan control"));
+  var tb=document.createElement("table");
+  tb.innerHTML="<tr><th>Email</th><th>Plan</th><th></th></tr>";
+  (j.users||[]).forEach(function(u){
+   var tr=document.createElement("tr");
+   var d1=document.createElement("td");d1.textContent=u.email;
+   var d2=document.createElement("td");var s=document.createElement("select");
+   ["Free","Pro","Ultra"].forEach(function(p){var o=document.createElement("option");o.value=p;o.textContent=p;if(p===u.plan)o.selected=true;s.appendChild(o)});
+   d2.appendChild(s);
+   var d3=document.createElement("td");var b=document.createElement("button");b.className="act";b.textContent="Apply";
+   b.onclick=function(){api("/api/admin/users/plan",{method:"POST",body:{email:u.email,plan:s.value}}).then(function(r){b.textContent=r.ok?"✓":"✗";setTimeout(function(){b.textContent="Apply"},1500)})};
+   d3.appendChild(b);tr.appendChild(d1);tr.appendChild(d2);tr.appendChild(d3);tb.appendChild(tr)});
+  c.appendChild(tb);m.appendChild(c)})}
+function vBrain(m){
+ api("/api/admin/brain").then(function(j){
+  if(!j.ok){m.appendChild(el("div","card","Brain API: "+(j.error||"?")));return}
+  var c=j.config||{},caps=c.daily_caps||{};
+  var card=el("div","card","<h4>Engine</h4><p class=mut>key: "+(c.gemini_key||"—")+" · minute limit: "+(c.minute_limit!=null?c.minute_limit:"—")+" · context msgs: "+(c.context_messages!=null?c.context_messages:"—")+"</p>");
+  card.appendChild(el("div","","<h4>Model chain (first = best, one per line)</h4>"));
+  var ta=document.createElement("textarea");ta.value=(c.chain||[]).join("\n");card.appendChild(ta);
+  var row=el("div","row");
+  ["Free","Pro","Ultra"].forEach(function(p){
+   var i=document.createElement("input");i.placeholder=p+" cap/day";i.style.width="110px";i.value=caps[p]!=null?caps[p]:"";i.id="cap-"+p;row.appendChild(i)});
+  var sv=document.createElement("button");sv.className="act";sv.textContent="Save";
+  sv.onclick=function(){var caps2={};["Free","Pro","Ultra"].forEach(function(p){var e=document.getElementById("cap-"+p);if(e&&e.value!=="")caps2[p]=parseInt(e.value,10)||1});
+   api("/api/admin/brain",{method:"POST",body:{chain:ta.value.split("\n").map(function(x){return x.trim()}).filter(Boolean),caps:caps2,daily_caps:caps2}}).then(function(r){sv.textContent=r.ok?"Saved ✓":"failed";setTimeout(function(){sv.textContent="Save"},1500)})};
+  row.appendChild(sv);card.appendChild(row);m.appendChild(card);
+  m.appendChild(el("div","card mut","After saving, restart the brain in Termux:<br><code>pkill -f backend/brain.py; nohup python3 backend/brain.py &amp;</code>"))})}
+function vProv(m){
+ api("/api/admin/providers").then(function(j){
+  if(!j.ok){m.appendChild(el("div","card","Providers API: "+(j.error||"?")));return}
+  var ps=j.providers||j.list||[];
+  var c=el("div","card","<h4>Registered providers</h4>");
+  c.appendChild(el("div","mut",ps.length?ps.map(function(p){return (p.id||p.name||"?")+" · "+(p.base_url||p.base||"")}).join("<br>"):"—"));
+  var ch=j.chains||{},cl="";for(var k in ch)cl+="<b>"+k+"</b>: "+(ch[k]||[]).join(" → ")+"<br>";
+  c.appendChild(el("div","mut",cl||""));m.appendChild(c);
+  var t=el("div","card","<h4>Test a model live</h4>");
+  var r1=el("div","row");var mi=document.createElement("input");mi.placeholder="model id (e.g. pollinations/openai)";mi.style.flex="1";r1.appendChild(mi);
+  var tb=document.createElement("button");tb.className="act";tb.textContent="Test";
+  tb.onclick=function(){tb.textContent="…";api("/api/admin/providers/test",{method:"POST",body:{model:mi.value}}).then(function(r){tb.textContent=r.alive?("alive ✓ "+(r.ms||"")+"ms"):(r.error||"dead");setTimeout(function(){tb.textContent="Test"},2500)})};
+  r1.appendChild(tb);t.appendChild(r1);m.appendChild(t);
+  var a=el("div","card","<h4>Add a provider</h4>");
+  var r2=el("div","row");
+  var ii=document.createElement("input");ii.placeholder="id (groq)";ii.style.width="90px";
+  var bi=document.createElement("input");bi.placeholder="base_url";bi.style.flex="1";
+  var ki=document.createElement("input");ki.placeholder="api_key";ki.style.flex="1";ki.type="password";
+  var ab=document.createElement("button");ab.className="act";ab.textContent="Add";
+  ab.onclick=function(){api("/api/admin/providers/add",{method:"POST",body:{id:ii.value,type:"openai",base_url:bi.value,api_key:ki.value}}).then(function(r){ab.textContent=r.ok?"✓ added":(r.error||"failed");setTimeout(function(){ab.textContent="Add"},2000)})};
+  r2.appendChild(ii);r2.appendChild(bi);r2.appendChild(ki);r2.appendChild(ab);a.appendChild(r2);m.appendChild(a);
+  var sc=el("div","card","<h4>Level chains (one model per line)</h4>");
+  ["Free","Pro","Ultra"].forEach(function(p){
+   sc.appendChild(el("div","","<b>"+p+"</b>"));
+   var ta=document.createElement("textarea");ta.value=(ch[p]||[]).join("\n");ta.style.minHeight="54px";sc.appendChild(ta);
+   var sv=document.createElement("button");sv.className="act";sv.textContent="Set "+p;
+   sv.onclick=function(){api("/api/admin/providers/chains",{method:"POST",body:{plan:p,models:ta.value.split("\n").map(function(x){return x.trim()}).filter(Boolean)}}).then(function(r){sv.textContent=r.ok?"✓":"failed";setTimeout(function(){sv.textContent="Set "+p},1500)})};
+   sc.appendChild(sv)});
+  m.appendChild(sc)})}
+function vMem(m){
+ var c=el("div","card","<h4>Memory pins</h4>");
+ var r=el("div","row");var ei=document.createElement("input");ei.placeholder="user email";ei.style.flex="1";r.appendChild(ei);
+ var lb=document.createElement("button");lb.className="act";lb.textContent="Load";
+ var list=el("div","");
+ lb.onclick=function(){api("/api/admin/memory/list",{method:"POST",body:{email:ei.value}}).then(function(j){
+  list.innerHTML="";(j.items||[]).forEach(function(it){
+   var row=el("div","row");var s=el("span","mut",it.text||"");s.style.flex="1";row.appendChild(s);
+   var x=document.createElement("button");x.className="ghost";x.textContent="×";
+   x.onclick=function(){api("/api/admin/memory/delete",{method:"POST",body:{id:it.id}}).then(function(){lb.click()})};
+   row.appendChild(x);list.appendChild(row)});
+  if(!(j.items||[]).length)list.appendChild(el("div","mut","none"))})};
+ r.appendChild(lb);c.appendChild(r);c.appendChild(list);m.appendChild(c)}
+function vShow(m){
+ var c=el("div","card","<h4>Modules showcase (Name | Description | Tier — one per line)</h4>");
+ var ta=document.createElement("textarea");ta.placeholder="Nano Vision | Sees and reasons about your images | Pro";
+ c.appendChild(ta);
+ var r=el("div","row");
+ var pb=document.createElement("button");pb.className="act";pb.textContent="Publish";
+ pb.onclick=function(){var items=ta.value.split("\n").map(function(l){var p=l.split("|");if(!p[0]||!p[0].trim())return null;return{name:(p[0]||"").trim(),desc:(p[1]||"").trim(),tier:(p[2]||"Pro").trim()}}).filter(Boolean);
+  api("/api/admin/showcase",{method:"POST",body:{items:items}}).then(function(j){pb.textContent=j.ok?("Published ✓ "+j.count):(j.error||"failed");setTimeout(function(){pb.textContent="Publish"},2000)})};
+ var ld=document.createElement("button");ld.className="ghost";ld.textContent="Load current";
+ ld.onclick=function(){fetch("/showcase.json").then(function(x){return x.ok?x.json():{items:[]}}).then(function(j){ta.value=(j.items||[]).map(function(i){return i.name+" | "+i.desc+" | "+i.tier}).join("\n")})};
+ r.appendChild(pb);r.appendChild(ld);c.appendChild(r);m.appendChild(c)}
+</script></body></html>
