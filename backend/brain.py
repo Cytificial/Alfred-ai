@@ -16,6 +16,35 @@ DB = os.path.join(HERE, "alfred.db")
 CONFIG = os.path.join(HERE, "brain_config.json")
 _IMG = {"list": []}  # v237.1: current-turn images (handlers set, builders read)
 
+def _or_key():  # v242b: sealed OpenRouter key (optional until you add one)
+    try: return (json.load(open(os.path.join(HERE, "providers_keys.json"))).get("openrouter") or "").strip()
+    except Exception: return ""
+
+def _or_chat(model, key, system, turns, images=None):  # v242b: openai-compatible dialect
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    msgs = ([{"role": "system", "content": system}] if system else [])
+    lu = None
+    for i in range(len(turns) - 1, -1, -1):
+        if turns[i][0] == "user": lu = i; break
+    for i, (role, text) in enumerate(turns):
+        if images and i == lu:
+            c = [{"type": "text", "text": text}]
+            for _im in images[-2:]:
+                c.append({"type": "image_url", "image_url": {"url": "data:%s;base64,%s" % (_im.get("mime", "image/jpeg"), _im["data"])}})
+            msgs.append({"role": role, "content": c})
+        else: msgs.append({"role": role, "content": text})
+    req = urllib.request.Request(url, data=json.dumps({"model": model, "messages": msgs}).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": "Bearer " + key}, method="POST")
+    with _open_retry(req, timeout=90) as r:
+        data = json.loads(r.read().decode("utf-8"))
+    if data.get("error"): raise RuntimeError(str(data["error"])[:120])
+    return ((data.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
+
+def _route(model, key, system, turns, images=None, _g=None):  # v242b: dispatch
+    if model.startswith("openrouter/"):
+        return _or_chat(model.split("/", 1)[1], _or_key(), system, turns, images)
+    return (_g or gemini)(model, key, system, turns, images)
+
 def chain_for(cfg, plan):  # v233: per-plan model chains from providers.json
     try:
         pj = json.load(open(os.path.join(HERE, "providers.json")))
@@ -341,7 +370,7 @@ class Handler(BaseHTTPRequestHandler):
             answer, used_model = None, None
             for model in chain:
                 try:
-                    answer = gemini(model, key, persona(user.get("name")), turns)
+                    answer = _route(model, key, persona(user.get("name")), turns, _g=gemini)
                     used_model = model
                     break
                 except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, ValueError) as e:

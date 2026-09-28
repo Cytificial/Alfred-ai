@@ -3562,3 +3562,8 @@ button, .adm-btn, .set-row, .faq-q { max-width: 100%; overflow-wrap: anywhere; }
 #view-admin .adm-card { max-width: 100%; overflow-wrap: anywhere; }
 #view-admin .adm-t { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 #view-admin select, #view-admin input, #view-admin button { max-width: 100%; }
+/* ===== v242: dashboard tabs + rows fit every screen ===== */
+#view-admin button { white-space: nowrap; }
+#view-admin [style*="display:flex"] { flex-wrap: wrap; row-gap: 6px; }
+#adm-body { overflow-x: hidden; }
+#adm-body .adm-card { max-width: 100%; }
