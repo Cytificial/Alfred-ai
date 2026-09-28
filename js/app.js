@@ -12237,3 +12237,194 @@ try { /* v163proc: native thinking card */
     });
   }, 1600);
 })();
+
+/* ===== v295: ALFRED CONSOLE — blank professional admin overlay ===== */
+(function () {
+  if (window.__v295c) return; window.__v295c = "1";
+  var prev = null;
+  var st = document.createElement("style");
+  st.textContent = [
+    "#vadm{position:fixed;inset:0;z-index:80;background:#0B1220;color:#E7EFF8;display:none;flex-direction:column;font:13px system-ui}",
+    "#vadm .vh{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08)}",
+    "#vadm .vh b{font:700 13px system-ui;letter-spacing:2.5px}",
+    "#vadm .vh span{font:11px system-ui;color:#7E97B8}",
+    "#vadm .vh .x{margin-left:auto;background:transparent;border:1px solid rgba(255,255,255,.2);color:#E7EFF8;border-radius:10px;padding:8px 16px;cursor:pointer}",
+    "#vadm .vt{display:flex;gap:6px;padding:10px 12px;overflow-x:auto;border-bottom:1px solid rgba(255,255,255,.08);scrollbar-width:none}",
+    "#vadm .vt button{white-space:nowrap;background:transparent;border:1px solid rgba(255,255,255,.12);color:#9DB4CE;border-radius:10px;padding:8px 14px;font:600 11px system-ui;letter-spacing:1.5px;cursor:pointer}",
+    "#vadm .vt button.on{background:rgba(102,204,255,.15);border-color:rgba(102,204,255,.45);color:#BFE6FF}",
+    "#vadm .vb{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px}",
+    "#vadm .kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}",
+    "#vadm .kt{background:#101A2B;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px}",
+    "#vadm .kt span{display:block;font:600 10px system-ui;letter-spacing:1.6px;color:#7E97B8;text-transform:uppercase;margin-bottom:6px}",
+    "#vadm .kt b{font:700 26px system-ui}",
+    "#vadm .kt b.ok{color:#5FE8B0}#vadm .kt b.bad{color:#FF7A8A}",
+    "#vadm .sec{margin-top:14px;background:#101A2B;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px}",
+    "#vadm .sec h4{margin:0 0 10px;font:700 11.5px system-ui;letter-spacing:1.8px;color:#9DB4CE;text-transform:uppercase}",
+    "#vadm .row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}",
+    "#vadm .row .em{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px}",
+    "#vadm .seg{display:flex;border:1px solid rgba(255,255,255,.14);border-radius:10px;overflow:hidden;flex-shrink:0}",
+    "#vadm .seg button{background:transparent;border:0;color:#9DB4CE;font:600 10.5px system-ui;padding:6px 9px;cursor:pointer}",
+    "#vadm .seg button.on{background:rgba(102,204,255,.2);color:#BFE6FF}",
+    "#vadm .ab{background:transparent;border:1px solid rgba(255,255,255,.16);color:#CDE3F5;border-radius:9px;padding:5px 10px;font:11px system-ui;cursor:pointer;flex-shrink:0}",
+    "#vadm .ab.dg{color:#FF7A8A;border-color:rgba(255,122,138,.4)}",
+    "#vadm .ab.gr{color:#5FE8B0;border-color:rgba(95,232,176,.4)}",
+    "#vadm .in{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.14);color:#E7EFF8;border-radius:9px;padding:7px 9px;font:12px system-ui}",
+    "#vadm .sk{height:64px;border-radius:14px;background:linear-gradient(100deg,#101A2B 30%,#17253C 50%,#101A2B 70%);background-size:200% 100%;animation:vsk 1.1s infinite;margin-bottom:10px}",
+    "@keyframes vsk{to{background-position:-200% 0}}",
+    "#vadm .st{font-size:11px;color:#7E97B8;min-height:15px;margin-top:6px}",
+    "#vadm textarea.in{width:100%;min-height:70px;resize:vertical}"
+  ].join("");
+  document.head.appendChild(st);
+  function api(p, o) { return fetch(p, Object.assign({ credentials: "include" }, o || {})).then(function (r) { return r.json().catch(function () { return {}; }); }); }
+  function el() { return document.getElementById("vadm"); }
+  function open() {
+    var e = el();
+    if (!e) {
+      e = document.createElement("div"); e.id = "vadm";
+      e.innerHTML = '<div class="vh"><b>ALFRED CONSOLE</b><span>control everything</span><button class="x" type="button">Close</button></div>'
+        + '<div class="vt" id="vadm-t"></div><div class="vb" id="vadm-b"></div>';
+      document.body.appendChild(e);
+      e.querySelector(".x").addEventListener("click", function () { try { location.hash = prev || "#/chat"; } catch (x) { e.style.display = "none"; } });
+      e.querySelector("#vadm-t").innerHTML = ["overview","users","models","providers","lab"].map(function (t) {
+        return '<button type="button" data-t="' + t + '">' + t.toUpperCase() + "</button>"; }).join("");
+      [].slice.call(e.querySelectorAll("#vadm-t button")).forEach(function (b) {
+        b.addEventListener("click", function () { show(b.getAttribute("data-t")); });
+      });
+    }
+    e.style.display = "flex"; show("overview");
+  }
+  function tabs(t) {
+    var e = el(); if (!e) return;
+    [].slice.call(e.querySelectorAll("#vadm-t button")).forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-t") === t); });
+  }
+  function skel() { return '<div class="sk"></div><div class="sk"></div><div class="sk"></div>'; }
+  function seg(plan) {
+    return '<span class="seg">' + ["Free","Pro","Ultra"].map(function (p) {
+      return '<button type="button" data-tier="' + p + '"' + (p === plan ? ' class="on"' : "") + ">" + p + "</button>"; }).join("") + "</span>";
+  }
+  function show(t) {
+    var e = el(); if (!e) return;
+    tabs(t);
+    var b = e.querySelector("#vadm-b");
+    b.innerHTML = skel();
+    if (t === "overview") return api("/api/admin/stats").then(function (j) {
+      if (!j.ok) { b.innerHTML = '<div class="sec">Admin only — sign in as the admin account.</div>'; return; }
+      var g = j.engine || {};
+      b.innerHTML = '<div class="kg">'
+        + "<div class='kt'><span>Users</span><b>" + (j.users_total != null ? j.users_total : "—") + "</b></div>"
+        + "<div class='kt'><span>Msgs 24h</span><b>" + (j.msgs_24h != null ? j.msgs_24h : "—") + "</b></div>"
+        + "<div class='kt'><span>Chats</span><b>" + (j.chats_total != null ? j.chats_total : "—") + "</b></div>"
+        + "<div class='kt'><span>Live sessions</span><b>" + (j.active_sessions != null ? j.active_sessions : "—") + "</b></div>"
+        + "<div class='kt'><span>Failed 24h</span><b class='" + ((j.failed_24h || 0) > 0 ? "bad" : "ok") + "'>" + (j.failed_24h != null ? j.failed_24h : "—") + "</b></div>"
+        + "<div class='kt'><span>Engine</span><b class='" + (g.ok ? "ok" : "bad") + "'>" + (g.ok ? "LIVE" : "DOWN") + "</b></div>"
+        + "</div><div class='sec'><h4>Plans</h4><div class='st'>" + JSON.stringify(j.plans || {}) + "</div></div>";
+    });
+    if (t === "users") return api("/api/admin/overview").then(function (j) {
+      if (!j.ok) { b.innerHTML = '<div class="sec">Admin only.</div>'; return; }
+      b.innerHTML = '<div class="sec"><h4>Users (' + (j.users || []).length + ')</h4>' + (j.users || []).map(function (u) {
+        return "<div class='row' data-em='" + u.email + "'><span class='em'>" + u.email + "</span>" + seg(u.plan)
+          + "<button class='ab gr' data-a='rv'>revoke</button><button class='ab dg' data-a='del'>delete</button></div>";
+      }).join("") + '<div class="st" id="vadm-u"></div></div>'
+        + '<div class="sec"><h4>Recent sign-ins</h4>' + (j.logs || []).slice(0, 12).map(function (l) {
+          return "<div class='row'><span class='em'>" + l.email + "</span><span class='st' style='margin:0;color:" + (l.ok ? "#5FE8B0" : "#FF7A8A") + "'>" + (l.ok ? "OK" : "BAD") + " " + (l.reason || "") + "</span></div>";
+        }).join("") + "</div>";
+      [].slice.call(b.querySelectorAll(".row[data-em]")).forEach(function (r) {
+        var em = r.getAttribute("data-em"), stl = b.querySelector("#vadm-u");
+        [].slice.call(r.querySelectorAll("[data-tier]")).forEach(function (p) {
+          p.addEventListener("click", function () {
+            [].slice.call(r.querySelectorAll("[data-tier]")).forEach(function (x) { x.classList.remove("on"); });
+            p.classList.add("on");
+            api("/api/admin/users/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: em, plan: p.getAttribute("data-tier") }) })
+              .then(function (x) { stl.textContent = em + " → " + p.getAttribute("data-tier") + (x.ok ? " ✓" : " failed"); });
+          });
+        });
+        r.querySelector("[data-a=rv]").addEventListener("click", function () {
+          api("/api/admin/users/revoke", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: em }) })
+            .then(function (x) { stl.textContent = em + " signed out " + (x.ok ? "✓" : "failed"); });
+        });
+        var del = r.querySelector("[data-a=del]");
+        del.addEventListener("click", function () {
+          if (del.textContent !== "sure?") { del.textContent = "sure?"; return; }
+          api("/api/admin/users/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: em }) })
+            .then(function (x) { if (x.ok) r.remove(); stl.textContent = em + " deleted " + (x.ok ? "✓" : "failed"); });
+        });
+      });
+    });
+    if (t === "models") return api("/api/admin/brain").then(function (j) {
+      if (!j.ok) { b.innerHTML = '<div class="sec">Admin only.</div>'; return; }
+      var c = j.config || {}, caps = c.daily_caps || {};
+      b.innerHTML = '<div class="sec"><h4>Engine</h4><div class="st">' + ((j.engine || {}).ok ? "LIVE · " + ((j.engine || {}).model || "") : "DOWN") + "</div></div>"
+        + '<div class="sec"><h4>Daily caps</h4>' + ["Free","Pro","Ultra"].map(function (p) {
+          return "<div class='row'><span class='em'>" + p + "</span><input class='in' id='cap-" + p + "' style='width:80px' value='" + (caps[p] != null ? caps[p] : "") + "'></div>"; }).join("")
+        + "<div class='row'><span class='em'>Minute limit</span><input class='in' id='cap-min' style='width:80px' value='" + (c.minute_limit != null ? c.minute_limit : "") + "'></div>"
+        + "<div class='row'><span class='em'>Context msgs</span><input class='in' id='cap-ctx' style='width:80px' value='" + (c.context_messages != null ? c.context_messages : "") + "'></div>"
+        + '<button class="ab gr" id="vadm-save" style="margin-top:10px">Save config</button><div class="st" id="vadm-ms"></div></div>';
+      b.querySelector("#vadm-save").addEventListener("click", function () {
+        function g(id) { var x = b.querySelector("#" + id); return x ? x.value : ""; }
+        var caps2 = {}; ["Free","Pro","Ultra"].forEach(function (p) { if (g("cap-" + p) !== "") caps2[p] = parseInt(g("cap-" + p), 10) || 1; });
+        var body = { daily_caps: caps2 };
+        if (g("cap-min") !== "") body.minute_limit = parseInt(g("cap-min"), 10) || 6;
+        if (g("cap-ctx") !== "") body.context_messages = parseInt(g("cap-ctx"), 10) || 12;
+        api("/api/admin/brain", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+          .then(function (x) { b.querySelector("#vadm-ms").textContent = x.ok ? "Saved ✓ (restart brain to apply)" : "failed"; });
+      });
+    });
+    if (t === "providers") return api("/api/admin/providers").then(function (j) {
+      if (!j.ok) { b.innerHTML = '<div class="sec">Admin only.</div>'; return; }
+      b.innerHTML = '<div class="sec"><h4>Providers</h4>' + (j.providers || []).map(function (p) {
+        return "<div class='row' data-p='" + p.id + "'><span class='em'>" + p.id + " · " + (p.configured ? "key set" : "no key") + "</span><button class='ab' data-a='scan'>scan</button></div>";
+      }).join("") + '<div class="st" id="vadm-p"></div></div>';
+      [].slice.call(b.querySelectorAll("[data-a=scan]")).forEach(function (bt) {
+        bt.addEventListener("click", function () {
+          var id = bt.parentNode.getAttribute("data-p"); bt.textContent = "scanning…";
+          api("/api/admin/providers/scan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: id }) })
+            .then(function (x) { bt.textContent = "scan"; b.querySelector("#vadm-p").textContent = x.ok ? (id + ": " + x.count + " models") : (x.error || "failed"); });
+        });
+      });
+    });
+    if (t === "lab") return api("/api/admin/lab").then(function (j) {
+      var items = (j && j.items) || [];
+      function draw() {
+        b.innerHTML = '<div class="sec"><h4>Model Lab — add · test · remove</h4>'
+          + "<div class='row'><input class='in' id='lab-id' placeholder='model id' style='flex:1;min-width:0'>"
+          + "<select class='in' id='lab-p'><option value='google'>google</option><option value='openrouter'>openrouter</option></select>"
+          + "<select class='in' id='lab-t'><option>Free</option><option selected>Pro</option><option>Ultra</option></select>"
+          + "<button class='ab gr' id='lab-add'>Add</button></div>"
+          + (items.map(function (m, i) {
+              return "<div class='row'><span class='em'>" + m.id + " · " + m.provider + " · " + m.tier + "</span><span class='st' style='margin:0;min-width:70px' data-st='" + i + "'>" + (m.status || "") + "</span><button class='ab gr' data-t='" + i + "'>test</button><button class='ab dg' data-x='" + i + "'>x</button></div>";
+            }).join("") || "<div class='st'>Empty — add your first model.</div>")
+          + '<button class="ab" id="lab-save" style="margin-top:10px">Save catalog</button><div class="st" id="lab-ms"></div></div>';
+        b.querySelector("#lab-add").addEventListener("click", function () {
+          var id = b.querySelector("#lab-id").value.trim(); if (!id) return;
+          items.unshift({ id: id, name: id, provider: b.querySelector("#lab-p").value, tier: b.querySelector("#lab-t").value, status: "testing" });
+          b.querySelector("#lab-id").value = ""; draw();
+        });
+        [].slice.call(b.querySelectorAll("[data-t]")).forEach(function (x) {
+          x.addEventListener("click", function () {
+            var m = items[+x.getAttribute("data-t")], s = b.querySelector("[data-st='" + x.getAttribute("data-t") + "']");
+            s.textContent = "testing…";
+            api("/api/admin/lab/test", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: m.id, provider: m.provider }) })
+              .then(function (r) { s.textContent = r.ok ? "OK " + r.ms + "ms" : "FAIL"; s.style.color = r.ok ? "#5FE8B0" : "#FF7A8A"; });
+          });
+        });
+        [].slice.call(b.querySelectorAll("[data-x]")).forEach(function (x) {
+          x.addEventListener("click", function () { items.splice(+x.getAttribute("data-x"), 1); draw(); });
+        });
+        b.querySelector("#lab-save").addEventListener("click", function () {
+          api("/api/admin/lab/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: items }) })
+            .then(function (r) { b.querySelector("#lab-ms").textContent = r.ok ? "Catalog saved ✓ (" + r.count + ")" : "failed"; });
+        });
+      }
+      draw();
+    });
+  }
+  window.addEventListener("hashchange", function () {
+    var h = location.hash || "";
+    if (h.indexOf("#/admin") === 0) {
+      if (prev === null && h) { try { prev = (h === "#/admin") ? (sessionStorage.getItem("v295prev") || "#/chat") : h; } catch (e) { prev = "#/chat"; } }
+      try { sessionStorage.setItem("v295prev", prev || "#/chat"); } catch (e) {}
+      if (!document.hidden || true) open();
+    } else { var e = el(); if (e) e.style.display = "none"; }
+  });
+  try { if ((location.hash || "").indexOf("#/admin") === 0) open(); } catch (e) {}
+})();
