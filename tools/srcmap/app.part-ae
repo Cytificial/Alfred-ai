@@ -1540,3 +1540,76 @@ extContent || "").length;
     doRegister(b.closest("#register"), b);
   }, true);
 })();
+
+/* ===== v283: visible build stamp, hero-mark backing killed inline, register direct-wire ===== */
+(function () {
+  if (window.__v283) return; window.__v283 = "1";
+  window.__BUILD = "v283";
+  function imp(el, p, v) { try { el.style.setProperty(p, v, "important"); } catch (e) {} }
+  var n = 0, iv = setInterval(function () {
+    if (++n > 60) clearInterval(iv);
+    var L = document.getElementById("land"); if (!L) return;
+    var hm = L.querySelector(".hero-mark");
+    if (hm) {
+      imp(hm, "background", "transparent"); imp(hm, "border", "0");
+      imp(hm, "box-shadow", "none"); imp(hm, "filter", "drop-shadow(0 0 16px rgba(79,195,255,.3))");
+      clearInterval(iv);
+    }
+  }, 400);
+  function bad(r, m) {
+    var box = r.querySelector(".v281err");
+    if (!box) { box = document.createElement("div"); box.className = "v281err"; r.appendChild(box); }
+    box.textContent = m; box.style.display = "block";
+  }
+  function go(btn) {
+    var r = document.getElementById("register");
+    if (btn && (btn.getAttribute("data-v283busy") || btn.getAttribute("data-v281busy"))) return;
+    var inp = [].slice.call(r.querySelectorAll("input"));
+    function by(t) { return inp.filter(function (x) { return (x.getAttribute("type") || "text").toLowerCase() === t; })[0]; }
+    var email = ((by("email") || {}).value || "").trim().toLowerCase();
+    var pass = (by("password") || {}).value || "";
+    var name = ((by("text") || {}).value || "").trim() || email.split("@")[0];
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return bad(r, "Enter a valid email.");
+    if (pass.length < 6) return bad(r, "Password needs 6+ characters.");
+    r.querySelector(".v281err") && (r.querySelector(".v281err").style.display = "none");
+    if (btn) { btn.setAttribute("data-v283busy", "1"); btn.style.opacity = ".6"; }
+    fetch("/api/auth/register", { method:"POST", credentials:"include", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ name:name, email:email, password:pass }) })
+      .then(function(x){ return x.json().catch(function(){ return {}; }); })
+      .then(function(j){
+        if (!j.ok) throw new Error(j.error || "Registration failed");
+        return fetch("/api/auth/login", { method:"POST", credentials:"include", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ email:email, password:pass }) }).then(function(x){ return x.json().catch(function(){ return {}; }); });
+      })
+      .then(function(j){
+        if (!j.ok) { location.hash = "#login"; throw new Error("Account created - please sign in."); }
+        location.reload();
+      })
+      .catch(function(e){ bad(r, e.message || "Failed"); })
+      .then(function(){ if (btn) { btn.removeAttribute("data-v283busy"); btn.style.opacity = ""; } });
+  }
+  var w = setInterval(function () {
+    if (document.hidden) return;
+    var r = document.getElementById("register"); if (!r || r.offsetParent === null) return;
+    [].slice.call(r.querySelectorAll('button')).forEach(function (b) {
+      if (b.classList.contains("soc") || b.getAttribute("data-v283b")) return;
+      b.setAttribute("data-v283b", "1");
+      b.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); go(b); }, true);
+    });
+  }, 900);
+  var t2 = 0, t3 = setInterval(function () {
+    if (++t2 > 60) clearInterval(t3);
+    var s = document.getElementById("loading");
+    if (s && s.offsetParent !== null && !s.querySelector("#vbuild")) {
+      var d = document.createElement("div"); d.id = "vbuild";
+      d.style.cssText = "position:absolute;bottom:12px;left:0;right:0;text-align:center;font:10px system-ui;color:rgba(255,255,255,.28);letter-spacing:.2em";
+      d.textContent = "ALFRED \u00b7 " + window.__BUILD; s.appendChild(d);
+    }
+    var f = document.querySelector("#land .foot-l, #land footer");
+    if (f && !f.querySelector("#vbuild2")) {
+      var d2 = document.createElement("span"); d2.id = "vbuild2";
+      d2.style.cssText = "margin-left:10px;font:10px system-ui;color:rgba(255,255,255,.35)";
+      d2.textContent = window.__BUILD; f.appendChild(d2); clearInterval(t3);
+    }
+  }, 900);
+})();
