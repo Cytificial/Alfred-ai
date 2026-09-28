@@ -3650,3 +3650,7 @@ header .model .m-tx, .model .m-tx{max-width:38vw;overflow:hidden;text-overflow:e
   header .m-av img, .model .m-av img{width:26px;height:26px}
   header .btn, [class*="top"] button{padding:6px}
 }
+/* v273a: landing nav/footer logo contrast + hero kicker cleanup */
+#land .brand img, #land .foot-l img { content: url('/assets/logo-512.png'); }
+#land .hero .kick .fig { display: none; }
+#land .demo { margin-top: 30px; }
