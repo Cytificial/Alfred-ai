@@ -181,7 +181,9 @@ class H(SimpleHTTPRequestHandler):
                 return self._json(429,
                     {"error": "slow down"})
             _RATE[ip] = nowt
-            tok = ""
+            tok = (self.headers.get(
+                "X-Alfred-Token")
+                or "").strip()
             for part in self.headers.get(
                     "Cookie", "").split(";"):
                 if "alfred_session=" in part:
@@ -197,10 +199,24 @@ class H(SimpleHTTPRequestHandler):
                 " text TEXT, ts REAL)")
             uid = None
             try:
-                r = con.execute("SELECT user_id"
-                    " FROM sessions WHERE token=?",
-                    (tok,)).fetchone()
-                if r: uid = r[0]
+                _cols = [r[1] for r in con.execute(
+                    "PRAGMA table_info(sessions)")]
+                _tcol = ""
+                for _cn in _cols:
+                    if "token" in _cn.lower():
+                        _tcol = _cn
+                        break
+                _u = ""
+                if "user_id" in _cols:
+                    _u = "user_id"
+                elif "uid" in _cols:
+                    _u = "uid"
+                if _tcol and _u and tok:
+                    r = con.execute("SELECT " + _u +
+                        " FROM sessions WHERE " +
+                        _tcol + "=?",
+                        (tok,)).fetchone()
+                    if r: uid = r[0]
             except Exception:
                 uid = None
             if not uid:
