@@ -127,7 +127,35 @@ def api_key(cfg):
     return (os.environ.get("GOOGLE_API_KEY") or cfg.get("gemini_key") or "").strip()
 
 
+
+# v298: universal openai-compatible routing for prefixed models (groq/, cerebras/, ...)
+import providers as _pv
+def _prov_route(model, system, turns):
+    if "/" not in model or model.startswith("models/"): return None
+    pid, m2 = model.split("/", 1)
+    if pid == "openrouter": return None          # existing handler owns it
+    try:
+        key = (_pv._keys() or {}).get(pid, "")
+        provs = (_pv._load() or {}).get("providers") or []
+        rec = [x for x in provs if x.get("id") == pid]
+        if not rec or not key: return None
+        base = (rec[0].get("base_url") or "").rstrip("/")
+        if base.endswith("/v1"): base = base[:-3]
+        msgs = [{"role": "system", "content": system}] + [{"role": r, "content": t} for r, t in turns]
+        body = json.dumps({"model": m2, "messages": msgs, "max_tokens": 1200}).encode()
+        rq = urllib.request.Request(base + "/v1/chat/completions", data=body,
+             headers={"Content-Type": "application/json", "Authorization": "Bearer " + key}, method="POST")
+        with _open_retry(rq, timeout=90) as r:
+            d2 = json.loads(r.read().decode())
+        txt = ((d2.get("choices") or [{}])[0].get("message") or {}).get("text") or ""
+        return txt or None
+    except Exception:
+        raise RuntimeError("alt provider failed: " + pid)
+
 def gemini(model, key, system, turns):
+    _pr = _prov_route(model, system, turns)
+    if _pr is not None: return _pr
+
     url = "https://generativelanguage.googleapis.com/v1beta/models/" + \
           urllib.parse.quote(model, safe="") + ":generateContent?" + \
           urllib.parse.urlencode({"key": key})
