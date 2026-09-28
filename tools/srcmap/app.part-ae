@@ -462,118 +462,7 @@ extContent || "").length;
   setTimeout(function(){ refresh(true); }, 1200);
 })();
 
-/* ===== v265: investor landing — after splash, before login ===== */
-(function () {
-  if (window.__v265) return; window.__v265 = "1";
-  var CSS = document.createElement("style");
-  CSS.textContent = [
-    "#v265land{position:fixed;inset:0;z-index:9990;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#060e1f;color:#e8f2ff;font-family:system-ui;display:none}",
-    "#v265land .l-hero{position:relative;min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:64px 22px}",
-    "#v265land .l-bg{position:absolute;inset:0;background-image:url('/assets/gen/city-hero.png'),url('/assets/gen/nebula-plate.png');background-size:cover,cover;background-position:center,center;opacity:.5}",
-    "#v265land .l-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,14,31,.55),rgba(6,14,31,.92))}",
-    "#v265land .l-hero>*{position:relative}",
-    "#v265land .l-logo{width:92px;height:92px;border-radius:50%;border:1px solid rgba(79,195,255,.45);display:flex;align-items:center;justify-content:center;box-shadow:0 0 42px rgba(79,195,255,.35);margin-bottom:26px}",
-    "#v265land .l-logo img{width:62px;height:62px}",
-    "#v265land h1{font-size:34px;line-height:1.15;margin:0 0 14px;font-weight:800;letter-spacing:-.5px}",
-    "#v265land h1 em{font-style:normal;background:linear-gradient(90deg,#4fc3ff,#ffb347);-webkit-background-clip:text;background-clip:text;color:transparent}",
-    "#v265land .l-sub{max-width:520px;color:#a9c6e8;font-size:16px;line-height:1.6;margin:0 0 30px}",
-    "#v265land .l-cta{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(90deg,#1e6fd9,#4fc3ff);color:#fff;border:0;border-radius:999px;padding:15px 34px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 8px 30px rgba(79,195,255,.35)}",
-    "#v265land .l-cta2{display:inline-flex;background:transparent;color:#bfe2ff;border:1px solid rgba(159,216,255,.4);border-radius:999px;padding:14px 26px;font-size:14px;cursor:pointer;margin-left:10px;text-decoration:none}",
-    "#v265land .l-sec{max-width:920px;margin:0 auto;padding:54px 22px}",
-    "#v265land .l-kick{color:#4fc3ff;font-size:12px;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px}",
-    "#v265land .l-sec h2{font-size:24px;margin:0 0 8px}",
-    "#v265land .l-sec p.lead{color:#a9c6e8;margin:0 0 26px;line-height:1.6}",
-    "#v265land .l-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}",
-    "#v265land .l-card{background:rgba(255,255,255,.045);border:1px solid rgba(159,216,255,.16);border-radius:18px;padding:20px}",
-    "#v265land .l-card b{display:block;font-size:16px;margin-bottom:6px}",
-    "#v265land .l-card span{color:#a9c6e8;font-size:13.5px;line-height:1.55}",
-    "#v265land .l-tier{border-radius:20px;padding:22px;border:1px solid rgba(159,216,255,.16);background:rgba(255,255,255,.04);margin-bottom:14px}",
-    "#v265land .l-tier h3{margin:0 0 4px;font-size:18px;display:flex;align-items:center;gap:10px}",
-    "#v265land .l-tier .l-tag{font-size:10px;letter-spacing:1px;border:1px solid rgba(255,179,71,.5);color:#ffb347;border-radius:99px;padding:2px 9px}",
-    "#v265land .l-tier .l-desc{color:#a9c6e8;font-size:13px;margin-bottom:12px}",
-    "#v265land .l-minds{display:flex;flex-wrap:wrap;gap:8px}",
-    "#v265land .l-mind{font-size:12px;color:#dff1ff;background:rgba(79,195,255,.1);border:1px solid rgba(79,195,255,.28);border-radius:99px;padding:5px 12px}",
-    "#v265land .l-faq{border:1px solid rgba(159,216,255,.16);border-radius:14px;margin-bottom:10px;background:rgba(255,255,255,.035)}",
-    "#v265land .l-faq summary{padding:16px 18px;cursor:pointer;font-weight:600;font-size:14.5px;list-style:none}",
-    "#v265land .l-faq summary::-webkit-details-marker{display:none}",
-    "#v265land .l-faq p{padding:0 18px 16px;color:#a9c6e8;font-size:13.5px;line-height:1.6;margin:0}",
-    "#v265land .l-band{text-align:center;padding:60px 22px;background:radial-gradient(60% 90% at 50% 0%,rgba(79,195,255,.12),transparent)}",
-    "#v265land .l-mail{color:#0a1220;background:#ffb347;border-radius:999px;padding:13px 28px;font-weight:700;text-decoration:none;display:inline-block;font-size:14px}",
-    "#v265land .l-foot{color:#5f7fa3;font-size:12px;text-align:center;padding:26px 0 40px}",
-    "@media(max-width:600px){#v265land .l-cta2{margin:12px 0 0}#v265land h1{font-size:28px}}"
-  ].join("");
-  document.head.appendChild(CSS);
-
-  var MINDS = {
-    Free:  { d: "3 standard minds \u00b7 to meet Alfred", m: ["GPT-5 mini", "Claude Sonnet 4", "Dolphin"] },
-    Pro:   { d: "6 latest-generation minds \u00b7 full speed", m: ["GPT-6 Astra", "Claude Opus 5", "DeepSeek 4.1", "Dolphin", "Code Interpreter", "Web Search"] },
-    Ultra: { d: "4 apex minds + the Deep-think Council", m: ["GPT-6 Astra Ultra", "Claude Opus 5 Max", "DeepSeek 4.1 Apex", "Dolphin Ultra", "Deep-think Council"] }
-  };
-  function build() {
-    if (document.getElementById("v265land")) return;
-    var L = document.createElement("div"); L.id = "v265land";
-    var tiers = ["Free", "Pro", "Ultra"].map(function (k) {
-      return '<div class="l-tier"><h3>' + k + (k === "Pro" ? ' <span class="l-tag">MOST POPULAR</span>' : "") +
-        '</h3><div class="l-desc">' + MINDS[k].d + '</div><div class="l-minds">' +
-        MINDS[k].m.map(function (x) { return '<span class="l-mind">' + x + '</span>'; }).join("") + '</div></div>';
-    }).join("");
-    L.innerHTML =
-      '<div class="l-hero"><div class="l-bg"></div>' +
-        '<div class="l-logo"><img src="/assets/logo-512.png" alt="Alfred"></div>' +
-        '<h1>Your Mind, <em>Amplified.</em></h1>' +
-        '<p class="l-sub">Alfred combines the most powerful AI minds on Earth into one butler \u2014 sharp answers, generated worlds, vision, and memory \u2014 in your pocket.</p>' +
-        '<button class="l-cta" id="v265cta">\u2728 Chat with Alfred</button>' +
-        '<a class="l-cta2" href="#v265-minds">Meet his minds</a></div>' +
-      '<div class="l-sec" id="v265-minds"><div class="l-kick">The Council</div><h2>One question \u2014 every mind answers together</h2>' +
-        '<p class="lead">Alfred routes every message through tiers of elite AI minds. Free introduces you to him. Pro gives you the latest generation at full speed. Ultra convenes the Council.</p>' +
-        '<div class="l-cards">' + tiers + '</div></div>' +
-      '<div class="l-sec"><div class="l-kick">Why Alfred</div><h2>Built different, on purpose</h2>' +
-        '<div class="l-cards" style="margin-top:18px">' +
-        '<div class="l-card"><b>\u{1F9E0} Multi-mind intelligence</b><span>Powerful models reasoning together \u2014 not one bot, a council.</span></div>' +
-        '<div class="l-card"><b>\u{1F30C} Chats become worlds</b><span>Every conversation grows its own galaxy in History. Explore what others dream.</span></div>' +
-        '<div class="l-card"><b>\u{1F441}\u{1F5E3} Sees & speaks</b><span>Send photos, he understands them. Vision built into every tier.</span></div>' +
-        '<div class="l-card"><b>\u{1F512} Private by design</b><span>Your conversations are yours. Sign in, talk, delete \u2014 your call.</span></div>' +
-        '</div></div>' +
-      '<div class="l-sec"><div class="l-kick">FAQ</div><h2>Good questions</h2>' +
-        '<details class="l-faq"><summary>What exactly is Alfred?</summary><p>A personal AI butler that combines multiple state-of-the-art AI minds to give you one excellent answer \u2014 plus worlds, vision, and memory.</p></details>' +
-        '<details class="l-faq"><summary>Is it free?</summary><p>Yes \u2014 the Free tier gets you chatting every day. Pro unlocks the latest-generation minds at full speed, Ultra convenes the Deep-think Council.</p></details>' +
-        '<details class="l-faq"><summary>What can I use him for?</summary><p>Answers, coding, images, planning, learning, vision on your photos \u2014 anything you would ask the world\u2019s best minds.</p></details>' +
-        '<details class="l-faq"><summary>Does he always use the best models?</summary><p>His minds update continuously. When new elite models arrive, Alfred absorbs them \u2014 you never think about it.</p></details>' +
-        '<details class="l-faq"><summary>Which devices work?</summary><p>Any modern browser, and he installs as an app on your phone \u2014 full screen, offline shell, your Alfred.</p></details></div>' +
-      '<div class="l-band"><div class="l-kick">For investors & partners</div><h2>Join us at the beginning</h2>' +
-        '<p class="lead" style="margin:10px auto 24px;max-width:480px">Alfred is the consumer face of multi-model intelligence. Talk to us.</p>' +
-        '<a class="l-mail" href="mailto:cyberartificial1@gmail.com?subject=Alfred%20AI%20%E2%80%94%20Investor%20inquiry">cyberartificial1@gmail.com</a></div>' +
-      '<div class="l-foot">\u00a9 Alfred AI \u2014 Your Mind, Amplified. · cyberartificial1@gmail.com</div>';
-    document.body.appendChild(L);
-    document.getElementById("v265cta").addEventListener("click", function () {
-      fetch("/api/auth/me", { credentials: "include", headers: { "X-Alfred-Token": (function(){ try { for (var k in localStorage) { var v = localStorage.getItem(k) || ""; if (v.length >= 24 && /^[A-Za-z0-9_\-.]+$/.test(v)) return v; } } catch (e) {} return ""; })() } })
-        .then(function (r) { return r.json().catch(function () { return {}; }); })
-        .then(function (j) {
-          L.style.display = "none";
-          if (j && j.user) { location.hash = "#/chat";
-            var c = [].slice.call(document.querySelectorAll(".nav-item")).filter(function (r) { return (r.textContent || "").trim() === "Chat"; })[0];
-            if (c) c.click();
-          } else {
-            [].slice.call(document.querySelectorAll(".view")).forEach(function (v) { v.classList.toggle("show", /login/i.test(v.id) || v.id === "view-login"); });
-          }
-        }).catch(function () { L.style.display = "none"; });
-    });
-  }
-  function decide() {
-    var h = (location.hash || "").toLowerCase();
-    if (/chat|explore|modules|history|plans|settings|admin|login/.test(h)) { var L = document.getElementById("v265land"); if (L) L.style.display = "none"; return; }
-    if (!document.getElementById("v265land")) build();
-    fetch("/api/auth/me", { credentials: "include" }).then(function (r) { return r.json().catch(function () { return {}; }); })
-      .then(function (j) {
-        var L = document.getElementById("v265land"); if (!L) return;
-        L.style.display = (j && j.user) ? "none" : "block";
-      }).catch(function () {});
-  }
-  setTimeout(decide, 3600);
-  setInterval(function () { if (!document.hidden) decide(); }, 30000);
-  window.addEventListener("hashchange", decide);
-})();
-
+/* v265 landing retired in v268 */
 /* ===== v265b: explore hygiene — dedupe, cap, honest Yours ===== */
 (function () {
   if (window.__v265b) return; window.__v265b = "1";
@@ -604,3 +493,145 @@ extContent || "").length;
 })();
 
 /* ===== v265d: refresh srcmap chunks (repo reading stays current) ===== */
+
+/* ===== v268: landing — aurora, glass bento, one mark, one CTA ===== */
+(function () {
+  if (window.__v268) return; window.__v268 = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    "#land{position:fixed;inset:0;z-index:9988;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;background:#050b16;color:#eaf3ff;font-family:system-ui,-apple-system,sans-serif}",
+    "#land .blob{position:fixed;border-radius:50%;filter:blur(90px);opacity:.5;pointer-events:none}",
+    "#land .b1{width:420px;height:420px;background:#1450a3;top:-140px;left:-120px;animation:drift 16s ease-in-out infinite alternate}",
+    "#land .b2{width:380px;height:380px;background:#3d2f8f;bottom:-120px;right:-100px;animation:drift 20s ease-in-out infinite alternate-reverse}",
+    "@keyframes drift{to{transform:translate(60px,40px) scale(1.15)}}",
+    "@media (prefers-reduced-motion: reduce){#land .blob{animation:none}}",
+    "#land .in{position:relative;max-width:1000px;margin:0 auto;padding:0 22px}",
+    "#land nav{display:flex;align-items:center;justify-content:space-between;padding:20px 0}",
+    "#land .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:2.5px;font-size:14px}",
+    "#land .brand img{width:30px;height:30px}",
+    "#land .ghost{background:none;border:1px solid rgba(255,255,255,.22);color:#dfeaff;border-radius:99px;padding:8px 18px;font-size:13px;cursor:pointer}",
+    "#land .hero{padding:9vh 0 7vh;text-align:center}",
+    "#land .mark{width:84px;height:84px;margin:0 auto 30px;position:relative}",
+    "#land .mark img{width:100%;height:100%;position:relative;z-index:1}",
+    "#land .mark::before{content:'';position:absolute;inset:-34px;background:radial-gradient(circle,rgba(79,195,255,.35),transparent 65%);z-index:0}",
+    "#land h1{font-size:clamp(40px,9vw,68px);line-height:1.04;letter-spacing:-1.5px;margin:0 0 18px;font-weight:800}",
+    "#land h1 em{font-style:normal;background:linear-gradient(92deg,#7fd4ff 10%,#4fc3ff 45%,#ffb347 95%);-webkit-background-clip:text;background-clip:text;color:transparent}",
+    "#land .sub{font-size:17px;color:#b6cbe6;max-width:560px;margin:0 auto 34px;line-height:1.65}",
+    "#land .cta{background:linear-gradient(92deg,#1e6fd9,#4fc3ff);color:#fff;border:0;border-radius:999px;padding:16px 40px;font-size:16.5px;font-weight:700;cursor:pointer;box-shadow:0 10px 34px rgba(79,195,255,.4)}",
+    "#land .cta:active{transform:scale(.98)}",
+    "#land .cta2{display:block;margin:16px auto 0;background:none;border:0;color:#8fb8d8;font-size:13.5px;cursor:pointer;text-decoration:underline;text-underline-offset:4px}",
+    "#land .stats{display:flex;justify-content:center;gap:34px;padding:34px 0 8vh;flex-wrap:wrap}",
+    "#land .stat b{display:block;font-size:26px;font-variant-numeric:tabular-nums;background:linear-gradient(90deg,#cfe9ff,#8fd0ff);-webkit-background-clip:text;background-clip:text;color:transparent}",
+    "#land .stat span{font-size:11.5px;color:#7e97b8;letter-spacing:1.5px;text-transform:uppercase}",
+    "#land .kicker{color:#4fc3ff;font-size:11px;letter-spacing:3px;text-transform:uppercase;text-align:center;margin-bottom:10px}",
+    "#land h2{font-size:clamp(24px,5vw,34px);letter-spacing:-.5px;text-align:center;margin:0 0 40px;font-weight:800}",
+    "#land .bento{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}",
+    "#land .cell{grid-column:span 2;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:20px;padding:22px;backdrop-filter:blur(14px)}",
+    "#land .cell.wide{grid-column:span 3}",
+    "#land .cell .ic{font-size:24px;margin-bottom:12px}",
+    "#land .cell b{display:block;font-size:15.5px;margin-bottom:6px}",
+    "#land .cell span{font-size:13px;color:#9db6d4;line-height:1.6}",
+    "@media(max-width:640px){#land .cell,#land .cell.wide{grid-column:span 6}}",
+    "#land .marq{overflow:hidden;padding:30px 0 8vh;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}",
+    "#land .mtrack{display:flex;gap:10px;width:max-content;animation:slide 26s linear infinite}",
+    "#land .mchip{white-space:nowrap;font-size:13px;color:#bfe2ff;border:1px solid rgba(127,212,255,.25);border-radius:99px;padding:8px 16px;background:rgba(79,195,255,.07)}",
+    "@keyframes slide{to{transform:translateX(-50%)}}",
+    "#land .tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;padding-bottom:10vh}",
+    "#land .tier{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:22px;padding:24px;backdrop-filter:blur(14px)}",
+    "#land .tier.hot{border-color:rgba(255,179,71,.45);background:rgba(255,179,71,.05)}",
+    "#land .tier h3{margin:0;font-size:19px;display:flex;gap:10px;align-items:center}",
+    "#land .tag{font-size:9.5px;letter-spacing:1.5px;color:#ffb347;border:1px solid rgba(255,179,71,.5);border-radius:99px;padding:3px 9px}",
+    "#land .tier .d{color:#9db6d4;font-size:12.5px;margin:6px 0 14px}",
+    "#land .mind{display:inline-block;font-size:12px;color:#dff1ff;background:rgba(79,195,255,.09);border:1px solid rgba(79,195,255,.22);border-radius:99px;padding:5px 12px;margin:0 6px 8px 0}",
+    "#land .faqw{max-width:680px;margin:0 auto;padding-bottom:10vh}",
+    "#land details{border:1px solid rgba(255,255,255,.09);border-radius:16px;background:rgba(255,255,255,.04);margin-bottom:10px}",
+    "#land summary{padding:17px 20px;cursor:pointer;font-weight:600;font-size:14.5px;list-style:none}",
+    "#land summary::-webkit-details-marker{display:none}",
+    "#land details p{padding:0 20px 18px;color:#9db6d4;font-size:13.5px;line-height:1.7;margin:0}",
+    "#land .inv{text-align:center;padding:8vh 22px 9vh;border-top:1px solid rgba(255,255,255,.07)}",
+    "#land .mail{display:inline-block;margin-top:22px;background:#ffb347;color:#0a1220;font-weight:700;border-radius:999px;padding:14px 30px;text-decoration:none;font-size:14.5px}",
+    "#land .foot{color:#5f7fa3;font-size:12px;text-align:center;padding:0 0 46px}"
+  ].join("");
+  document.head.appendChild(st);
+
+  var M = {
+    Free:  ["GPT-5 mini", "Claude Sonnet 4", "Dolphin"],
+    Pro:   ["GPT-6 Astra", "Claude Opus 5", "DeepSeek 4.1", "Dolphin", "Code Interpreter", "Web Search"],
+    Ultra: ["GPT-6 Astra Ultra", "Claude Opus 5 Max", "DeepSeek 4.1 Apex", "Dolphin Ultra", "Deep-think Council"]
+  };
+  function tier(k, d, hot) {
+    return '<div class="tier' + (hot ? " hot" : "") + '"><h3>' + k + (hot ? '<span class="tag">MOST POPULAR</span>' : "") +
+      '</h3><div class="d">' + d + '</div>' + M[k].map(function (x) { return '<span class="mind">' + x + '</span>'; }).join("") + '</div>';
+  }
+  var chips = ["Write anything", "Ship code", "See your photos", "Plan the week", "Explain the hard stuff", "Imagine images", "Answer together", "Remember you"];
+  function build() {
+    if (document.getElementById("land")) return;
+    var L = document.createElement("div"); L.id = "land";
+    L.innerHTML =
+      '<div class="blob b1"></div><div class="blob b2"></div><div class="in">' +
+      '<nav><div class="brand"><img src="/assets/logo-dark.svg" alt="">ALFRED AI</div>' +
+      '<button class="ghost" id="land-in">Sign in</button></nav>' +
+      '<div class="hero"><div class="mark"><img src="/assets/logo-dark.svg" alt="Alfred"></div>' +
+      '<h1>Your Mind, <em>Amplified.</em></h1>' +
+      '<p class="sub">One butler. The most powerful AI minds on Earth, answering together \u2014 sharp, fast, and yours.</p>' +
+      '<button class="cta" id="land-cta">\u2728 Chat with Alfred</button>' +
+      '<button class="cta2" id="land-how">See what he can do \u2193</button></div>' +
+      '<div class="stats"><div class="stat"><b>6+</b><span>elite minds</span></div>' +
+      '<div class="stat"><b>3</b><span>power levels</span></div>' +
+      '<div class="stat"><b>1</b><span>deep-think council</span></div>' +
+      '<div class="stat"><b>0</b><span>setup needed</span></div></div>' +
+      '<div class="kicker">Why Alfred</div><h2>Not one AI. A council of them.</h2>' +
+      '<div class="bento">' +
+      '<div class="cell wide"><div class="ic">\u{1F9E0}</div><b>Council intelligence</b><span>Hard questions get convened \u2014 multiple minds weigh in, Alfred delivers one excellent answer.</span></div>' +
+      '<div class="cell wide"><div class="ic">\u{1F30C}</div><b>Chats become worlds</b><span>Every conversation grows its own galaxy in History. Explore a sky of what people dream.</span></div>' +
+      '<div class="cell"><div class="ic">\u{1F441}\uFE0F</div><b>Vision</b><span>Send a photo. He understands it.</span></div>' +
+      '<div class="cell"><div class="ic">\u26A1</div><b>Always fresh</b><span>New elite models arrive \u2014 Alfred absorbs them. You never think about it.</span></div>' +
+      '<div class="cell"><div class="ic">\u{1F4F1}</div><b>Installs as an app</b><span>Full screen, offline shell, your Alfred in the pocket.</span></div></div>' +
+      '<div class="marq"><div class="mtrack">' + chips.concat(chips).map(function (c) { return '<span class="mchip">' + c + '</span>'; }).join("") + '</div></div>' +
+      '<div class="kicker">Power levels</div><h2>Choose how hard he thinks</h2>' +
+      '<div class="tiers">' + tier("Free", "Meet Alfred \u2014 crisp answers every day") + tier("Pro", "Latest-generation minds at full speed", true) + tier("Ultra", "The Deep-think Council \u2014 maximum depth") + '</div>' +
+      '<div class="kicker">FAQ</div><h2>Good questions</h2><div class="faqw">' +
+      '<details><summary>What exactly is Alfred?</summary><p>A personal AI butler that combines multiple state-of-the-art AI minds to give you one excellent answer \u2014 with vision, worlds, and memory.</p></details>' +
+      '<details><summary>Is it free?</summary><p>Yes. Free gets you chatting every day; Pro and Ultra unlock the deeper councils.</p></details>' +
+      '<details><summary>What can I use him for?</summary><p>Writing, coding, planning, learning, images, understanding photos \u2014 anything you would ask the world\u2019s best minds.</p></details>' +
+      '<details><summary>Are my conversations private?</summary><p>They belong to you. Sign in, talk, delete \u2014 your call.</p></details>' +
+      '<details><summary>Which devices work?</summary><p>Any modern browser \u2014 and on your phone he installs as a full-screen app.</p></details></div>' +
+      '<div class="inv"><div class="kicker">For investors & partners</div><h2 style="margin-bottom:8px">Join us at the beginning</h2>' +
+      '<p class="sub" style="font-size:15px">Alfred is the consumer face of multi-model intelligence.</p>' +
+      '<a class="mail" href="mailto:cyberartificial1@gmail.com?subject=Alfred%20AI%20%E2%80%94%20Investor%20inquiry">cyberartificial1@gmail.com</a></div>' +
+      '<div class="foot">\u00a9 Alfred AI \u2014 Your Mind, Amplified.</div></div>';
+    document.body.appendChild(L);
+    function tok() { try { for (var k in localStorage) { var v = localStorage.getItem(k) || ""; if (v.length >= 24 && /^[A-Za-z0-9_\-.]+$/.test(v)) return v; } } catch (e) {} return ""; }
+    function go() {
+      fetch("/api/auth/me", { credentials: "include", headers: { "X-Alfred-Token": tok() } })
+        .then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (j) {
+          L.style.display = "none";
+          if (j && j.user) {
+            var c = [].slice.call(document.querySelectorAll(".nav-item")).filter(function (r) { return (r.textContent || "").trim() === "Chat"; })[0];
+            if (c) c.click(); else location.hash = "#/chat";
+          } else {
+            [].slice.call(document.querySelectorAll(".view")).forEach(function (v) { v.classList.toggle("show", /login/i.test(v.id)); });
+            var s = document.querySelector('[data-view="settings"],.nav-item');
+            [].slice.call(document.querySelectorAll(".nav-item")).forEach(function (r) { r.classList.remove("active"); });
+          }
+        }).catch(function () { L.style.display = "none"; });
+    }
+    document.getElementById("land-cta").addEventListener("click", go);
+    document.getElementById("land-in").addEventListener("click", go);
+    document.getElementById("land-how").addEventListener("click", function () {
+      L.querySelector(".bento").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+  function decide() {
+    var h = (location.hash || "").toLowerCase();
+    var L = document.getElementById("land");
+    if (/chat|explore|modules|history|plans|settings|admin|login/.test(h)) { if (L) L.style.display = "none"; return; }
+    if (!L) build();
+    fetch("/api/auth/me", { credentials: "include" }).then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (j) { var x = document.getElementById("land"); if (x) x.style.display = (j && j.user) ? "none" : "block"; }).catch(function () {});
+  }
+  setTimeout(decide, 3600);
+  window.addEventListener("hashchange", decide);
+  setInterval(function () { if (!document.hidden) decide(); }, 30000);
+})();
