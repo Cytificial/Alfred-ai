@@ -1385,3 +1385,40 @@ extContent || "").length;
     }
   }, 1000);
 })();
+
+/* ===== v279: splash velocity + honest login ===== */
+(function () {
+  if (window.__v279) return; window.__v279 = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    "#login .soc, #register .soc{display:none !important}",
+    "#login .divider, #register .divider{display:none !important}",
+    "#register .head p{color:#8fb8d8 !important;font-size:13px !important}",
+    "#login .head p, #register .head p{font-family:'DM Sans',system-ui !important}",
+    "#loading .bar-wrap{max-width:280px !important;margin:0 auto !important}",
+    "#loading .status{margin-bottom:10px !important}"
+  ].join("");
+  document.head.appendChild(st);
+  /* splash: 2.2s wall-clock glide (was 6500ms), sparkier particles */
+  setTimeout(function () {
+    try {
+      if (window.__v279vel) return; window.__v279vel = 1;
+      var scr = [].slice.call(document.scripts).filter(function (s) { return (s.textContent || "").indexOf("DURATION = 6500") > -1; })[0];
+      if (!scr) return;
+      var el = document.createElement("script");
+      el.textContent = scr.textContent.replace(/DURATION = 6500/, "DURATION = 2200")
+        .replace(/for \(var i = 0; i < 16; i\+\+\)/, "for (var i = 0; i < 22; i++)")
+        .replace(/animationDelay = \(i \* 0\.9\)/, "animationDelay = (i * 0.35)")
+        .replace(/animationDuration = \(9 \+ \(i % 5\) \* 2\)/, "animationDuration = (5 + (i % 4) * 1.5)");
+      document.head.appendChild(el);
+    } catch (e) {}
+  }, 0);
+  /* login: register terms-row real consent note */
+  setInterval(function () {
+    if (document.hidden) return;
+    var r = document.getElementById("register"); if (!r || r.getAttribute("data-v279")) return;
+    r.setAttribute("data-v279", "1");
+    var t = r.querySelector(".terms .t");
+    if (t) t.innerHTML = 'I agree to Alfred\u2019s <a href="mailto:cyberartificial1@gmail.com?subject=Terms%20%26%20Privacy" class="lnk">Terms & Privacy</a> \u2014 your chats stay yours.';
+  }, 1200);
+})();

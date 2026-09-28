@@ -1,4 +1,4 @@
-const CACHE = "alfred-v43";
+const CACHE = "alfred-v44";
 const SHELL = ["/", "/index.html", "/manifest.json", "/css/style.css", "/js/app.js"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
