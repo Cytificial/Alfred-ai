@@ -9544,3 +9544,58 @@ try { /* v163proc: native thinking card */
   }
   setTimeout(tick, 900);
 })();
+
+/* ===== v245.1: Admin row — event-isolated, routes to dashboard ===== */
+(function () {
+  if (window.__v2451) return; window.__v2451 = "1";
+  var SHIELD = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#9fd8ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-2.9 8.2-7 10-4.1-1.8-7-5.6-7-10V6l7-3z"/></svg>';
+  function scope() { return document.querySelector("aside,nav,[class*='sidebar'],[class*='drawer']") || document; }
+  function srcRow() {
+    var sc = scope(), els = sc.querySelectorAll("*");
+    for (var i = 0; i < els.length; i++) {
+      var e = els[i];
+      if (!e.children.length && (e.textContent || "").trim() === "Settings" && e.offsetParent !== null) {
+        var r = e;
+        while (r.parentElement && r.parentElement !== sc && (r.parentElement.textContent || "").trim() === "Settings") r = r.parentElement;
+        return r;
+      }
+    }
+    return null;
+  }
+  function go(ev) {
+    if (ev) { ev.preventDefault(); ev.stopImmediatePropagation(); }
+    try { location.hash = "#/admin"; } catch (e) {}
+    setTimeout(function () {
+      var v = document.getElementById("view-admin");
+      if (!v || v.offsetParent === null) {
+        var alt = document.querySelector("[data-view='admin'],[data-page='admin'],[href='#/admin']");
+        if (alt) { alt.click(); return; }
+        [].slice.call(document.querySelectorAll(".view")).forEach(function (x) { x.style.display = "none"; });
+        if (v) v.style.display = "block";
+      }
+    }, 260);
+  }
+  setInterval(function () {
+    if (document.getElementById("v2451-admin-row")) return;
+    var src = srcRow(); if (!src) return;
+    var row = src.cloneNode(true);
+    row.id = "v2451-admin-row";
+    [row].concat([].slice.call(row.querySelectorAll("*"))).forEach(function (x) {
+      [].slice.call(x.attributes).forEach(function (at) {
+        if (/^on/i.test(at.name) || /^(href|data-view|data-page|data-target|data-nav|data-route)$/i.test(at.name)) x.removeAttribute(at.name);
+      });
+      try { x.onclick = null; } catch (e) {}
+    });
+    var svg = row.querySelector("svg");
+    if (svg) { var t = document.createElement("span"); t.innerHTML = SHIELD; svg.replaceWith(t.firstChild); }
+    var leaf = null;
+    [].slice.call(row.querySelectorAll("*")).forEach(function (x) {
+      if (!x.children.length && /Settings/i.test(x.textContent || "")) leaf = x;
+    });
+    if (leaf) leaf.textContent = "Admin"; else row.textContent = "Admin";
+    row.addEventListener("click", go, true);
+    row.addEventListener("pointerdown", function (e) { e.stopImmediatePropagation(); }, true);
+    row.style.cursor = "pointer";
+    src.parentNode.insertBefore(row, src.nextSibling);
+  }, 1200);
+})();
