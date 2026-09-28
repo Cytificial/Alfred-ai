@@ -3580,3 +3580,5 @@ img[src*="brand-"] {
   outline: 0 !important;
   background: transparent !important;
 }
+/* v245.7: ring-less lambda fills its circle */
+img[src*="lambda-192"] { width: 100%; height: 100%; object-fit: contain; display: block; }

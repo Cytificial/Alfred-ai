@@ -9602,24 +9602,30 @@ try { /* v163proc: native thinking card */
 })();
 
 /* ===== v245.6: no double circles around the brand mark ===== */
+/* v245.6 retired - wrappers keep their rings */
+
+/* ===== v245.7: brand asset selector — wrapper provides the ring ===== */
 (function () {
-  if (window.__v2456) return; window.__v2456 = "1";
+  if (window.__v2457) return; window.__v2457 = "1";
   function isRound(el) {
     try {
       var r = parseFloat(getComputedStyle(el).borderRadius) || 0;
       var b = Math.min(el.offsetWidth, el.offsetHeight) || 1;
-      return r >= b * 0.45;                 /* circular badge? */
+      return r >= b * 0.45;
     } catch (e) { return false; }
   }
   function sweep() {
-    var imgs = document.querySelectorAll('img[src*="brand-"]');
+    var imgs = document.querySelectorAll('img[src*="brand-192"]');
     for (var i = 0; i < imgs.length; i++) {
-      var p = imgs[i].parentElement;
-      if (p && p !== document.body && isRound(p)) {
-        p.style.border = "0"; p.style.boxShadow = "none"; p.style.outline = "0";
+      var im = imgs[i], p = im.parentElement;
+      if (!p || p === document.body) continue;
+      if (isRound(p)) {                                    /* wrapper = the one ring */
+        if (im.src.indexOf("lambda-192") === -1) im.src = "/assets/lambda-192.png?v=1";
+      } else if (im.src.indexOf("brand-192") === -1) {
+        im.src = "/assets/brand-192.png?v=3";              /* standalone keeps its ring */
       }
     }
   }
-  setInterval(sweep, 1500);
+  setInterval(sweep, 1200);
   document.addEventListener("DOMContentLoaded", sweep);
 })();
