@@ -1042,7 +1042,7 @@ window.__v152 = "1"; /* v154 retires v152 */
   function addMsg(kind, text) {
     var av = kind === "user"
       ? '<span class="msg-av u-av">' + initial(userName()) + "</span>"
-      : '<span class="msg-av"><img src="assets/logo.svg?v=4" alt=""/></span>';
+      : '<span class="msg-av"><img src="assets/icon-192.png?v=2" alt=""/></span>';
     var m = document.createElement("div");
     m.className = "msg " + kind;
     if (kind === "user") {
@@ -1367,7 +1367,7 @@ window.__v152 = "1"; /* v154 retires v152 */
       var name = (localStorage.getItem("alfred_name") || "Fred").charAt(0).toUpperCase();
       var av = mm.k === "user"
         ? '<span class="msg-av u-av">' + name + "</span>"
-        : '<span class="msg-av"><img src="assets/logo.svg?v=4" alt=""/></span>';
+        : '<span class="msg-av"><img src="assets/icon-192.png?v=2" alt=""/></span>';
       var el = document.createElement("div");
       el.className = "msg " + (mm.k === "user" ? "user" : "ai") + " done";
       el.innerHTML = av + '<div class="bubble"><p></p><time>' + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + "</time></div>";
