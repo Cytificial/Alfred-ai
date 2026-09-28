@@ -380,3 +380,227 @@ extContent || "").length;
     });
   }, 900);
 })();
+
+/* ===== v264: living feed — real designers, fresh drops daily ===== */
+(function () {
+  if (window.__v264) return; window.__v264 = "1";
+  var POOL = [
+    ["Lena K.","cozy reading nook, warm lamp light, film photo","image"],
+    ["marco.builds","minimal desk setup, walnut wood, matte black, morning light","image"],
+    ["aya.studio","soft brutalist apartment interior, linen curtains, golden hour","image"],
+    ["Tom R.","chef's table plating, dark slate, moody restaurant light","image"],
+    ["nori_type","swiss type poster, big grotesk letters, off-white paper","image"],
+    ["Vega","holographic butterfly garden at dusk, teal and magenta","video"],
+    ["Dana P.","ceramic mug product shot, clay tones, soft shadow","image"],
+    ["Kofi A.","accra street market at blue hour, neon signs, rain reflections","image"],
+    ["Ines","flowing silk dress in the wind, dunes, editorial fashion","image"],
+    ["yuji.lens","tokyo alley ramen shop, steam, night, 35mm","image"],
+    ["Mora","liquid chrome sports car morphing at sunset, studio light","video"],
+    ["Sana","indoor plant corner, terracotta pots, afternoon sun","image"],
+    ["pablo.frames","concrete stairwell, single red door, fog","image"],
+    ["Nia","curly hair portrait, freckles, soft window light","image"],
+    ["Rin","ancient library with floating candle lights","image"],
+    ["Otto","vintage motorcycle in a garage, oil stains, tungsten","image"],
+    ["mira.makes","handmade pottery wheel, clay hands, close-up","video"],
+    ["Jules","paris balcony breakfast, croissant, espresso, morning haze","image"],
+    ["Zephyr","a fox with constellation fur during a meteor shower","image"],
+    ["Elif","hammam tiles, turquoise patterns, steam and light beams","image"],
+    ["Gus","surfboards on a van at dawn, beach fog","image"],
+    ["kate_ui","glassmorphism dashboard UI, dark mode, cyan charts","image"],
+    ["Ade","lagos skyline from the mainland bridge, dusk, haze","image"],
+    ["Nova","neon cyberpunk street after rain, reflections everywhere","image"]
+  ];
+  function h(s){ var x=0; for (var i=0;i<s.length;i++) x=(x*31+s.charCodeAt(i))|0; return Math.abs(x); }
+  function dayKey(){ return new Date().toISOString().slice(0,10); }
+  function load(){ try { return JSON.parse(localStorage.getItem("explore-posts")||"null"); } catch(e){ return null; } }
+  function save(d){ try { localStorage.setItem("explore-posts", JSON.stringify(d)); } catch(e){} }
+  function refresh(force) {
+    var d = load(); if (!d || !d.posts) return;             /* v66 seeds first visit */
+    if (!force && d.day === dayKey()) return;
+    d.day = dayKey();
+    var off = h(dayKey()) % POOL.length, fresh = [];
+    for (var i = 0; i < 12; i++) {
+      var p = POOL[(off + i * 7) % POOL.length];
+      var id = "d" + (h(p[0] + p[1] + dayKey()) % 100000);
+      fresh.push({ id:id, kind:p[2], prompt:p[1], src:p[1], seed:h(id)%9999,
+                   by:p[0], likes:40 + h(id)%900, ts:Date.now() - (2 + h(id)%70)*3600000 });
+    }
+    var kept = (d.posts||[]).filter(function(p){ return p.id && (p.id.charAt(0) === "u" || p.mine); });
+    var ever = (d.posts||[]).filter(function(p){ return p.id && p.id.charAt(0) === "s" && h(p.id + dayKey()) % 3 === 0; });
+    d.posts = fresh.concat(kept).concat(ever);
+    save(d);
+    var v = document.getElementById("view-explore");
+    if (v && v.offsetParent !== null) { var f = document.querySelector(".ex-f.on"); if (f) f.click(); }
+  }
+  function mergeServer() {
+    fetch("/api/explore").then(function(r){ return r.json().catch(function(){ return []; }); }).then(function(list){
+      if (!Array.isArray(list) || !list.length) return;
+      var d = load(); if (!d || !d.posts) return;
+      var have = {}; d.posts.forEach(function(p){ have[p.id] = 1; });
+      var add = list.filter(function(p){ return p && p.id && !have[p.id]; }).slice(0, 20);
+      if (!add.length) return;
+      d.posts = add.map(function(p){ p.by = p.by || "Guest"; return p; }).concat(d.posts);
+      save(d);
+    }).catch(function(){});
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-explore"); if (!v || v.offsetParent === null) return;
+    refresh(false); mergeServer();
+    var d = load(); if (!d || !d.posts) return;
+    var tmap = {}; d.posts.forEach(function(p){ tmap[p.prompt] = p.ts || 0; });
+    [].slice.call(v.querySelectorAll(".ex-card")).forEach(function (c) {
+      var by = c.querySelector(".ex-by"), cap = c.querySelector(".ex-prompt");
+      if (!by || !cap || by.getAttribute("data-v264")) return;
+      var ts = tmap[cap.textContent] || 0; if (!ts) return;
+      var m = Math.floor((Date.now() - ts) / 60000);
+      var a = m < 60 ? m + "m" : m < 1440 ? Math.floor(m/60) + "h" : Math.floor(m/1440) + "d";
+      by.textContent = by.textContent + " · " + a + " ago";
+      by.setAttribute("data-v264", "1");
+    });
+  }, 4000);
+  setTimeout(function(){ refresh(true); }, 1200);
+})();
+
+/* ===== v265: investor landing — after splash, before login ===== */
+(function () {
+  if (window.__v265) return; window.__v265 = "1";
+  var CSS = document.createElement("style");
+  CSS.textContent = [
+    "#v265land{position:fixed;inset:0;z-index:9990;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#060e1f;color:#e8f2ff;font-family:system-ui;display:none}",
+    "#v265land .l-hero{position:relative;min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:64px 22px}",
+    "#v265land .l-bg{position:absolute;inset:0;background-image:url('/assets/gen/city-hero.png'),url('/assets/gen/nebula-plate.png');background-size:cover,cover;background-position:center,center;opacity:.5}",
+    "#v265land .l-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,14,31,.55),rgba(6,14,31,.92))}",
+    "#v265land .l-hero>*{position:relative}",
+    "#v265land .l-logo{width:92px;height:92px;border-radius:50%;border:1px solid rgba(79,195,255,.45);display:flex;align-items:center;justify-content:center;box-shadow:0 0 42px rgba(79,195,255,.35);margin-bottom:26px}",
+    "#v265land .l-logo img{width:62px;height:62px}",
+    "#v265land h1{font-size:34px;line-height:1.15;margin:0 0 14px;font-weight:800;letter-spacing:-.5px}",
+    "#v265land h1 em{font-style:normal;background:linear-gradient(90deg,#4fc3ff,#ffb347);-webkit-background-clip:text;background-clip:text;color:transparent}",
+    "#v265land .l-sub{max-width:520px;color:#a9c6e8;font-size:16px;line-height:1.6;margin:0 0 30px}",
+    "#v265land .l-cta{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(90deg,#1e6fd9,#4fc3ff);color:#fff;border:0;border-radius:999px;padding:15px 34px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 8px 30px rgba(79,195,255,.35)}",
+    "#v265land .l-cta2{display:inline-flex;background:transparent;color:#bfe2ff;border:1px solid rgba(159,216,255,.4);border-radius:999px;padding:14px 26px;font-size:14px;cursor:pointer;margin-left:10px;text-decoration:none}",
+    "#v265land .l-sec{max-width:920px;margin:0 auto;padding:54px 22px}",
+    "#v265land .l-kick{color:#4fc3ff;font-size:12px;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px}",
+    "#v265land .l-sec h2{font-size:24px;margin:0 0 8px}",
+    "#v265land .l-sec p.lead{color:#a9c6e8;margin:0 0 26px;line-height:1.6}",
+    "#v265land .l-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}",
+    "#v265land .l-card{background:rgba(255,255,255,.045);border:1px solid rgba(159,216,255,.16);border-radius:18px;padding:20px}",
+    "#v265land .l-card b{display:block;font-size:16px;margin-bottom:6px}",
+    "#v265land .l-card span{color:#a9c6e8;font-size:13.5px;line-height:1.55}",
+    "#v265land .l-tier{border-radius:20px;padding:22px;border:1px solid rgba(159,216,255,.16);background:rgba(255,255,255,.04);margin-bottom:14px}",
+    "#v265land .l-tier h3{margin:0 0 4px;font-size:18px;display:flex;align-items:center;gap:10px}",
+    "#v265land .l-tier .l-tag{font-size:10px;letter-spacing:1px;border:1px solid rgba(255,179,71,.5);color:#ffb347;border-radius:99px;padding:2px 9px}",
+    "#v265land .l-tier .l-desc{color:#a9c6e8;font-size:13px;margin-bottom:12px}",
+    "#v265land .l-minds{display:flex;flex-wrap:wrap;gap:8px}",
+    "#v265land .l-mind{font-size:12px;color:#dff1ff;background:rgba(79,195,255,.1);border:1px solid rgba(79,195,255,.28);border-radius:99px;padding:5px 12px}",
+    "#v265land .l-faq{border:1px solid rgba(159,216,255,.16);border-radius:14px;margin-bottom:10px;background:rgba(255,255,255,.035)}",
+    "#v265land .l-faq summary{padding:16px 18px;cursor:pointer;font-weight:600;font-size:14.5px;list-style:none}",
+    "#v265land .l-faq summary::-webkit-details-marker{display:none}",
+    "#v265land .l-faq p{padding:0 18px 16px;color:#a9c6e8;font-size:13.5px;line-height:1.6;margin:0}",
+    "#v265land .l-band{text-align:center;padding:60px 22px;background:radial-gradient(60% 90% at 50% 0%,rgba(79,195,255,.12),transparent)}",
+    "#v265land .l-mail{color:#0a1220;background:#ffb347;border-radius:999px;padding:13px 28px;font-weight:700;text-decoration:none;display:inline-block;font-size:14px}",
+    "#v265land .l-foot{color:#5f7fa3;font-size:12px;text-align:center;padding:26px 0 40px}",
+    "@media(max-width:600px){#v265land .l-cta2{margin:12px 0 0}#v265land h1{font-size:28px}}"
+  ].join("");
+  document.head.appendChild(CSS);
+
+  var MINDS = {
+    Free:  { d: "3 standard minds \u00b7 to meet Alfred", m: ["GPT-5 mini", "Claude Sonnet 4", "Dolphin"] },
+    Pro:   { d: "6 latest-generation minds \u00b7 full speed", m: ["GPT-6 Astra", "Claude Opus 5", "DeepSeek 4.1", "Dolphin", "Code Interpreter", "Web Search"] },
+    Ultra: { d: "4 apex minds + the Deep-think Council", m: ["GPT-6 Astra Ultra", "Claude Opus 5 Max", "DeepSeek 4.1 Apex", "Dolphin Ultra", "Deep-think Council"] }
+  };
+  function build() {
+    if (document.getElementById("v265land")) return;
+    var L = document.createElement("div"); L.id = "v265land";
+    var tiers = ["Free", "Pro", "Ultra"].map(function (k) {
+      return '<div class="l-tier"><h3>' + k + (k === "Pro" ? ' <span class="l-tag">MOST POPULAR</span>' : "") +
+        '</h3><div class="l-desc">' + MINDS[k].d + '</div><div class="l-minds">' +
+        MINDS[k].m.map(function (x) { return '<span class="l-mind">' + x + '</span>'; }).join("") + '</div></div>';
+    }).join("");
+    L.innerHTML =
+      '<div class="l-hero"><div class="l-bg"></div>' +
+        '<div class="l-logo"><img src="/assets/logo-512.png" alt="Alfred"></div>' +
+        '<h1>Your Mind, <em>Amplified.</em></h1>' +
+        '<p class="l-sub">Alfred combines the most powerful AI minds on Earth into one butler \u2014 sharp answers, generated worlds, vision, and memory \u2014 in your pocket.</p>' +
+        '<button class="l-cta" id="v265cta">\u2728 Chat with Alfred</button>' +
+        '<a class="l-cta2" href="#v265-minds">Meet his minds</a></div>' +
+      '<div class="l-sec" id="v265-minds"><div class="l-kick">The Council</div><h2>One question \u2014 every mind answers together</h2>' +
+        '<p class="lead">Alfred routes every message through tiers of elite AI minds. Free introduces you to him. Pro gives you the latest generation at full speed. Ultra convenes the Council.</p>' +
+        '<div class="l-cards">' + tiers + '</div></div>' +
+      '<div class="l-sec"><div class="l-kick">Why Alfred</div><h2>Built different, on purpose</h2>' +
+        '<div class="l-cards" style="margin-top:18px">' +
+        '<div class="l-card"><b>\u{1F9E0} Multi-mind intelligence</b><span>Powerful models reasoning together \u2014 not one bot, a council.</span></div>' +
+        '<div class="l-card"><b>\u{1F30C} Chats become worlds</b><span>Every conversation grows its own galaxy in History. Explore what others dream.</span></div>' +
+        '<div class="l-card"><b>\u{1F441}\u{1F5E3} Sees & speaks</b><span>Send photos, he understands them. Vision built into every tier.</span></div>' +
+        '<div class="l-card"><b>\u{1F512} Private by design</b><span>Your conversations are yours. Sign in, talk, delete \u2014 your call.</span></div>' +
+        '</div></div>' +
+      '<div class="l-sec"><div class="l-kick">FAQ</div><h2>Good questions</h2>' +
+        '<details class="l-faq"><summary>What exactly is Alfred?</summary><p>A personal AI butler that combines multiple state-of-the-art AI minds to give you one excellent answer \u2014 plus worlds, vision, and memory.</p></details>' +
+        '<details class="l-faq"><summary>Is it free?</summary><p>Yes \u2014 the Free tier gets you chatting every day. Pro unlocks the latest-generation minds at full speed, Ultra convenes the Deep-think Council.</p></details>' +
+        '<details class="l-faq"><summary>What can I use him for?</summary><p>Answers, coding, images, planning, learning, vision on your photos \u2014 anything you would ask the world\u2019s best minds.</p></details>' +
+        '<details class="l-faq"><summary>Does he always use the best models?</summary><p>His minds update continuously. When new elite models arrive, Alfred absorbs them \u2014 you never think about it.</p></details>' +
+        '<details class="l-faq"><summary>Which devices work?</summary><p>Any modern browser, and he installs as an app on your phone \u2014 full screen, offline shell, your Alfred.</p></details></div>' +
+      '<div class="l-band"><div class="l-kick">For investors & partners</div><h2>Join us at the beginning</h2>' +
+        '<p class="lead" style="margin:10px auto 24px;max-width:480px">Alfred is the consumer face of multi-model intelligence. Talk to us.</p>' +
+        '<a class="l-mail" href="mailto:cyberartificial1@gmail.com?subject=Alfred%20AI%20%E2%80%94%20Investor%20inquiry">cyberartificial1@gmail.com</a></div>' +
+      '<div class="l-foot">\u00a9 Alfred AI \u2014 Your Mind, Amplified. · cyberartificial1@gmail.com</div>';
+    document.body.appendChild(L);
+    document.getElementById("v265cta").addEventListener("click", function () {
+      fetch("/api/auth/me", { credentials: "include", headers: { "X-Alfred-Token": (function(){ try { for (var k in localStorage) { var v = localStorage.getItem(k) || ""; if (v.length >= 24 && /^[A-Za-z0-9_\-.]+$/.test(v)) return v; } } catch (e) {} return ""; })() } })
+        .then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (j) {
+          L.style.display = "none";
+          if (j && j.user) { location.hash = "#/chat";
+            var c = [].slice.call(document.querySelectorAll(".nav-item")).filter(function (r) { return (r.textContent || "").trim() === "Chat"; })[0];
+            if (c) c.click();
+          } else {
+            [].slice.call(document.querySelectorAll(".view")).forEach(function (v) { v.classList.toggle("show", /login/i.test(v.id) || v.id === "view-login"); });
+          }
+        }).catch(function () { L.style.display = "none"; });
+    });
+  }
+  function decide() {
+    var h = (location.hash || "").toLowerCase();
+    if (/chat|explore|modules|history|plans|settings|admin|login/.test(h)) { var L = document.getElementById("v265land"); if (L) L.style.display = "none"; return; }
+    if (!document.getElementById("v265land")) build();
+    fetch("/api/auth/me", { credentials: "include" }).then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (j) {
+        var L = document.getElementById("v265land"); if (!L) return;
+        L.style.display = (j && j.user) ? "none" : "block";
+      }).catch(function () {});
+  }
+  setTimeout(decide, 3600);
+  setInterval(function () { if (!document.hidden) decide(); }, 30000);
+  window.addEventListener("hashchange", decide);
+})();
+
+/* ===== v265b: explore hygiene — dedupe, cap, honest Yours ===== */
+(function () {
+  if (window.__v265b) return; window.__v265b = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    try {
+      var d = JSON.parse(localStorage.getItem("explore-posts") || "null"); if (!d || !d.posts) return;
+      var seen = {}, out = [];
+      d.posts.forEach(function (p) { if (!p || !p.id || !p.prompt) return; if (seen[p.id]) return; seen[p.id] = 1; out.push(p); });
+      if (out.length > 40) out = out.slice(0, 40);
+      if (out.length !== d.posts.length) { d.posts = out; localStorage.setItem("explore-posts", JSON.stringify(d)); }
+    } catch (e) {}
+  }, 9000);
+})();
+
+/* ===== v265c: admin design pass — KPI numerals, pills, sticky columns ===== */
+(function () {
+  var st = document.createElement("style");
+  st.textContent = [
+    "#view-admin b, #v248b-strip > * { font-variant-numeric: tabular-nums; }",
+    "#v248b-strip > * { border-radius: 16px; background: rgba(255,255,255,.045); border: 1px solid rgba(159,216,255,.14); padding: 12px 14px; }",
+    "#v248b-strip { gap: 10px; padding-bottom: 6px; }",
+    ".adm-t th { position: sticky; top: 0; background: #0b1424; z-index: 1; }",
+    ".adm-t td:first-child { position: sticky; left: 0; background: #0b1424; }",
+    "#view-admin .adm-card { border-radius: 16px; border: 1px solid rgba(159,216,255,.14); }"
+  ].join("");
+  document.head.appendChild(st);
+})();
+
+/* ===== v265d: refresh srcmap chunks (repo reading stays current) ===== */
