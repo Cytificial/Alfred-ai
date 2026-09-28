@@ -9575,8 +9575,12 @@ try { /* v163proc: native thinking card */
 })();
 
 /* ===== v247: single Admin row - final authority over all injector generations ===== */
+/* v247 superseded by v248 */
+
+/* ===== v248: admin authority (shield) + chat avatar de-branding ===== */
 (function () {
-  if (window.__v247) return; window.__v247 = "1";
+  if (window.__v248) return; window.__v248 = "1";
+  var SHIELD = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#9fd8ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-2.9 8.2-7 10-4.1-1.8-7-5.6-7-10V6l7-3z"/></svg>';
   function scope() { return document.querySelector("aside,nav,[class*='sidebar'],[class*='drawer']") || document; }
   function go(ev) {
     if (ev) { ev.preventDefault(); ev.stopImmediatePropagation(); }
@@ -9606,6 +9610,26 @@ try { /* v163proc: native thinking card */
       keep.addEventListener("click", go, true);
       keep.addEventListener("pointerdown", function (e) { e.stopImmediatePropagation(); }, true);
     }
+    if (!keep.getAttribute("data-v248")) {
+      keep.setAttribute("data-v248", "1");
+      var svg = keep.querySelector("svg");
+      if (svg) { var t = document.createElement("span"); t.innerHTML = SHIELD; svg.replaceWith(t.firstChild); }
+      var leaf = null;
+      [].slice.call(keep.querySelectorAll("*")).forEach(function (x) {
+        if (!x.children.length && (x.textContent || "").trim() === "Admin") leaf = x;
+      });
+      if (leaf) leaf.textContent = "Admin";
+    }
     rows.forEach(function (r) { if (r !== keep && r.parentNode) r.parentNode.removeChild(r); });
   }, 1200);
+})();
+(function () {
+  if (window.__v248q) return; window.__v248q = "1";
+  var SPARK = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z" fill="#9fd8ff"/></svg>');
+  function sweep() {
+    var imgs = document.querySelectorAll('.msg-av img[src*="brand-"], .msg-av img[src*="lambda-"]');
+    for (var i = 0; i < imgs.length; i++) imgs[i].src = SPARK;
+  }
+  setInterval(sweep, 1500);
+  document.addEventListener("DOMContentLoaded", sweep);
 })();
