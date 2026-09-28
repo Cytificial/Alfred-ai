@@ -3607,3 +3607,9 @@ aside, nav, [class*="sidebar"] { background-color: rgba(8,13,24,.93) !important;
 .v254tabs { overflow-x: auto !important; flex-wrap: nowrap !important; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
 .v254tabs::-webkit-scrollbar { display: none; }
 .v254tabs > * { flex: 0 0 auto; }
+/* v256: exact-selective fixes (selectors from real markup) */
+#new-chat .nc-ic { display: none !important; }            /* New Chat: icon AND empty shell gone */
+#hero .hero-logo { display: none !important; }            /* chat welcome: big Lambda gone, chips stay */
+.side-head .badge img { display: block !important; }      /* sidebar header mark - KEEP */
+.model .m-av img, header .m-av img { display: block !important; } /* top bar mark - KEEP */
+.nav .nav-item { display: flex !important; opacity: 1 !important; visibility: visible !important; }

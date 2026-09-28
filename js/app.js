@@ -9885,11 +9885,7 @@ try { /* v163proc: native thinking card */
       card.setAttribute("data-v253nc", "1");
       [].slice.call(card.querySelectorAll("img,svg")).forEach(function (im) { im.style.display = "none"; });
     });
-    /* 2) big welcome hero inside chat only (>=140px brand/lambda imgs) */
-    [].slice.call(document.querySelectorAll("#view-chat img")).forEach(function (im) {
-      var src = im.getAttribute("src") || "";
-      if ((src.indexOf("brand-") > -1 || src.indexOf("lambda-") > -1) && im.offsetWidth >= 140) im.style.display = "none";
-    });
+    /* hero img sweep retired in v256 - CSS rule owns it */
     /* 3) bubble roles: rows with .msg-av = Alfred, without = user */
     var av = document.querySelector("#view-chat .msg-av");
     if (!av) return;
