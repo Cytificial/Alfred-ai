@@ -9955,30 +9955,7 @@ try { /* v163proc: native thinking card */
       });
     });
   }, 1600);
-  /* D) explore: unique seed per image per visit, self-heal on error */
-  setInterval(function () {
-    if (document.hidden) return;
-    var x = document.getElementById("view-explore"); if (!x || x.offsetParent === null) return;
-    [].slice.call(x.querySelectorAll("img")).forEach(function (im) {
-      var src = im.getAttribute("src") || "";
-      if (!src || src.indexOf("data:") === 0) return;
-      var poll = src.indexOf("pollinations") > -1;
-      if (!poll && src.indexOf("unsplash") === -1 && src.indexOf("/image") === -1) return;
-      if (im.getAttribute("data-v254s")) return;
-      im.setAttribute("data-v254s", "1");
-      var base = src.split("&seed=")[0].split("?seed=")[0];
-      function url(s) { return base + (base.indexOf("?") > -1 ? "&" : "?") + "seed=" + s + (poll ? "&nologo=true" : ""); }
-      im.src = url(String(Date.now() % 1000000) + String(Math.floor(Math.random() * 9999)));
-      im.addEventListener("error", function h() {
-        im.removeEventListener("error", h);
-        im.src = url(String(Math.floor(Math.random() * 9999999)));
-        im.addEventListener("error", function () {
-          im.style.display = "none";
-          var p = im.parentElement; if (p) p.style.background = "linear-gradient(135deg,#1b2a44,#0e1830)";
-        });
-      });
-    });
-  }, 2500);
+  /* v254 explore sweep retired in v262 - single painter policy */
 })();
 
 /* ===== v255: deterministic module tiers, sidebar scroll, sibling icons, shell sweep ===== */
@@ -10208,26 +10185,7 @@ try { /* v163proc: native thinking card */
       if ((location.hash || "").indexOf("admin") > -1) { light("admin"); showView("admin"); }
     }, 80);
   });
-  /* explore: image regenerated FROM its own caption — match guaranteed */
-  setInterval(function () {
-    if (document.hidden) return;
-    var x = document.getElementById("view-explore"); if (!x || x.offsetParent === null) return;
-    [].slice.call(x.querySelectorAll("img")).forEach(function (im) {
-      if (im.getAttribute("data-v259m")) return;
-      var p = im.parentElement, cap = "";
-      for (var up = 0; up < 4 && p; up++) {
-        var t = (p.innerText || "").trim();
-        if (t.length > cap.length) cap = t;
-        if (t.length > 30) break;
-        p = p.parentElement;
-      }
-      cap = cap.split("\n").filter(function (l) { return l.trim().length > 12; })[0] || "";
-      if (!cap) return;
-      im.setAttribute("data-v259m", "1"); im.setAttribute("data-v254s", "1");
-      im.src = "https://image.pollinations.ai/prompt/" + encodeURIComponent(cap.slice(0, 140)) +
-               "?width=768&height=1024&nologo=true&seed=" + Math.floor(Math.random() * 999999);
-    });
-  }, 3000);
+  /* v259 explore painter retired in v262 - v260 owns explore */
 })();
 
 /* ===== v260: explore truth v2 — longest-line captions, never-dark cards ===== */
