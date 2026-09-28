@@ -11576,3 +11576,83 @@ try { /* v163proc: native thinking card */
     if (done) clearInterval(iv);
   }, 800);
 })();
+
+/* ===== v286: calm splash, hard seal, register owner (reinstall) ===== */
+(function () {
+  if (window.__v286) return; window.__v286 = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    "#loading img.logo{content:url('/assets/brand-192.png?v=6') !important}",
+    "#loading .bg,#loading .halo,#loading .spotlight{animation:none !important}",
+    "#loading .sheen{display:none !important}",
+    "#loading .logo-wrap{filter:drop-shadow(0 0 18px rgba(79,195,255,.25))}"
+  ].join("");
+  document.head.appendChild(st);
+  var sl = document.querySelector("#loading img.logo"); if (sl) sl.src = "/assets/brand-192.png?v=6";
+  /* hard seal: once the first real screen is visible, the splash can never flicker again */
+  var seal = setInterval(function () {
+    var lo = document.getElementById("loading"); if (!lo) { clearInterval(seal); return; }
+    var routed = !lo.classList.contains("show") &&
+      ([].slice.call(document.querySelectorAll("#land,#login,#register,#app")).some(function (v) { return v && v.offsetParent !== null; }));
+    if (routed) {
+      lo.style.setProperty("display", "none", "important");
+      lo.style.setProperty("opacity", "1", "important");
+      lo.style.setProperty("transition", "none", "important");
+      clearInterval(seal);
+    }
+  }, 250);
+  /* --- register + screen switch (idempotent reinstall) --- */
+  if (!window.__v286reg) {
+    window.__v286reg = 1;
+    function swap(id) {
+      ["loading","login","register","app"].forEach(function (sid) {
+        var sc = document.getElementById(sid); if (!sc) return;
+        if (sid === id) { sc.classList.add("show"); sc.style.display = ""; }
+        else { sc.classList.remove("show"); if (sid === "loading") sc.style.display = "none"; }
+      });
+      window.scrollTo(0, 0);
+    }
+    document.addEventListener("click", function (e) {
+      var a = e.target && e.target.closest ? e.target.closest("a[data-goto]") : null;
+      if (!a) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      swap(a.getAttribute("data-goto") === "register" ? "register" : "login");
+    }, true);
+    function goReg(btn) {
+      var r = document.getElementById("register"); if (!r) return;
+      var name = (document.getElementById("reg-name") || {}).value || "";
+      var email = ((document.getElementById("reg-email") || {}).value || "").trim().toLowerCase();
+      var pw = (r.querySelector('input[type="password"]') || {}).value || "";
+      var chk = r.querySelector('input[type="checkbox"]');
+      var alt = r.querySelector(".alt");
+      function bad(m) {
+        var d = document.getElementById("v286err");
+        if (!d) { d = document.createElement("p"); d.id = "v286err"; d.style.cssText = "color:#ff9db1;font:12.5px system-ui;margin:8px 0 0"; alt && alt.parentNode.insertBefore(d, alt); }
+        d.textContent = m;
+      }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return bad("Enter a valid email.");
+      if (pw.length < 6) return bad("Password needs 6+ characters.");
+      if (chk && !chk.checked) return bad("Please accept the terms.");
+      if (btn) { btn.disabled = true; btn.style.opacity = ".6"; }
+      fetch("/api/auth/register", { method:"POST", credentials:"include", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ name: name.trim() || email.split("@")[0], email: email, password: pw }) })
+        .then(function (x) { return x.json().catch(function () { return {}; }); })
+        .then(function (j) {
+          if (!j.ok) throw new Error(j.error || "Registration failed.");
+          return fetch("/api/auth/login", { method:"POST", credentials:"include", headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({ email: email, password: pw }) }).then(function (x) { return x.json().catch(function () { return {}; }); });
+        })
+        .then(function (j) {
+          if (!j.ok) { swap("login"); throw new Error("Account created — please sign in."); }
+          location.reload();
+        })
+        .catch(function (e) { bad(e.message || "Failed."); })
+        .then(function () { if (btn) { btn.disabled = false; btn.style.opacity = ""; } });
+    }
+    document.addEventListener("submit", function (e) {
+      if (!e.target || e.target.id !== "register-form") return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      goReg(e.target.querySelector("button[type=submit]"));
+    }, true);
+  }
+})();
