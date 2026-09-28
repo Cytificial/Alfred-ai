@@ -11656,3 +11656,148 @@ try { /* v163proc: native thinking card */
     }, true);
   }
 })();
+
+/* ===== v287: splash takeover (calm + old logo + V1), sign-in fix, landing magic ===== */
+(function () {
+  if (window.__v287) return; window.__v287 = "1";
+  window.__BUILD = "V1";
+  var st = document.createElement("style");
+  st.textContent = [
+    "body #loading{background:#080D17 !important}",
+    "body #loading > :not(.v287splash){display:none !important}",
+    "body #loading .v287splash{display:flex !important;flex-direction:column;align-items:center;justify-content:center;position:absolute;inset:0}",
+    "#land .hero{position:relative}",
+    "#land .hero::after{content:\"\";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(1px 1px at 12% 22%,rgba(255,255,255,.5),transparent 40%),radial-gradient(1px 1px at 78% 12%,rgba(255,255,255,.4),transparent 40%),radial-gradient(1.5px 1.5px at 62% 38%,rgba(160,220,255,.5),transparent 40%),radial-gradient(1px 1px at 30% 62%,rgba(255,255,255,.35),transparent 40%),radial-gradient(1px 1px at 88% 58%,rgba(255,255,255,.3),transparent 40%);animation:v287tw 5s ease-in-out infinite alternate}",
+    "@keyframes v287tw{from{opacity:.5}to{opacity:1}}",
+    "#land .hero h1{text-shadow:0 2px 30px rgba(79,195,255,.22)}",
+    "#land .hero-mark{animation:v287br 6s ease-in-out infinite}",
+    "@keyframes v287br{0%,100%{filter:drop-shadow(0 0 14px rgba(79,195,255,.28))}50%{filter:drop-shadow(0 0 30px rgba(79,195,255,.5))}}",
+    "#land .cta{animation:v287pu 3.2s ease-in-out infinite}",
+    "@keyframes v287pu{0%,100%{box-shadow:0 8px 30px rgba(79,195,255,.35)}50%{box-shadow:0 10px 46px rgba(79,195,255,.6)}}",
+    ".v287rv{opacity:0;transform:translateY(14px);transition:opacity .55s ease,transform .55s ease}",
+    ".v287rv.v287in{opacity:1;transform:none}",
+    "@media (prefers-reduced-motion:reduce){#land .hero::after,#land .hero-mark,#land .cta{animation:none !important}.v287rv{opacity:1;transform:none;transition:none}}"
+  ].join("");
+  document.head.appendChild(st);
+
+  /* splash: my DOM, old logo, zero decorative animation */
+  function build() {
+    var lo = document.getElementById("loading"); if (!lo) return;
+    if (lo.querySelector(".v287splash")) return;
+    var d = document.createElement("div"); d.className = "v287splash";
+    d.innerHTML = '<img src="/assets/brand-192.png?v=6" alt="" style="width:88px;height:88px;border-radius:50%;box-shadow:0 0 50px rgba(79,195,255,.3)">'
+      + '<div style="font:600 13px Sora,system-ui;letter-spacing:.34em;color:#EAF3FF;margin:20px 0 26px">ALFRED&nbsp;AI</div>'
+      + '<div id="v287st" style="font:11px system-ui;letter-spacing:.14em;text-transform:uppercase;color:#8fb3d4;height:16px;margin-bottom:14px">Preparing your mind</div>'
+      + '<div style="width:220px;height:3px;background:rgba(255,255,255,.12);border-radius:99px;overflow:hidden">'
+      + '<div id="v287bar" style="height:100%;width:0;background:linear-gradient(90deg,#4fc3ff,#66CCFF);border-radius:99px"></div></div>'
+      + '<div style="position:absolute;bottom:14px;left:0;right:0;text-align:center;font:10px system-ui;color:rgba(255,255,255,.3);letter-spacing:.2em">ALFRED \u00b7 V1</div>';
+    lo.appendChild(d);
+    var t0 = Date.now(), DUR = 1900, LINES = ["Waking the council", "Lighting the city", "Tuning the minds", "Opening the gates"], li = -1;
+    (function f() {
+      var b = document.getElementById("v287bar"); if (!b) return;
+      var p = Math.min(1, (Date.now() - t0) / DUR);
+      b.style.width = (p * 100) + "%";
+      var nl = Math.min(LINES.length - 1, Math.floor(p * LINES.length));
+      if (nl !== li) { li = nl; var s = document.getElementById("v287st"); if (s) s.textContent = LINES[li]; }
+      if (p < 1) requestAnimationFrame(f);
+    })();
+  }
+  build();
+  var loEl = document.getElementById("loading");
+  if (loEl) new MutationObserver(function () { build(); }).observe(loEl, { childList: true });
+
+  /* seal: once routed, the splash can never come back */
+  var seal = setInterval(function () {
+    var lo = document.getElementById("loading"); if (!lo) { clearInterval(seal); return; }
+    var any = [].slice.call(document.querySelectorAll("#land,#login,#register,#app")).some(function (v) { return v && v.offsetParent !== null; });
+    if (any && !lo.classList.contains("show")) { lo.style.setProperty("display", "none", "important"); clearInterval(seal); }
+  }, 300);
+
+  /* screens + sign-in + CTA + register — self-sufficient */
+  function swap(id) {
+    ["loading", "login", "register", "app"].forEach(function (sid) {
+      var sc = document.getElementById(sid); if (!sc) return;
+      if (sid === id) { sc.classList.add("show"); sc.style.display = ""; }
+      else { sc.classList.remove("show"); if (sid === "loading") sc.style.display = "none"; }
+    });
+    window.scrollTo(0, 0);
+  }
+  document.addEventListener("click", function (e) {
+    var a = e.target && e.target.closest ? e.target.closest("a[data-goto]") : null;
+    if (a) { e.preventDefault(); e.stopImmediatePropagation(); swap(a.getAttribute("data-goto") === "register" ? "register" : "login"); return; }
+    var t = e.target && e.target.closest ? e.target.closest("#land button, #land a") : null;
+    if (!t) return;
+    var txt = (t.textContent || "").trim().toLowerCase();
+    if (/^(sign in|log ?in)$/.test(txt)) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      var L = document.getElementById("land"); if (L) L.style.display = "none";
+      swap("login");
+    } else if (/chat with alfred/.test(txt)) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      var L2 = document.getElementById("land"); if (L2) L2.style.display = "none";
+      swap(window.__v203authed ? "app" : "login");
+    }
+  }, true);
+  function goReg(btn) {
+    var r = document.getElementById("register"); if (!r) return;
+    var name = (document.getElementById("reg-name") || {}).value || "";
+    var email = ((document.getElementById("reg-email") || {}).value || "").trim().toLowerCase();
+    var pw = (r.querySelector('input[type="password"]') || {}).value || "";
+    var chk = r.querySelector('input[type="checkbox"]');
+    var alt = r.querySelector(".alt");
+    function bad(m) {
+      var d = document.getElementById("v287err");
+      if (!d) { d = document.createElement("p"); d.id = "v287err"; d.style.cssText = "color:#ff9db1;font:12.5px system-ui;margin:8px 0 0"; alt && alt.parentNode.insertBefore(d, alt); }
+      d.textContent = m;
+    }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return bad("Enter a valid email.");
+    if (pw.length < 6) return bad("Password needs 6+ characters.");
+    if (chk && !chk.checked) return bad("Please accept the terms.");
+    if (btn) { btn.disabled = true; btn.style.opacity = ".6"; }
+    fetch("/api/auth/register", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim() || email.split("@")[0], email: email, password: pw }) })
+      .then(function (x) { return x.json().catch(function () { return {}; }); })
+      .then(function (j) {
+        if (!j.ok) throw new Error(j.error || "Registration failed.");
+        return fetch("/api/auth/login", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, password: pw }) }).then(function (x) { return x.json().catch(function () { return {}; }); });
+      })
+      .then(function (j) {
+        if (!j.ok) { swap("login"); throw new Error("Account created \u2014 please sign in."); }
+        location.reload();
+      })
+      .catch(function (e) { bad(e.message || "Failed."); })
+      .then(function () { if (btn) { btn.disabled = false; btn.style.opacity = ""; } });
+  }
+  document.addEventListener("submit", function (e) {
+    if (!e.target || e.target.id !== "register-form") return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    goReg(e.target.querySelector("button[type=submit]"));
+  }, true);
+
+  /* landing magic: scroll reveals + capability chips + V1 footer stamp */
+  var io = ("IntersectionObserver" in window) ? new IntersectionObserver(function (es) {
+    es.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add("v287in"); io.unobserve(en.target); } });
+  }, { threshold: .12 }) : null;
+  var iv = setInterval(function () {
+    if (document.hidden) return;
+    var L = document.getElementById("land"); if (!L) return;
+    clearInterval(iv);
+    [].slice.call(L.querySelectorAll(".caps > *, .steps > *, .demo, .manifesto, .cl")).forEach(function (s) {
+      if (s.classList.contains("v287rv")) return;
+      s.classList.add("v287rv"); if (io) io.observe(s); else s.classList.add("v287in");
+    });
+    [].slice.call(L.querySelectorAll(".demo")).forEach(function (dm) {
+      if (dm.getAttribute("data-v287c")) return; dm.setAttribute("data-v287c", "1");
+      var s = document.createElement("div");
+      s.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px";
+      ["Vision", "Deep Reason", "Worlds", "Memory", "Speed"].forEach(function (c) {
+        var t = document.createElement("span"); t.textContent = c;
+        t.style.cssText = "font:11px 'DM Sans',system-ui;letter-spacing:1.5px;color:#9fd8ff;border:1px solid rgba(102,204,255,.25);border-radius:99px;padding:5px 12px;text-transform:uppercase";
+        s.appendChild(t);
+      });
+      dm.parentNode.insertBefore(s, dm.nextSibling);
+    });
+    var f = L.querySelector("#vbuild2"); if (f) f.textContent = "V1";
+  }, 900);
+})();
