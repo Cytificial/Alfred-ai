@@ -1,4 +1,25 @@
- } catch(e){ return ""; } }
+if (!(list[i].textContent || "").trim()) { b = list[i]; break; }
+          if (b) { b.textContent = "⚠ " + j.error; b.style.color = "#ffd9a8";
+                   try { delete b.dataset.v154md; } catch (e) {} }
+        }
+        if (window.__v158cr) window.__v158cr();
+      }).catch(function () {});
+      setTimeout(hide, 400);
+      return res;
+    }).catch(function (e) { setTimeout(hide, 200); throw e; });
+  };
+  function fit() {
+    document.body.classList.toggle("v157hist",
+      (location.hash || "").toLowerCase().indexOf("hist") > -1);
+  }
+  window.addEventListener("hashchange", fit);
+  fit(); setTimeout(fit, 800);
+})();
+
+/* ===== v158c: gold credits pill (always visible) + Ultra theme sync ===== */
+(function () {
+  if (window.__v158c2) return; window.__v158c2 = "1";
+  function tok(){ try { return localStorage.getItem("alfred_token") || ""; } catch(e){ return ""; } }
   var old = document.getElementById("v157cr"); if (old) old.style.display = "none";
   var pill = document.getElementById("v158cr");
   if (!pill) {
@@ -2456,25 +2477,4 @@
       if (card === sc || !card.parentElement) return;
       if (card.getAttribute("data-v252nc")) return;
       card.setAttribute("data-v252nc", "1");
-      [].slice.call(card.querySelectorAll("img,svg")).forEach(function (im) { im.style.display = "none"; });
-    });
-  }, 900);
-})();
-
-/* ===== v253: new-chat de-logo (correct climb) + hero trim + bubble roles ===== */
-(function () {
-  if (window.__v253) return; window.__v253 = "1";
-  function scope() { return document.querySelector("aside,nav,[class*='sidebar'],[class*='drawer']") || document; }
-  function best(el) {
-    var b = null, len = 60;
-    [].slice.call(el.children).forEach(function (c) {
-      if (c.querySelector && c.querySelector(".msg-av")) return;
-      var L = (c.textContent || "").length;
-      if (L > len && !c.querySelector("button")) { len = L; b = c; }
-    });
-    return b;
-  }
-  setInterval(function () {
-    if (document.hidden) return;
-    /* 1) New Chat card: climb UP until the card contains its subtitle */
-    var sc = scope(
+   

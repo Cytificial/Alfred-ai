@@ -1,4 +1,25 @@
-);
+   [].slice.call(card.querySelectorAll("img,svg")).forEach(function (im) { im.style.display = "none"; });
+    });
+  }, 900);
+})();
+
+/* ===== v253: new-chat de-logo (correct climb) + hero trim + bubble roles ===== */
+(function () {
+  if (window.__v253) return; window.__v253 = "1";
+  function scope() { return document.querySelector("aside,nav,[class*='sidebar'],[class*='drawer']") || document; }
+  function best(el) {
+    var b = null, len = 60;
+    [].slice.call(el.children).forEach(function (c) {
+      if (c.querySelector && c.querySelector(".msg-av")) return;
+      var L = (c.textContent || "").length;
+      if (L > len && !c.querySelector("button")) { len = L; b = c; }
+    });
+    return b;
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    /* 1) New Chat card: climb UP until the card contains its subtitle */
+    var sc = scope();
     [].slice.call(sc.querySelectorAll("*")).forEach(function (e) {
       if (e.children.length || (e.textContent || "").trim() !== "New Chat") return;
       var card = e;
@@ -1656,4 +1677,31 @@
     e.preventDefault(); e.stopImmediatePropagation();
     goReg(e.target.querySelector("button[type=submit]"));
   }, true);
+})();
+
+/* ===== v285b: Ultra crown badge + landing rhythm ===== */
+(function () {
+  if (window.__v285b) return; window.__v285b = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    "#land section + section{border-top:1px solid rgba(255,255,255,.06)}",
+    "#land .caps > *{position:relative}",
+    "#land .crown{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,#4fc3ff,#66CCFF);color:#06121e;font:700 10px 'DM Sans',system-ui;letter-spacing:1.6px;border-radius:99px;padding:4px 12px;white-space:nowrap;box-shadow:0 4px 14px rgba(79,195,255,.35)}",
+    "#land .kick{color:#66CCFF !important;font-weight:600 !important}"
+  ].join("");
+  document.head.appendChild(st);
+  var n = 0, iv = setInterval(function () {
+    if (++n > 40) clearInterval(iv);
+    var L = document.getElementById("land"); if (!L) return;
+    var done = false;
+    [].slice.call(L.querySelectorAll(".caps > *")).forEach(function (c) {
+      if (c.getAttribute("data-crown")) return;
+      if (/ultra/i.test(c.textContent || "")) {
+        c.setAttribute("data-crown", "1");
+        var b = document.createElement("span"); b.className = "crown"; b.textContent = "\u2605 MOST POWERFUL";
+        c.appendChild(b); done = true;
+      }
+    });
+    if (done) clearInterval(iv);
+  }, 800);
 })();

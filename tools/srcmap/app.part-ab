@@ -1,4 +1,18 @@
--link"],[class*="cn-line"],[class*="edge"]').forEach(function (el) {
+,190,255,.13)" stroke-width="1.2" vector-effect="non-scaling-stroke"/>';
+      out += '<ellipse class="orbit-dash" cx="' + src.x.toFixed(2) + '" cy="' + src.y.toFixed(2) + '" rx="' + rx.toFixed(2)
+        + '" ry="' + (rx * .4).toFixed(2) + '" transform="rotate(' + ang.toFixed(1) + ' ' + cxy
+        + ')" fill="none" stroke="rgba(200,235,255,.3)" stroke-width="1" stroke-dasharray="2 7" vector-effect="non-scaling-stroke"/>';
+    });
+    svg.innerHTML = out;
+  }
+  var t1 = 0;
+  function soon() { clearTimeout(t1); t1 = setTimeout(draw, 220); }
+  new MutationObserver(soon).observe(nodes, { childList: true, subtree: true, attributes: true, attributeFilter: ["style"] });
+  window.addEventListener("resize", soon);
+  setInterval(draw, 1400); draw();
+
+  /* retire the old straight-line painter */
+  view.querySelectorAll('[class*="const-line"],[class*="const-link"],[class*="cn-line"],[class*="edge"]').forEach(function (el) {
     if (!el.classList.contains("orbit-svg")) el.style.opacity = ".06";
   });
 
@@ -2251,13 +2265,4 @@
         +'<circle cx="9" cy="12" r="1" fill="#ffeab2" opacity=".7"/><circle cx="39.5" cy="34" r=".9" fill="#ffeab2" opacity=".5"/>';
     function leg(d){
       return '<path d="'+d+'" stroke="url(#'+id+')" stroke-width="7.6" stroke-linecap="round" opacity=".2" fill="none"/>'
-           + '<path d="'+d+'" stroke="url(#'+id+')" stroke-width="4.5" stroke-linecap="round" fill="none"/>'
-           + '<path d="'+d+'" stroke="'+c.core+'" stroke-width="1.1" stroke-linecap="round" opacity=".45" fill="none"/>';
-    }
-    return '<svg viewBox="0 0 48 48" class="alfmark104" aria-hidden="true">'
-      +'<defs>'
-      +'<linearGradient id="'+id+'" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="'+c.a+'"/><stop offset="1" stop-color="'+c.b+'"/></linearGradient>'
-      +'<radialGradient id="'+id+'h"><stop offset="0" stop-color="'+c.glow+'" stop-opacity=".4"/><stop offset="1" stop-color="'+c.glow+'" stop-opacity="0"/></radialGradient>'
-      +'<filter id="'+id+'f" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
-      +'</defs>'
-      +'<circle cx="24" cy="24" r="21" fill="
+           + '<path d="'+d+'" stroke="url(#'+id+')" stroke-width="4.5" str

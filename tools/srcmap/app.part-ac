@@ -1,4 +1,13 @@
-url(#'+id+'h)"/>'+ring
+oke-linecap="round" fill="none"/>'
+           + '<path d="'+d+'" stroke="'+c.core+'" stroke-width="1.1" stroke-linecap="round" opacity=".45" fill="none"/>';
+    }
+    return '<svg viewBox="0 0 48 48" class="alfmark104" aria-hidden="true">'
+      +'<defs>'
+      +'<linearGradient id="'+id+'" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="'+c.a+'"/><stop offset="1" stop-color="'+c.b+'"/></linearGradient>'
+      +'<radialGradient id="'+id+'h"><stop offset="0" stop-color="'+c.glow+'" stop-opacity=".4"/><stop offset="1" stop-color="'+c.glow+'" stop-opacity="0"/></radialGradient>'
+      +'<filter id="'+id+'f" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+      +'</defs>'
+      +'<circle cx="24" cy="24" r="21" fill="url(#'+id+'h)"/>'+ring
       +'<g filter="url(#'+id+'f)">'+leg("M24 9.5 13 38.5")+leg("M24 9.5 35 38.5")
       +'<path d="M17.6 28.6h12.8" stroke="url(#'+id+')" stroke-width="3" stroke-linecap="round"/></g>'
       +'<circle cx="24" cy="9.5" r="2.1" fill="'+c.core+'"><animate attributeName="opacity" values="1;.45;1" dur="'+c.beat+'" repeatCount="indefinite"/></circle>'
@@ -2592,25 +2601,4 @@ try { /* v163proc: native thinking card */
         if (j && j.ok === false && j.error) {
           var b = null, list = document.querySelectorAll(".msg.ai .bubble");
           for (var i = list.length - 1; i >= 0; i--)
-            if (!(list[i].textContent || "").trim()) { b = list[i]; break; }
-          if (b) { b.textContent = "⚠ " + j.error; b.style.color = "#ffd9a8";
-                   try { delete b.dataset.v154md; } catch (e) {} }
-        }
-        if (window.__v158cr) window.__v158cr();
-      }).catch(function () {});
-      setTimeout(hide, 400);
-      return res;
-    }).catch(function (e) { setTimeout(hide, 200); throw e; });
-  };
-  function fit() {
-    document.body.classList.toggle("v157hist",
-      (location.hash || "").toLowerCase().indexOf("hist") > -1);
-  }
-  window.addEventListener("hashchange", fit);
-  fit(); setTimeout(fit, 800);
-})();
-
-/* ===== v158c: gold credits pill (always visible) + Ultra theme sync ===== */
-(function () {
-  if (window.__v158c2) return; window.__v158c2 = "1";
-  function tok(){ try { return localStorage.getItem("alfred_token") || "";
+            

@@ -1,3 +1,22 @@
+/* v285: unauth route — loading -> landing (no login flash) */
+window.__v285route = function () {
+  var tries = 0;
+  (function attempt() {
+    var land = document.getElementById("land");
+    if (land) {
+      ["loading", "login", "register", "app"].forEach(function (id) {
+        var sc = document.getElementById(id);
+        if (sc) { sc.classList.remove("show"); if (id === "loading") sc.style.display = "none"; }
+      });
+      land.style.display = "block";
+      try { document.documentElement.style.background = "#080D17"; } catch (e) {}
+      return;
+    }
+    if (++tries < 40) return setTimeout(attempt, 80);
+    var l = document.getElementById("login");
+    if (l) { l.classList.add("show"); l.style.display = ""; }
+  })();
+};
 /* v215 CLEANUP: radars, tap probe, bounce historian retired - v202 reload-net stays */
 try { window.__v141 = "1"; window.__v142 = "1"; window.__v187 = "1"; window.__v199 = "1"; window.__v200 = "1"; window.__v201 = "1"; } catch (e) {}
 try { window.__v155b = "1"; } catch (e) {}
@@ -50,7 +69,7 @@ try { window.__v155b = "1"; } catch (e) {}
       function finish() {
         if (seq !== routeSeq) return;
         if (authed) { show("app"); try { if ((location.hash || "").indexOf("chat") === -1) location.hash = "#/chat"; } catch (e) {} }
-        else show("login");
+        else if (window.__v285route) window.__v285route(); else show("login");
         try { lo.style.opacity = ""; lo.style.transition = ""; } catch (e) {}
         shown = true; window.__v203shown = true; landing = false;
       }
@@ -179,7 +198,7 @@ try { window.__v155b = "1"; } catch (e) {}
       var lg = el("login");
       if (lg && lg.classList.contains("show")) show("app");   /* no old layer may flash login */
     }
-    if (lo && lo.classList.contains("show")) show(window.__v203authed ? "app" : "login");
+    if (lo && lo.classList.contains("show")) { if (window.__v203authed) show("app"); else if (window.__v285route) window.__v285route(); else show("login"); }
     if (ticks > 400) clearInterval(iv);
   }, 150);
 })();
@@ -2501,18 +2520,4 @@ window.__v152 = "1"; /* v154 retires v152 */
       var cxy = src.x.toFixed(2) + " " + src.y.toFixed(2);
       out += '<ellipse cx="' + src.x.toFixed(2) + '" cy="' + src.y.toFixed(2) + '" rx="' + rx.toFixed(2)
         + '" ry="' + (rx * .4).toFixed(2) + '" transform="rotate(' + ang.toFixed(1) + ' ' + cxy
-        + ')" fill="none" stroke="rgba(130,190,255,.13)" stroke-width="1.2" vector-effect="non-scaling-stroke"/>';
-      out += '<ellipse class="orbit-dash" cx="' + src.x.toFixed(2) + '" cy="' + src.y.toFixed(2) + '" rx="' + rx.toFixed(2)
-        + '" ry="' + (rx * .4).toFixed(2) + '" transform="rotate(' + ang.toFixed(1) + ' ' + cxy
-        + ')" fill="none" stroke="rgba(200,235,255,.3)" stroke-width="1" stroke-dasharray="2 7" vector-effect="non-scaling-stroke"/>';
-    });
-    svg.innerHTML = out;
-  }
-  var t1 = 0;
-  function soon() { clearTimeout(t1); t1 = setTimeout(draw, 220); }
-  new MutationObserver(soon).observe(nodes, { childList: true, subtree: true, attributes: true, attributeFilter: ["style"] });
-  window.addEventListener("resize", soon);
-  setInterval(draw, 1400); draw();
-
-  /* retire the old straight-line painter */
-  view.querySelectorAll('[class*="const-line"],[class*="const
+        + ')" fill="none" stroke="rgba(130

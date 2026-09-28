@@ -1,3 +1,22 @@
+/* v285: unauth route — loading -> landing (no login flash) */
+window.__v285route = function () {
+  var tries = 0;
+  (function attempt() {
+    var land = document.getElementById("land");
+    if (land) {
+      ["loading", "login", "register", "app"].forEach(function (id) {
+        var sc = document.getElementById(id);
+        if (sc) { sc.classList.remove("show"); if (id === "loading") sc.style.display = "none"; }
+      });
+      land.style.display = "block";
+      try { document.documentElement.style.background = "#080D17"; } catch (e) {}
+      return;
+    }
+    if (++tries < 40) return setTimeout(attempt, 80);
+    var l = document.getElementById("login");
+    if (l) { l.classList.add("show"); l.style.display = ""; }
+  })();
+};
 /* v215 CLEANUP: radars, tap probe, bounce historian retired - v202 reload-net stays */
 try { window.__v141 = "1"; window.__v142 = "1"; window.__v187 = "1"; window.__v199 = "1"; window.__v200 = "1"; window.__v201 = "1"; } catch (e) {}
 try { window.__v155b = "1"; } catch (e) {}
@@ -50,7 +69,7 @@ try { window.__v155b = "1"; } catch (e) {}
       function finish() {
         if (seq !== routeSeq) return;
         if (authed) { show("app"); try { if ((location.hash || "").indexOf("chat") === -1) location.hash = "#/chat"; } catch (e) {} }
-        else show("login");
+        else if (window.__v285route) window.__v285route(); else show("login");
         try { lo.style.opacity = ""; lo.style.transition = ""; } catch (e) {}
         shown = true; window.__v203shown = true; landing = false;
       }
@@ -179,7 +198,7 @@ try { window.__v155b = "1"; } catch (e) {}
       var lg = el("login");
       if (lg && lg.classList.contains("show")) show("app");   /* no old layer may flash login */
     }
-    if (lo && lo.classList.contains("show")) show(window.__v203authed ? "app" : "login");
+    if (lo && lo.classList.contains("show")) { if (window.__v203authed) show("app"); else if (window.__v285route) window.__v285route(); else show("login"); }
     if (ticks > 400) clearInterval(iv);
   }, 150);
 })();
@@ -11529,4 +11548,31 @@ try { /* v163proc: native thinking card */
     e.preventDefault(); e.stopImmediatePropagation();
     goReg(e.target.querySelector("button[type=submit]"));
   }, true);
+})();
+
+/* ===== v285b: Ultra crown badge + landing rhythm ===== */
+(function () {
+  if (window.__v285b) return; window.__v285b = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    "#land section + section{border-top:1px solid rgba(255,255,255,.06)}",
+    "#land .caps > *{position:relative}",
+    "#land .crown{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,#4fc3ff,#66CCFF);color:#06121e;font:700 10px 'DM Sans',system-ui;letter-spacing:1.6px;border-radius:99px;padding:4px 12px;white-space:nowrap;box-shadow:0 4px 14px rgba(79,195,255,.35)}",
+    "#land .kick{color:#66CCFF !important;font-weight:600 !important}"
+  ].join("");
+  document.head.appendChild(st);
+  var n = 0, iv = setInterval(function () {
+    if (++n > 40) clearInterval(iv);
+    var L = document.getElementById("land"); if (!L) return;
+    var done = false;
+    [].slice.call(L.querySelectorAll(".caps > *")).forEach(function (c) {
+      if (c.getAttribute("data-crown")) return;
+      if (/ultra/i.test(c.textContent || "")) {
+        c.setAttribute("data-crown", "1");
+        var b = document.createElement("span"); b.className = "crown"; b.textContent = "\u2605 MOST POWERFUL";
+        c.appendChild(b); done = true;
+      }
+    });
+    if (done) clearInterval(iv);
+  }, 800);
 })();
