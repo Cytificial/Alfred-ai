@@ -10229,3 +10229,53 @@ try { /* v163proc: native thinking card */
     });
   }, 3000);
 })();
+
+/* ===== v260: explore truth v2 — longest-line captions, never-dark cards ===== */
+(function () {
+  if (window.__v260) return; window.__v260 = "1";
+  var JUNK = /^(by |try it$|inspiration$|community pick$|♥|\d+$)/i;
+  function caption(node) {
+    var best = "";
+    [].slice.call(node.querySelectorAll("*")).forEach(function (e) {
+      if (e.children.length || e.tagName === "IMG") return;
+      (e.textContent || "").split("\n").forEach(function (l) {
+        l = l.trim();
+        if (l.length > best.length && l.length > 20 && !JUNK.test(l)) best = l;
+      });
+    });
+    return best;
+  }
+  function paint(im) {
+    var cap = "", p = im.parentElement;
+    for (var up = 0; up < 4 && p && !cap; up++) { cap = caption(p); if (!cap) p = p.parentElement; }
+    if (!cap) return;
+    im.setAttribute("data-v260m", "1");
+    im.style.opacity = ".2";
+    var base = "https://image.pollinations.ai/prompt/" + encodeURIComponent(cap.slice(0, 160)) +
+               "?width=768&height=1024&nologo=true&";
+    function load(seed) {
+      im.onload = function () { im.style.opacity = "1"; im.setAttribute("data-v260done", "1"); };
+      im.onerror = function () {
+        if (im.getAttribute("data-v260r")) {
+          im.style.opacity = "1"; im.style.display = "none";
+          if (im.parentElement) im.parentElement.style.background = "linear-gradient(135deg,#1b2a44,#0e1830)";
+        } else { im.setAttribute("data-v260r", "1"); load(String(Math.floor(Math.random() * 999999))); }
+      };
+      im.src = base + "seed=" + seed;
+    }
+    load(String(Math.floor(Math.random() * 999999)));
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var x = document.getElementById("view-explore"); if (!x || x.offsetParent === null) return;
+    [].slice.call(x.querySelectorAll("img")).forEach(function (im) {
+      if ((im.getAttribute("src") || "").indexOf("data:") === 0) return;
+      if (!im.getAttribute("data-v260m")) paint(im);
+    });
+  }, 2500);
+  var st = document.createElement("style");
+  st.textContent = "#view-explore img{transition:opacity .4s}" +
+    "#view-explore img[data-v260m]:not([data-v260done]){background:linear-gradient(100deg,#12203a 30%,#1c3050 50%,#12203a 70%);background-size:200% 100%;animation:v260sh 1.2s infinite}" +
+    "@keyframes v260sh{to{background-position:-200% 0}}";
+  document.head.appendChild(st);
+})();
