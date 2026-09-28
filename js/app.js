@@ -12124,3 +12124,39 @@ try { /* v163proc: native thinking card */
   ].join("");
   document.head.appendChild(st);
 })();
+
+/* ===== v292: badge one-ring, plan single-truth, admin authority ===== */
+(function () {
+  if (window.__v292) return; window.__v292 = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    "#app .side-head .badge,#app [class*='side'] .badge,.brand .badge,header .m-av,.model .m-av{border:0 !important;outline:0 !important;background:transparent !important;box-shadow:none !important;padding:0 !important}",
+    "#app .side-head .badge img,.brand .badge img,header .m-av img,.model .m-av img{content:url('/assets/land-mark-320.png?v=7') !important;width:40px !important;height:40px !important;border-radius:50% !important;filter:drop-shadow(0 0 8px rgba(79,195,255,.3))}"
+  ].join("");
+  document.head.appendChild(st);
+  function stamp(plan) {
+    [].slice.call(document.querySelectorAll("#app span,#app div,#app b")).forEach(function (e) {
+      if (e.children.length) return;
+      var t = (e.textContent || "").trim();
+      if ((t === "Pro" || t === "Free" || t === "Ultra") && e.closest("[class*='side'],[class*='user'],[class*='prof'],[class*='foot']")) e.textContent = plan;
+    });
+  }
+  function sync() {
+    fetch("/api/auth/me", { credentials: "include" }).then(function (r) { return r.ok ? r.json() : {}; }).then(function (j) {
+      var p = (j.user && j.user.plan) || j.plan || "";
+      if (p) { try { localStorage.setItem("alfred_plan", p); } catch (e) {} stamp(p); }
+    }).catch(function () {});
+  }
+  sync(); setInterval(function () { if (!document.hidden) sync(); }, 20000);
+  document.addEventListener("click", function (e) {
+    var t = e.target && e.target.closest ? e.target.closest("#app [class*='nav'], #app [class*='side'] *") : null;
+    if (!t) return;
+    if ((t.textContent || "").trim() !== "Admin" || t.closest("select")) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    try { location.hash = "#/admin"; } catch (x) {}
+    setTimeout(function () {
+      var v = document.getElementById("view-admin");
+      if (v) { [].slice.call(document.querySelectorAll(".view")).forEach(function (x) { if (x !== v) x.classList.remove("show"); }); v.classList.add("show"); v.style.display = "block"; }
+    }, 250);
+  }, true);
+})();
