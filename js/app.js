@@ -9724,6 +9724,7 @@ try { /* v163proc: native thinking card */
   if (window.__v251) return; window.__v251 = "1";
   window.addEventListener("hashchange", function () {
     setTimeout(function () {
+      if ((location.hash || "").indexOf("admin") > -1) return;
       var views = [].slice.call(document.querySelectorAll(".view"));
       var vis = views.filter(function (x) { return x.offsetParent !== null; });
       if (!vis.length) return;                       /* router handled nothing -> fallback may act */
@@ -9797,9 +9798,8 @@ try { /* v163proc: native thinking card */
     if (v && v.offsetParent !== null && !document.getElementById("v251b-editor")) editorCard(v);
     var m = document.getElementById("view-modules");
     if (m && m.offsetParent !== null && !m.getAttribute("data-v251sc")) {
-      m.setAttribute("data-v251sc", "1");
       fetch("/showcase.json").then(function (r) { return r.ok ? r.json() : { items: [] }; }).catch(function(){ return {items:[]}; }).then(function (j) {
-        var items = (j && j.items) || []; if (!items.length) return;
+        var items = (j && j.items) || []; if (!items.length) return; m.setAttribute("data-v251sc", "1");
         var sec = document.createElement("div");
         sec.style.cssText = "margin:18px 0 8px";
         var h = document.createElement("div");
@@ -9820,4 +9820,42 @@ try { /* v163proc: native thinking card */
       });
     }
   }, 3000);
+})();
+
+/* ===== v252: admin route authority + cleanup sweeps ===== */
+(function () {
+  if (window.__v252) return; window.__v252 = "1";
+  function scope() { return document.querySelector("aside,nav,[class*='sidebar'],[class*='drawer']") || document; }
+  setInterval(function () {
+    if (document.hidden) return;
+    var admin = (location.hash || "").indexOf("admin") > -1;
+    var views = [].slice.call(document.querySelectorAll(".view"));
+    if (admin) {
+      var va = document.getElementById("view-admin");
+      if (va) {
+        views.forEach(function (x) { x.style.display = (x === va) ? "block" : "none"; });
+      }
+    } else {
+      views.forEach(function (x) { if (x.style.display) x.style.display = ""; });
+    }
+    /* kill the old settings admin console (ADMIN — N USERS) */
+    [].slice.call(document.querySelectorAll("div,section")).forEach(function (e) {
+      if (e.getAttribute("data-v252k")) return;
+      var t = (e.textContent || "").slice(0, 40);
+      if (/^ADMIN\s*[—-]\s*\d+\s*USERS/i.test(t) && e.textContent.length < 4000 && e.querySelector("select")) {
+        e.setAttribute("data-v252k", "1"); e.style.display = "none";
+      }
+    });
+    /* New Chat card: no logo, just the words */
+    var sc = scope();
+    [].slice.call(sc.querySelectorAll("*")).forEach(function (e) {
+      if (e.children.length || (e.textContent || "").trim() !== "New Chat") return;
+      var card = e;
+      while (card.parentElement && card !== sc && (card.parentElement.textContent || "").indexOf("Start a new conversation") === -1) card = card.parentElement;
+      if (card === sc || !card.parentElement) return;
+      if (card.getAttribute("data-v252nc")) return;
+      card.setAttribute("data-v252nc", "1");
+      [].slice.call(card.querySelectorAll("img,svg")).forEach(function (im) { im.style.display = "none"; });
+    });
+  }, 900);
 })();
