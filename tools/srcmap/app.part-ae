@@ -962,3 +962,77 @@ extContent || "").length;
     nav.appendChild(b);
   }, 800);
 })();
+
+/* ===== v274: retry + thumbs on Alfred replies (device-honest) ===== */
+(function () {
+  if (window.__v274) return; window.__v274 = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    ".v274row{display:flex;gap:10px;margin-top:8px;align-items:center}",
+    ".v274b{background:rgba(255,255,255,.05);border:1px solid rgba(159,216,255,.22);color:#bfe2ff;border-radius:99px;padding:5px 14px;font:12px system-ui;cursor:pointer;transition:background .15s}",
+    ".v274b:active{transform:scale(.96)}",
+    ".v274b.on{background:rgba(102,204,255,.18);border-color:rgba(102,204,255,.5);color:#dff1ff}",
+    ".v274note{font:11px system-ui;color:#7e97b8}"
+  ].join("");
+  document.head.appendChild(st);
+  function fb() { try { return JSON.parse(localStorage.getItem("alfred_fb") || "{}"); } catch (e) { return {}; } }
+  function fbSave(o) { try { localStorage.setItem("alfred_fb", JSON.stringify(o)); } catch (e) {} }
+  function lastUserText(row) {
+    var n = row.previousElementSibling, hops = 0;
+    while (n && hops++ < 8) {
+      if (n.classList && (n.classList.contains("fx-user") || n.querySelector(".fx-user"))) {
+        var t = (n.innerText || "").trim();
+        if (t) return t;
+      }
+      n = n.previousElementSibling;
+    }
+    return "";
+  }
+  function sweep() {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat"); if (!v || v.offsetParent === null) return;
+    if (window.streaming) return;
+    [].slice.call(v.querySelectorAll(".msg")).forEach(function (row) {
+      if (row.getAttribute("data-v274")) return;
+      if (!row.querySelector(".msg-av")) return;                 /* Alfred rows only */
+      if (row.classList.contains("fx-user")) return;
+      if (row.querySelector(".v129-dots")) return;               /* still thinking */
+      var txt = (row.innerText || "").trim();
+      if (!txt || txt.length < 4) return;
+      row.setAttribute("data-v274", "1");
+      var bar = document.createElement("div"); bar.className = "v274row";
+      var rt = document.createElement("button"); rt.type = "button"; rt.className = "v274b"; rt.textContent = "↻ Retry";
+      rt.addEventListener("click", function () {
+        if (window.streaming) return;
+        var p = lastUserText(row);
+        var inp = document.getElementById("msg-input");
+        if (!p || !inp) return;
+        inp.value = p; inp.focus();
+        var f = document.getElementById("composer");
+        if (f && f.requestSubmit) f.requestSubmit();
+        else if (f) f.dispatchEvent(new Event("submit", { cancelable: true }));
+      });
+      var up = document.createElement("button"); up.type = "button"; up.className = "v274b"; up.textContent = "👍";
+      var dn = document.createElement("button"); dn.type = "button"; dn.className = "v274b"; dn.textContent = "👎";
+      var cid = window.__v129chat || "c";
+      var mid = cid + ":" + [].slice.call(v.querySelectorAll(".msg")).indexOf(row);
+      function paint() {
+        var o = fb()[mid] || 0;
+        up.classList.toggle("on", o === 1);
+        dn.classList.toggle("on", o === -1);
+      }
+      function vote(x) {
+        var o = fb(); o[mid] = (o[mid] === x) ? 0 : x; fbSave(o); paint();
+        note.textContent = o[mid] ? "Saved on this device" : ""; 
+        if (o[mid]) setTimeout(function () { note.textContent = ""; }, 2000);
+      }
+      up.addEventListener("click", function () { vote(1); });
+      dn.addEventListener("click", function () { vote(-1); });
+      var note = document.createElement("span"); note.className = "v274note";
+      bar.appendChild(rt); bar.appendChild(up); bar.appendChild(dn); bar.appendChild(note);
+      paint();
+      row.appendChild(bar);
+    });
+  }
+  setInterval(sweep, 1600);
+})();
