@@ -1,3 +1,4 @@
+/* v288flags */try{['v269','v270','v276s','v277','v278','v280','v281','v284','v285b'].forEach(function(k){try{window['__'+k]='1';}catch(e){}});}catch(e){}
 /* v285: unauth route — loading -> landing (no login flash) */
 window.__v285route = function () {
   var tries = 0;
@@ -90,7 +91,7 @@ try { window.__v155b = "1"; } catch (e) {}
         lo.classList.remove("exit");
         void lo.offsetWidth;
         lo.classList.add("exit");
-        exitTimer = setTimeout(function () { endExit(); }, 1100);
+        exitTimer = setTimeout(function () { endExit(); }, 450);
       } else finish();
     }
     if (instant || shown) { land(); return; }
@@ -191,7 +192,7 @@ try { window.__v155b = "1"; } catch (e) {}
     var lo = el("loading");
     if (landing) return;                     /* v208: fade in progress — hands off */
     if (!shown) {
-      if (lo && !lo.classList.contains("show")) { lo.classList.add("show"); lo.style.display = ""; lo.style.opacity = "1"; }
+      if (lo && !lo.classList.contains("show")) { void 0; }
       return;
     }
     if (window.__v203authed) {
@@ -969,7 +970,7 @@ window.__v152 = "1"; /* v154 retires v152 */
     statusEl.textContent = "Neural sanctuary ready";
     statusP.classList.add("ready");
     logo.classList.add("flare");
-    setTimeout(exitLoading, 1300);
+    void 0;
   }
   /* v209: native splash driver retired — the conductor owns the bar */
   function exitLoading() {
@@ -11800,4 +11801,153 @@ try { /* v163proc: native thinking card */
     });
     var f = L.querySelector("#vbuild2"); if (f) f.textContent = "V1";
   }, 900);
+})();
+
+/* ===== v288: landing rebuilt — one authored page, no legacy layers ===== */
+(function () {
+  if (window.__v288) return; window.__v288 = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    "#loading.exit{animation:none !important;opacity:0 !important;transition:opacity .32s ease !important}",
+    "#land{font-family:'DM Sans',system-ui;color:#DFEAF6;background:#080D17;min-height:100svh}",
+    "#land a{text-decoration:none;color:inherit}",
+    "#land .vnav{position:sticky;top:0;z-index:9;display:flex;align-items:center;gap:14px;padding:14px 22px;background:rgba(8,13,23,.72);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.06)}",
+    "#land .vnav img{width:30px;height:30px;border-radius:50%}",
+    "#land .vnav b{font:700 14px 'DM Sans';letter-spacing:2.5px;color:#EAF3FF}",
+    "#land .vnav .lk{font-size:13px;color:#9db8d8;margin-left:6px}",
+    "#land .vnav .sin{margin-left:auto;background:transparent;border:1px solid rgba(255,255,255,.22);color:#DFEAF6;border-radius:99px;padding:9px 20px;font:600 13px 'DM Sans'}",
+    "#land .vsec{max-width:920px;margin:0 auto;padding:72px 22px}",
+    "#land .vk{font:700 11px 'DM Sans';letter-spacing:3px;color:#66CCFF;margin-bottom:14px}",
+    "#land .vh{font-family:Sora,'DM Sans';font-weight:700;letter-spacing:-.02em;color:#EAF3FF}",
+    "#land .vhero{position:relative;overflow:hidden}",
+    "#land .vbg{position:absolute;inset:-80px 0 0;filter:brightness(1.12) saturate(1.05);background:linear-gradient(90deg,rgba(5,9,17,.8) 0%,rgba(5,9,17,.42) 55%,rgba(5,9,17,.08) 100%),linear-gradient(180deg,rgba(5,9,17,.66) 0%,rgba(5,9,17,0) 30%),linear-gradient(0deg,#080D17 0%,rgba(8,13,23,.05) 45%,rgba(8,13,23,.2) 100%),url('/assets/cityy.jpg') center 56%/cover}",
+    "#land .vhero .vsec{position:relative}",
+    "#land .vhero h1{font-size:clamp(2.5rem,9vw,4.3rem);line-height:1.04;margin:14px 0 18px}",
+    "#land .vhero h1 em{font-style:normal;color:#66CCFF}",
+    "#land .vsub{font-size:clamp(1.05rem,4vw,1.3rem);color:#B9CCE0;max-width:560px;line-height:1.55}",
+    "#land .vcta{display:flex;gap:12px;flex-wrap:wrap;margin:28px 0 10px}",
+    "#land .cta{background:linear-gradient(135deg,#4fc3ff,#66CCFF);color:#06121E;font:700 15px 'DM Sans';border:0;border-radius:14px;padding:17px 34px;cursor:pointer;box-shadow:0 10px 34px rgba(79,195,255,.35)}",
+    "#land .ghost{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);color:#DFEAF6;border-radius:14px;padding:17px 26px;font:600 14px 'DM Sans'}",
+    "#land .vmom{font-size:13px;color:#7E97B8}",
+    "#land .vstrip{display:flex;gap:26px;flex-wrap:wrap;justify-content:center;padding:18px 22px;border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06);font-size:11.5px;letter-spacing:2px;color:#7E97B8;text-transform:uppercase}",
+    "#land .vstrip b{color:#66CCFF;font-weight:600}",
+    "#land .vdemo{background:rgba(13,22,38,.8);border:1px solid rgba(102,204,255,.2);border-radius:18px;padding:18px 20px;max-width:540px;box-shadow:0 24px 70px rgba(0,0,0,.45)}",
+    "#land .vq{font-size:14px;color:#EAF3FF;line-height:1.5}",
+    "#land .vtag{display:inline-block;font-size:9.5px;letter-spacing:2px;color:#66CCFF;border:1px solid rgba(102,204,255,.35);border-radius:99px;padding:3px 10px;margin:12px 0 8px;text-transform:uppercase}",
+    "#land .va{font-size:13px;color:#C7D6E8;line-height:1.6;min-height:58px}",
+    "#land .vchips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}",
+    "#land .vchip{font:11px 'DM Sans';letter-spacing:1.5px;color:#9fd8ff;border:1px solid rgba(102,204,255,.25);border-radius:99px;padding:6px 13px;text-transform:uppercase}",
+    "#land .vgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}",
+    "#land .vcard{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:18px 16px}",
+    "#land .vcard b{display:block;font-size:14px;color:#EAF3FF;margin-bottom:6px}",
+    "#land .vcard span{font-size:12.5px;color:#8FA8C4;line-height:1.5}",
+    "#land .vtiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}",
+    "#land .vtier{position:relative;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:26px 20px 20px}",
+    "#land .vtier.ultra{border-color:rgba(102,204,255,.45);background:rgba(102,204,255,.06)}",
+    "#land .crown{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,#4fc3ff,#66CCFF);color:#06121e;font:700 10px 'DM Sans';letter-spacing:1.6px;border-radius:99px;padding:4px 12px;white-space:nowrap}",
+    "#land .vtier h3{font-family:Sora;font-size:18px;color:#EAF3FF;margin:0 0 4px}",
+    "#land .vtier .tp{font-size:12px;color:#7E97B8;margin-bottom:14px}",
+    "#land .vtier ul{list-style:none;margin:0 0 18px;padding:0}",
+    "#land .vtier li{font-size:13px;color:#B9CCE0;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)}",
+    "#land .vtier a{display:block;text-align:center;border-radius:12px;padding:13px;font:700 13px 'DM Sans'}",
+    "#land .vtier .go{background:#66CCFF;color:#08131f}",
+    "#land .vtier .gow{background:transparent;border:1px solid rgba(255,255,255,.18);color:#bfe2ff}",
+    "#land .vman{font-family:Sora;font-weight:600;font-size:clamp(1.4rem,5.5vw,2.1rem);line-height:1.3;letter-spacing:-.03em;text-align:center;color:#EAF3FF;max-width:680px;margin:0 auto}",
+    "#land .vman em{font-style:normal;color:#66CCFF}",
+    "#land .vfaq details{border-bottom:1px solid rgba(255,255,255,.08);padding:4px 2px}",
+    "#land .vfaq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:16px 2px;font:600 14.5px 'DM Sans';color:#EAF3FF}",
+    "#land .vfaq summary::after{content:'+';color:#66CCFF;font-size:18px}",
+    "#land .vfaq details[open] summary::after{content:'\\2013'}",
+    "#land .vfaq p{font-size:13.5px;color:#9db8d8;line-height:1.65;margin:0 0 16px}",
+    "#land .vinv{text-align:center}",
+    "#land .vinv a{display:inline-block;margin-top:18px;background:#66CCFF;color:#06121E;font:700 14px 'DM Sans';border-radius:12px;padding:14px 26px;max-width:340px}",
+    "#land .vfoot{display:flex;align-items:center;gap:12px;justify-content:center;padding:34px 22px;border-top:1px solid rgba(255,255,255,.06);font-size:12.5px;color:#7E97B8;flex-wrap:wrap;text-align:center}",
+    "#land .vfoot img{width:26px;height:26px;border-radius:50%}",
+    ".rv288{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}",
+    ".rv288.rin{opacity:1;transform:none}",
+    "@media (prefers-reduced-motion:reduce){.rv288{opacity:1;transform:none;transition:none}}"
+  ].join("");
+  document.head.appendChild(st);
+
+  var C = {
+    hero: '<div class="vbg"></div><div class="vsec">'
+      + '<img class="hero-mark" src="/assets/land-mark-320.png?v=5" alt="" style="width:92px;height:92px;border-radius:50%;margin-bottom:18px">'
+      + '<div class="vk">ALFRED AI \u00b7 PERSONAL INTELLIGENCE</div>'
+      + '<h1>One butler.<br>A <em>world of minds.</em></h1>'
+      + '<p class="vsub">Ask once. Alfred convenes the sharpest AI minds alive \u2014 and returns one answer worth acting on. No tabs. No prompt engineering. Just ask.</p>'
+      + '<div class="vcta"><button class="cta" type="button">Chat with Alfred</button><a class="ghost" href="#how">See how it works</a></div>'
+      + '<p class="vmom">Tuesday, 6:47am \u2014 you ask. The council is already thinking.</p></div>',
+    strip: '<div class="vstrip"><span><b>Online</b> now</span><span><b>Minds</b> convened</span><span><b>Worlds</b> growing</span><span><b>Answers</b> worth acting on</span></div>',
+    demo: '<div class="vsec"><div class="vk">FIG 01 \u00b7 THE PRODUCT</div>'
+      + '<div class="vdemo"><div class="vq">Help me plan a product launch for Friday.</div>'
+      + '<div class="vtag">Council convened</div><div class="va" id="v288a"></div>'
+      + '<div class="vchips"><span class="vchip">Vision</span><span class="vchip">Deep Reason</span><span class="vchip">Worlds</span><span class="vchip">Memory</span><span class="vchip">Explore</span></div></div></div>',
+    how: '<div class="vsec" id="how"><div class="vk">FIG 02 \u00b7 HOW IT WORKS</div>'
+      + '<div class="vgrid">'
+      + '<div class="vcard"><b>1 \u00b7 Ask once</b><span>Type it the way you\u2019d say it. No tricks, no templates.</span></div>'
+      + '<div class="vcard"><b>2 \u00b7 The council weighs</b><span>Alfred convenes multiple advanced minds and argues the angles.</span></div>'
+      + '<div class="vcard"><b>3 \u00b7 One answer</b><span>You get a single, confident reply \u2014 refined, not averaged.</span></div>'
+      + '</div></div>',
+    abilities: '<div class="vsec"><div class="vk">FIG 03 \u00b7 WHAT HE CAN DO</div><div class="vgrid">'
+      + '<div class="vcard"><b>Vision</b><span>Show him a photo \u2014 he reads it natively.</span></div>'
+      + '<div class="vcard"><b>Deep Reason</b><span>Hard problems, weighed from every angle.</span></div>'
+      + '<div class="vcard"><b>Worlds</b><span>Every chat grows its own living galaxy in History.</span></div>'
+      + '<div class="vcard"><b>Memory</b><span>He keeps the thread across your conversations.</span></div>'
+      + '<div class="vcard"><b>Explore</b><span>A living feed of designs and prompts, fresh daily.</span></div>'
+      + '<div class="vcard"><b>Modules</b><span>An arsenal that grows with every update.</span></div>'
+      + '</div></div>',
+    tiers: '<div class="vsec"><div class="vk">FIG 04 \u00b7 CHOOSE YOUR LEVEL</div><div class="vtiers">'
+      + '<div class="vtier"><h3>Free</h3><div class="tp">Meet your butler</div><ul><li>15 messages a day</li><li>3 image creations</li><li>3 standard minds</li><li>Core modules</li></ul><a class="gow" data-goto="login" href="#">Start free</a></div>'
+      + '<div class="vtier"><h3>Pro</h3><div class="tp">Full speed</div><ul><li>Unlimited chats</li><li>150 image creations a day</li><li>6 latest-generation minds</li><li>Every module \u00b7 priority lanes</li><li>Zero ads</li></ul><a class="go" data-goto="login" href="#">Go Pro</a></div>'
+      + '<div class="vtier ultra"><span class="crown">\u2605 MOST POWERFUL</span><h3>Ultra</h3><div class="tp">The full council</div><ul><li>Everything in Pro, multiplied</li><li>500 image creations a day</li><li>4 apex minds + Deep-think Council</li><li>First to every new ability</li><li>Founder badge</li></ul><a class="go" data-goto="login" href="#">Go Ultra</a></div>'
+      + '</div></div>',
+    log: '<div class="vsec"><div class="vk">FIG 05 \u00b7 RECENTLY SHARPENED</div>'
+      + '<div style="border-bottom:1px solid rgba(255,255,255,.08);padding:13px 2px;display:flex;gap:18px"><span style="font:600 12px Sora;color:#66CCFF;min-width:96px">THIS WEEK</span><span style="font-size:13.5px;color:#C7D6E8">Council upgrade \u2014 answers now weighed by multiple minds</span></div>'
+      + '<div style="border-bottom:1px solid rgba(255,255,255,.08);padding:13px 2px;display:flex;gap:18px"><span style="font:600 12px Sora;color:#66CCFF;min-width:96px">LAST WEEK</span><span style="font-size:13.5px;color:#C7D6E8">Vision \u2014 Alfred reads photos natively</span></div>'
+      + '<div style="padding:13px 2px;display:flex;gap:18px"><span style="font:600 12px Sora;color:#66CCFF;min-width:96px">EARLIER</span><span style="font-size:13.5px;color:#C7D6E8">Living Explore \u2014 fresh designs every day</span></div></div>',
+    man: '<div class="vsec"><p class="vman">You don\u2019t need ten AIs.<br>You need <em>one that thinks with all of them.</em></p></div>',
+    faq: '<div class="vsec vfaq"><div class="vk">FIG 06 \u00b7 QUESTIONS</div>'
+      + '<details open><summary>What exactly is Alfred?</summary><p>Alfred is a personal AI butler. Behind the scenes he convenes several advanced AI minds and returns one polished answer \u2014 you experience a single, consistent intelligence.</p></details>'
+      + '<details><summary>Why does he feel different from other chatbots?</summary><p>Hard questions get argued from multiple angles before you see a word. One answer, already refined.</p></details>'
+      + '<details><summary>Are my conversations private?</summary><p>Your chats stay yours, on your account, and sign-out is instant from Settings.</p></details>'
+      + '<details><summary>What are Levels?</summary><p>Free, Pro and Ultra change how hard Alfred thinks and how much you can create each day. The level you pick is the mind you feel.</p></details>'
+      + '<details><summary>Does Alfred get better?</summary><p>Every week. New abilities land first for Ultra, and the changelog above is the honest record.</p></details></div>',
+    inv: '<div class="vsec vinv"><div class="vk">FOR INVESTORS &amp; PARTNERS</div>'
+      + '<div class="vh" style="font-size:clamp(1.7rem,6vw,2.6rem)">Building a more useful kind of AI.</div>'
+      + '<p class="vsub" style="margin:14px auto 0;max-width:480px">Alfred is the consumer face of multi-mind intelligence. Talk to us.</p>'
+      + '<a href="mailto:cyberartificial1@gmail.com?subject=Alfred%20AI">cyberartificial1@gmail.com</a></div>',
+    foot: '<div class="vfoot"><img src="/assets/land-mark-320.png?v=5" alt=""><b style="letter-spacing:2px;color:#EAF3FF">ALFRED AI</b><span>\u00a9 Alfred AI \u00b7 Your Mind, Amplified \u00b7 V1</span></div>'
+  };
+
+  function build() {
+    var L = document.getElementById("land");
+    if (!L) { L = document.createElement("div"); L.id = "land"; document.body.appendChild(L); }
+    if (L.getAttribute("data-v288")) return;
+    L.setAttribute("data-v288", "1");
+    L.innerHTML = '<nav class="vnav"><img src="/assets/land-mark-320.png?v=5" alt=""><b>ALFRED AI</b>'
+      + '<a class="lk" href="#how">How</a><a class="lk" href="#faq">FAQ</a><button class="sin" type="button">Sign in</button></nav>'
+      + '<section class="vhero hero">' + C.hero + '</section>' + C.strip
+      + '<section>' + C.demo + '</section><section>' + C.how + '</section><section>' + C.abilities
+      + '</section><section>' + C.tiers + '</section><section>' + C.log + '</section><section>' + C.man
+      + '</section><section id="faq">' + C.faq + '</section><section>' + C.inv + '</section>' + C.foot;
+    L.style.display = "none";
+    var t0 = null;
+    (function type(ts) {
+      var el = document.getElementById("v288a"); if (!el) return;
+      if (t0 === null) t0 = ts;
+      var A = "Convened three angles: audience, message, risk. Verdict: launch to your waitlist first, keep the press for week two \u2014 momentum beats reach. Want the day-by-day plan?";
+      var n = Math.min(A.length, Math.floor((ts - t0) / 22));
+      el.textContent = A.slice(0, n);
+      if (n < A.length) requestAnimationFrame(type);
+    })();
+    var io = ("IntersectionObserver" in window) ? new IntersectionObserver(function (es) {
+      es.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add("rin"); io.unobserve(en.target); } });
+    }, { threshold: .1 }) : null;
+    [].slice.call(L.querySelectorAll(".vsec, .vstrip")).forEach(function (s, i) {
+      s.classList.add("rv288"); if (io) { io.observe(s); } else s.classList.add("rin");
+    });
+  }
+  function tryBuild() { var L = document.getElementById("land"); if (L && L.offsetParent !== null) build(); }
+  build();
+  setInterval(function () { if (document.hidden) return; var L = document.getElementById("land"); if (L && L.offsetParent !== null && !L.getAttribute("data-v288")) build(); }, 1200);
 })();

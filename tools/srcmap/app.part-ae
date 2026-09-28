@@ -1,4 +1,6 @@
-   [].slice.call(card.querySelectorAll("img,svg")).forEach(function (im) { im.style.display = "none"; });
+v252nc")) return;
+      card.setAttribute("data-v252nc", "1");
+      [].slice.call(card.querySelectorAll("img,svg")).forEach(function (im) { im.style.display = "none"; });
     });
   }, 900);
 })();
@@ -1930,3 +1932,15 @@
     var f = L.querySelector("#vbuild2"); if (f) f.textContent = "V1";
   }, 900);
 })();
+
+/* ===== v288: landing rebuilt — one authored page, no legacy layers ===== */
+(function () {
+  if (window.__v288) return; window.__v288 = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    "#loading.exit{animation:none !important;opacity:0 !important;transition:opacity .32s ease !important}",
+    "#land{font-family:'DM Sans',system-ui;color:#DFEAF6;background:#080D17;min-height:100svh}",
+    "#land a{text-decoration:none;color:inherit}",
+    "#land .vnav{position:sticky;top:0;z-index:9;display:flex;align-items:center;gap:14px;padding:14px 22px;background:rgba(8,13,23,.72);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.06)}",
+    "#land .vnav img{width:30px;height:30px;border-radius:50%}",
+    "#land .vnav b{font:700 1

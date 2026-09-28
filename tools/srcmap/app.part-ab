@@ -1,4 +1,5 @@
-,190,255,.13)" stroke-width="1.2" vector-effect="non-scaling-stroke"/>';
+.toFixed(1) + ' ' + cxy
+        + ')" fill="none" stroke="rgba(130,190,255,.13)" stroke-width="1.2" vector-effect="non-scaling-stroke"/>';
       out += '<ellipse class="orbit-dash" cx="' + src.x.toFixed(2) + '" cy="' + src.y.toFixed(2) + '" rx="' + rx.toFixed(2)
         + '" ry="' + (rx * .4).toFixed(2) + '" transform="rotate(' + ang.toFixed(1) + ' ' + cxy
         + ')" fill="none" stroke="rgba(200,235,255,.3)" stroke-width="1" stroke-dasharray="2 7" vector-effect="non-scaling-stroke"/>';
@@ -2265,4 +2266,4 @@
         +'<circle cx="9" cy="12" r="1" fill="#ffeab2" opacity=".7"/><circle cx="39.5" cy="34" r=".9" fill="#ffeab2" opacity=".5"/>';
     function leg(d){
       return '<path d="'+d+'" stroke="url(#'+id+')" stroke-width="7.6" stroke-linecap="round" opacity=".2" fill="none"/>'
-           + '<path d="'+d+'" stroke="url(#'+id+')" stroke-width="4.5" str
+        

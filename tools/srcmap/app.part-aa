@@ -1,3 +1,4 @@
+/* v288flags */try{['v269','v270','v276s','v277','v278','v280','v281','v284','v285b'].forEach(function(k){try{window['__'+k]='1';}catch(e){}});}catch(e){}
 /* v285: unauth route — loading -> landing (no login flash) */
 window.__v285route = function () {
   var tries = 0;
@@ -90,7 +91,7 @@ try { window.__v155b = "1"; } catch (e) {}
         lo.classList.remove("exit");
         void lo.offsetWidth;
         lo.classList.add("exit");
-        exitTimer = setTimeout(function () { endExit(); }, 1100);
+        exitTimer = setTimeout(function () { endExit(); }, 450);
       } else finish();
     }
     if (instant || shown) { land(); return; }
@@ -191,7 +192,7 @@ try { window.__v155b = "1"; } catch (e) {}
     var lo = el("loading");
     if (landing) return;                     /* v208: fade in progress — hands off */
     if (!shown) {
-      if (lo && !lo.classList.contains("show")) { lo.classList.add("show"); lo.style.display = ""; lo.style.opacity = "1"; }
+      if (lo && !lo.classList.contains("show")) { void 0; }
       return;
     }
     if (window.__v203authed) {
@@ -969,7 +970,7 @@ window.__v152 = "1"; /* v154 retires v152 */
     statusEl.textContent = "Neural sanctuary ready";
     statusP.classList.add("ready");
     logo.classList.add("flare");
-    setTimeout(exitLoading, 1300);
+    void 0;
   }
   /* v209: native splash driver retired — the conductor owns the bar */
   function exitLoading() {
@@ -2519,5 +2520,4 @@ window.__v152 = "1"; /* v154 retires v152 */
       var rx = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
       var cxy = src.x.toFixed(2) + " " + src.y.toFixed(2);
       out += '<ellipse cx="' + src.x.toFixed(2) + '" cy="' + src.y.toFixed(2) + '" rx="' + rx.toFixed(2)
-        + '" ry="' + (rx * .4).toFixed(2) + '" transform="rotate(' + ang.toFixed(1) + ' ' + cxy
-        + ')" fill="none" stroke="rgba(130
+        + '" ry="' + (rx * .4).toFixed(2) + '" transform="rotate(' + ang
