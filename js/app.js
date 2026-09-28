@@ -3516,7 +3516,7 @@ window.__v152 = "1"; /* v154 retires v152 */
 
   var PLANS = [
     { id:"free",  name:"Free",  mo:0,  yr:0,   tag:"Meet Alfred",
-      feats:["Chat with Alfred — 15 messages a day","3 image creations a day","3 standard minds behind him","Core modules to start with"], cta:"Current plan" },
+      feats:["Chat with Alfred — 60 messages a day","3 image creations a day","3 standard minds behind him","Core modules to start with"], cta:"Current plan" },
     { id:"pro",   name:"Pro",   mo:12, yr:120, tag:"Alfred at full speed", pop:1,
       feats:["Unlimited chats with Alfred","150 image creations a day","6 latest-generation minds behind him","Every module unlocked · priority lanes","Zero ads — pure Alfred"], cta:"Go Pro" },
     { id:"ultra", name:"Ultra", mo:30, yr:300, tag:"Alfred, unbound",
@@ -9939,7 +9939,7 @@ try { /* v163proc: native thinking card */
     });
   }, 1500);
   /* C) modules: tier titles from subtitle keywords (Free/Pro/Ultra where they belong) */
-  var MAP = [["standard minds", "Free"], ["latest-generation", "Pro"], ["apex minds", "Ultra"]];
+  var MAP = []; /* superseded by v255 deterministic fix */
   setInterval(function () {
     if (document.hidden) return;
     var m = document.getElementById("view-modules"); if (!m || m.offsetParent === null) return;
@@ -9983,4 +9983,93 @@ try { /* v163proc: native thinking card */
       });
     });
   }, 2500);
+})();
+
+/* ===== v255: deterministic module tiers, sidebar scroll, sibling icons, shell sweep ===== */
+(function () {
+  if (window.__v255) return; window.__v255 = "1";
+  /* A) module tier titles — climb from subtitle to the SMALLEST container holding a tier leaf */
+  var MAP = [["standard minds", "Free"], ["latest-generation", "Pro"], ["apex minds", "Ultra"]];
+  function tierLeaf(root) {
+    var L = [].slice.call(root.querySelectorAll("*"));
+    for (var i = 0; i < L.length; i++) {
+      if (!L[i].children.length) {
+        var t = (L[i].textContent || "").trim();
+        if (t === "Free" || t === "Pro" || t === "Ultra") return L[i];
+      }
+    }
+    return null;
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var m = document.getElementById("view-modules"); if (!m || m.offsetParent === null) return;
+    [].slice.call(m.querySelectorAll("[data-v254t]")).forEach(function (e) { e.removeAttribute("data-v254t"); });
+    MAP.forEach(function (pair) {
+      var subs = [].slice.call(m.querySelectorAll("*")).filter(function (e) {
+        var t = e.textContent || "";
+        return t.indexOf(pair[0]) > -1 && t.length < 300;
+      });
+      if (!subs.length) return;
+      subs.sort(function (a, b) { return (a.textContent || "").length - (b.textContent || "").length; });
+      var n = subs[0];
+      while (n && n !== m) {
+        var tl = tierLeaf(n);
+        if (tl) { if (tl.textContent !== pair[1]) tl.textContent = pair[1]; break; }
+        n = n.parentElement;
+      }
+    });
+  }, 1700);
+  /* B) sidebar: list scrolls internally, Admin always reachable; New Chat sibling icons die */
+  setInterval(function () {
+    if (document.hidden) return;
+    var sc = document.querySelector("aside,nav,[class*='sidebar'],[class*='drawer']") || document;
+    var set = false;
+    [].slice.call(sc.querySelectorAll("*")).forEach(function (e) {
+      if (set || e.children.length) return;
+      if ((e.textContent || "").trim() !== "Settings") return;
+      var n = e.parentElement;
+      while (n && n !== sc) {
+        var t = n.textContent || "";
+        if (t.indexOf("Explore") > -1 && t.indexOf("History") > -1) {
+          if (!n.getAttribute("data-v255sc")) {
+            n.setAttribute("data-v255sc", "1");
+            n.style.cssText += ";overflow-y:auto;min-height:0;flex:1 1 auto;padding-bottom:120px;scrollbar-width:none";
+            n.style.setProperty("-webkit-overflow-scrolling", "touch");
+          }
+          set = true; return;
+        }
+        n = n.parentElement;
+      }
+    });
+    [].slice.call(sc.querySelectorAll("*")).forEach(function (e) {
+      if (e.children.length || (e.textContent || "").trim() !== "New Chat") return;
+      var card = e;
+      while (card && card !== sc && (card.textContent || "").indexOf("Start a new conversation") === -1) card = card.parentElement;
+      if (!card || card === sc) return;
+      var zones = [card];
+      if (card.parentElement && card.parentElement !== sc && (card.parentElement.textContent || "").indexOf("ALFRED") === -1) zones.push(card.parentElement);
+      zones.forEach(function (z) {
+        [].slice.call(z.querySelectorAll("img,svg")).forEach(function (im) { im.style.display = "none"; });
+      });
+    });
+  }, 1600);
+  /* C) chat: empty avatar shells die (typing dots + composer protected) */
+  setInterval(function () {
+    if (document.hidden) return;
+    var c = document.getElementById("view-chat"); if (!c || c.offsetParent === null) return;
+    [].slice.call(c.querySelectorAll("*")).forEach(function (e) {
+      if (e.getAttribute("data-v255sh") || e.closest("#composer")) return;
+      if (e.querySelector && e.querySelector(".v129-dots, i, button, svg, img, video")) return;
+      var r = parseFloat(getComputedStyle(e).borderRadius) || 0;
+      if (r >= 14 && e.offsetHeight >= 24 && e.offsetHeight <= 90 && !(e.textContent || "").trim()) {
+        e.setAttribute("data-v255sh", "1"); e.style.display = "none";
+      }
+    });
+  }, 1500);
+  /* D) admin: showcase editor belongs under the tab row */
+  setInterval(function () {
+    if (document.hidden) return;
+    var ed = document.getElementById("v251b-editor"), tabs = document.querySelector("#view-admin .v254tabs");
+    if (ed && tabs && ed.nextElementSibling !== tabs && !tabs.contains(ed)) tabs.parentNode.insertBefore(ed, tabs.nextSibling);
+  }, 2600);
 })();
