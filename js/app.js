@@ -9685,3 +9685,37 @@ try { /* v163proc: native thinking card */
   setInterval(function () { try { sweepCode(); sweepMsgs(); } catch (e) {} }, 1500);
   document.addEventListener("DOMContentLoaded", function () { sweepCode(); sweepMsgs(); });
 })();
+
+/* ===== v248b: admin metrics strip (schema-adaptive backend) ===== */
+(function () {
+  if (window.__v248b) return; window.__v248b = "1";
+  var tick = 0;
+  function fmt(n) { return (n === null || n === undefined) ? "—" : (n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n)); }
+  function card(label, val) {
+    return '<div style="flex:1;min-width:130px;background:rgba(255,255,255,.05);border:1px solid rgba(159,216,255,.18);border-radius:14px;padding:12px 14px">' +
+      '<div style="font:11px system-ui;color:#8fb8d8;text-transform:uppercase;letter-spacing:.08em">' + label + '</div>' +
+      '<div style="font:600 20px system-ui;color:#e8f2ff;margin-top:4px">' + val + '</div></div>';
+  }
+  function load(strip) {
+    fetch("/api/admin/metrics", { credentials: "include" }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || !j.ok) { strip.innerHTML = '<div style="font:12px system-ui;color:#ff8f8f">metrics: ' + ((j && j.error) || "unavailable") + '</div>'; return; }
+      var m = j.metrics || {}, mix = (m.model_mix && m.model_mix[0]) ? m.model_mix[0].model + " · " + m.model_mix[0].n : "—";
+      strip.innerHTML = card("Messages 24h", fmt(m.msgs_24h)) + card("Tokens 24h", fmt(m.tokens_24h)) +
+        card("Chats total", fmt(m.chats_total)) + card("Live sessions", fmt(m.active_sessions)) + card("Top model", mix);
+    }).catch(function () {});
+  }
+  setInterval(function () {
+    var v = document.getElementById("view-admin");
+    if (!v || v.offsetParent === null) return;
+    var strip = document.getElementById("v248b-strip");
+    if (!strip) {
+      strip = document.createElement("div");
+      strip.id = "v248b-strip";
+      strip.style.cssText = "display:flex;gap:10px;flex-wrap:wrap;margin:10px 0";
+      v.insertBefore(strip, v.firstChild);
+      load(strip); tick = 0;
+      return;
+    }
+    if (++tick >= 15) { tick = 0; load(strip); }
+  }, 2000);
+})();

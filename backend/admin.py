@@ -184,6 +184,36 @@ def maybe_handle(handler, method):
         db.commit(); db.close()
         return _send(handler, 200, {"ok": True, "revoked": n})
 
+    if method == "GET" and p == "/api/admin/metrics":
+        import time as _tm
+        db = sqlite3.connect(DBP)
+        def cols(t): return [c[1] for c in db.execute("PRAGMA table_info(%s)" % t)]
+        def pick(t, cands):
+            cs = cols(t)
+            for c in cands:
+                if c in cs: return c
+            return None
+        now = _tm.time(); out = {"msgs_24h": None, "tokens_24h": None, "model_mix": []}
+        mts = pick("messages", ["ts", "created_at", "timestamp", "time", "created"])
+        if mts:
+            samp = db.execute("SELECT %s FROM messages LIMIT 1" % mts).fetchone()
+            iso = samp and isinstance(samp[0], str)
+            cond = ("%s > datetime('now','-1 day')" % mts) if iso else ("%s > ?" % mts)
+            args = () if iso else (now - 86400,)
+            out["msgs_24h"] = db.execute("SELECT COUNT(*) FROM messages WHERE " + cond, args).fetchone()[0]
+            mm = pick("messages", ["model", "model_id", "engine"])
+            if mm:
+                rows = db.execute("SELECT %s, COUNT(*) c FROM messages WHERE %s GROUP BY %s ORDER BY c DESC LIMIT 5" % (mm, cond, mm), args).fetchall()
+                out["model_mix"] = [{"model": str(r[0])[:24], "n": r[1]} for r in rows if r[0]]
+        tk, uts = pick("usage", ["tokens", "total_tokens", "tok", "prompt_tokens", "completion_tokens"]), pick("usage", ["ts", "created_at", "timestamp", "time", "created"])
+        if tk and uts:
+            out["tokens_24h"] = db.execute("SELECT COALESCE(SUM(%s),0) FROM usage WHERE %s > ?" % (tk, uts), (now - 86400,)).fetchone()[0]
+        out["chats_total"] = db.execute("SELECT COUNT(*) FROM chats").fetchone()[0]
+        if "expires" in cols("sessions"):
+            out["active_sessions"] = db.execute("SELECT COUNT(*) FROM sessions WHERE expires > ?", (now,)).fetchone()[0]
+        db.close()
+        return _send(handler, 200, {"ok": True, "metrics": out})
+
     if method == "GET" and p == "/api/admin/providers":
         return _send(handler, 200, _prov.public())
 
