@@ -496,17 +496,17 @@
     tabs(t);
     var b = e.querySelector("#vadm-b");
     b.innerHTML = skel();
-    if (t === "overview") return api("/api/admin/stats").then(function (j) {
+    if (t === "overview") return api("/api/admin/metrics").then(function (m) { window.__v296m = (m && m.metrics) || {}; }).catch(function () { window.__v296m = {}; }).then(function () { return api("/api/admin/overview"); }).then(function (j) {
       if (!j.ok) { b.innerHTML = '<div class="sec">Admin only — sign in as the admin account.</div>'; return; }
       var g = j.engine || {};
       b.innerHTML = '<div class="kg">'
-        + "<div class='kt'><span>Users</span><b>" + (j.users_total != null ? j.users_total : "—") + "</b></div>"
-        + "<div class='kt'><span>Msgs 24h</span><b>" + (j.msgs_24h != null ? j.msgs_24h : "—") + "</b></div>"
-        + "<div class='kt'><span>Chats</span><b>" + (j.chats_total != null ? j.chats_total : "—") + "</b></div>"
-        + "<div class='kt'><span>Live sessions</span><b>" + (j.active_sessions != null ? j.active_sessions : "—") + "</b></div>"
-        + "<div class='kt'><span>Failed 24h</span><b class='" + ((j.failed_24h || 0) > 0 ? "bad" : "ok") + "'>" + (j.failed_24h != null ? j.failed_24h : "—") + "</b></div>"
+        + "<div class='kt'><span>Users</span><b>" + ((j.users || []).length) + "</b></div>"
+        + "<div class='kt'><span>Msgs 24h</span><b>" + (window.__v296m.msgs_24h != null ? window.__v296m.msgs_24h : "—") + "</b></div>"
+        + "<div class='kt'><span>Chats</span><b>" + (window.__v296m.chats_total != null ? window.__v296m.chats_total : "—") + "</b></div>"
+        + "<div class='kt'><span>Live sessions</span><b>" + (window.__v296m.active_sessions != null ? window.__v296m.active_sessions : "—") + "</b></div>"
+        + "<div class='kt'><span>Failed 24h</span><b class='" + ((window.__v296m.failed_24h || 0) > 0 ? "bad" : "ok") + "'>" + (window.__v296m.failed_24h != null ? window.__v296m.failed_24h : "—") + "</b></div>"
         + "<div class='kt'><span>Engine</span><b class='" + (g.ok ? "ok" : "bad") + "'>" + (g.ok ? "LIVE" : "DOWN") + "</b></div>"
-        + "</div><div class='sec'><h4>Plans</h4><div class='st'>" + JSON.stringify(j.plans || {}) + "</div></div>";
+        + "</div><div class='sec'><h4>Plans</h4><div class='st'>" + JSON.stringify(j.byPlan || {}) + "</div></div>";
     });
     if (t === "users") return api("/api/admin/overview").then(function (j) {
       if (!j.ok) { b.innerHTML = '<div class="sec">Admin only.</div>'; return; }
