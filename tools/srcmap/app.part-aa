@@ -81,7 +81,7 @@ try { window.__v155b = "1"; } catch (e) {}
       if (seq !== routeSeq) { clearInterval(poll); return; }
       if (barDone || tooLong) {
         clearInterval(poll);
-        setTimeout(land, 2000);              /* v210: hold at 100% for 2 seconds */
+        setTimeout(land, 400);              /* v210: hold at 100% for 2 seconds */
       }
     }, 60);
   }
@@ -104,7 +104,7 @@ try { window.__v155b = "1"; } catch (e) {}
       var lf = document.getElementById("fill"), lp = document.getElementById("pct");
       if (lf && lf !== fill) { fill = lf; try { fill.style.transition = "width 90ms linear"; } catch (e) {} }
       if (lp && lp !== pct) pct = lp;
-      var t = Math.min(1, (Date.now() - T0) / 1400);
+      var t = Math.min(1, (Date.now() - T0) / 1000);
       var v = t < 0.85 ? (t / 0.85) * 92 : 92 + ((t - 0.85) / 0.15) * 8;
       paint(v);
       if (t >= 1) {
@@ -2515,4 +2515,4 @@ window.__v152 = "1"; /* v154 retires v152 */
   setInterval(draw, 1400); draw();
 
   /* retire the old straight-line painter */
-  view.querySelectorAll('[class*="const-line"],[class*="cons
+  view.querySelectorAll('[class*="const-line"],[class*="const

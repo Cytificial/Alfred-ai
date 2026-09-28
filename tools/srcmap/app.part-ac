@@ -1,4 +1,4 @@
-"url(#'+id+'h)"/>'+ring
+url(#'+id+'h)"/>'+ring
       +'<g filter="url(#'+id+'f)">'+leg("M24 9.5 13 38.5")+leg("M24 9.5 35 38.5")
       +'<path d="M17.6 28.6h12.8" stroke="url(#'+id+')" stroke-width="3" stroke-linecap="round"/></g>'
       +'<circle cx="24" cy="9.5" r="2.1" fill="'+c.core+'"><animate attributeName="opacity" values="1;.45;1" dur="'+c.beat+'" repeatCount="indefinite"/></circle>'
@@ -2613,4 +2613,4 @@ try { /* v163proc: native thinking card */
 /* ===== v158c: gold credits pill (always visible) + Ultra theme sync ===== */
 (function () {
   if (window.__v158c2) return; window.__v158c2 = "1";
-  function tok(){ try { return localStorage.getItem("alfred_token") || ""
+  function tok(){ try { return localStorage.getItem("alfred_token") || "";

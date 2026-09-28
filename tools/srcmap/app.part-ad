@@ -1,4 +1,4 @@
-; } catch(e){ return ""; } }
+ } catch(e){ return ""; } }
   var old = document.getElementById("v157cr"); if (old) old.style.display = "none";
   var pill = document.getElementById("v158cr");
   if (!pill) {
@@ -2351,12 +2351,7 @@
       t.parentNode.insertBefore(w, t); w.appendChild(t);
     });
   }, 2500);
-  setTimeout(function () {
-    [].slice.call(document.querySelectorAll('[id*="splash"],[class*="splash"]')).forEach(function (e) {
-      var cs = getComputedStyle(e);
-      if (cs.position === "fixed" || cs.position === "absolute") e.style.display = "none";
-    });
-  }, 3500);
+  ;
 })();
 
 /* ===== v251b: showcase — dashboard editor + modules render (display-only) ===== */
@@ -2474,4 +2469,12 @@
     var b = null, len = 60;
     [].slice.call(el.children).forEach(function (c) {
       if (c.querySelector && c.querySelector(".msg-av")) return;
-      var L = (c.t
+      var L = (c.textContent || "").length;
+      if (L > len && !c.querySelector("button")) { len = L; b = c; }
+    });
+    return b;
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    /* 1) New Chat card: climb UP until the card contains its subtitle */
+    var sc = scope(

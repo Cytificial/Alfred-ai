@@ -1,12 +1,4 @@
-extContent || "").length;
-      if (L > len && !c.querySelector("button")) { len = L; b = c; }
-    });
-    return b;
-  }
-  setInterval(function () {
-    if (document.hidden) return;
-    /* 1) New Chat card: climb UP until the card contains its subtitle */
-    var sc = scope();
+);
     [].slice.call(sc.querySelectorAll("*")).forEach(function (e) {
       if (e.children.length || (e.textContent || "").trim() !== "New Chat") return;
       var card = e;
@@ -1293,20 +1285,7 @@ extContent || "").length;
   ].join("");
   document.head.appendChild(st);
 
-  /* splash exit watcher */
-  var exit = setInterval(function () {
-    if (!window.__v207barFin) return;
-    clearInterval(exit);
-    setTimeout(function () {
-      var s = document.getElementById("loading");
-      if (s && s.offsetParent !== null) {
-        s.classList.add("exit");
-        setTimeout(function () {
-          if (s && [].slice.call(document.querySelectorAll(".screen.show")).length) s.classList.remove("show");
-        }, 600);
-      }
-    }, 180);
-  }, 200);
+  
 
   var QA = [
     ["Help me plan a product launch for Friday.", "Convened three angles: audience, message, risk. Verdict: launch to your waitlist first, keep the press for week two \u2014 momentum beats reach. Want the day-by-day plan?"],
@@ -1612,4 +1591,69 @@ extContent || "").length;
       d2.textContent = window.__BUILD; f.appendChild(d2); clearInterval(t3);
     }
   }, 900);
+})();
+
+/* ===== v284: register owner, screen switch, unified mark ===== */
+(function () {
+  if (window.__v284) return; window.__v284 = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    "#loading img.logo,#login .badge img,#register .badge img,header .m-av img,.model .m-av img{content:url('/assets/land-mark-320.png?v=5') !important}",
+    "#login .badge,#register .badge,#loading .logo-wrap,#loading .halo{border:0 !important;box-shadow:none !important;background:transparent !important}",
+    "#loading .halo::before,#loading .halo::after{display:none !important}",
+    "#login .badge img,#register .badge img{border-radius:50%}",
+    "#land .caps > *,#land .steps > *{transition:transform .18s ease}#land .caps > *:active,#land .steps > *:active{transform:translateY(-2px)}",
+    "#land .tiercta{width:100%}"
+  ].join("");
+  document.head.appendChild(st);
+  function swap(id) {
+    ["loading","login","register","app"].forEach(function (sid) {
+      var sc = document.getElementById(sid); if (!sc) return;
+      if (sid === id) { sc.classList.add("show"); sc.style.display = ""; }
+      else { sc.classList.remove("show"); if (sid === "loading") sc.style.display = "none"; }
+    });
+    window.scrollTo(0, 0);
+  }
+  document.addEventListener("click", function (e) {
+    var a = e.target && e.target.closest ? e.target.closest("a[data-goto]") : null;
+    if (!a) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    swap(a.getAttribute("data-goto") === "register" ? "register" : "login");
+  }, true);
+  function goReg(btn) {
+    var r = document.getElementById("register");
+    var name = (document.getElementById("reg-name") || {}).value || "";
+    var email = ((document.getElementById("reg-email") || {}).value || "").trim().toLowerCase();
+    var pw = (r.querySelector('input[type="password"]') || {}).value || "";
+    var chk = r.querySelector('input[type="checkbox"]');
+    var alt = r.querySelector(".alt");
+    function bad(m) {
+      var d = document.getElementById("v284err");
+      if (!d) { d = document.createElement("p"); d.id = "v284err"; d.style.cssText = "color:#ff9db1;font:12.5px system-ui;margin:8px 0 0"; alt && alt.parentNode.insertBefore(d, alt); }
+      d.textContent = m;
+    }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return bad("Enter a valid email.");
+    if (pw.length < 6) return bad("Password needs 6+ characters.");
+    if (chk && !chk.checked) return bad("Please accept the terms.");
+    if (btn) { btn.disabled = true; btn.style.opacity = ".6"; }
+    fetch("/api/auth/register", { method:"POST", credentials:"include", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ name: name.trim() || email.split("@")[0], email: email, password: pw }) })
+      .then(function (x) { return x.json().catch(function () { return {}; }); })
+      .then(function (j) {
+        if (!j.ok) throw new Error(j.error || "Registration failed.");
+        return fetch("/api/auth/login", { method:"POST", credentials:"include", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ email: email, password: pw }) }).then(function (x) { return x.json().catch(function () { return {}; }); });
+      })
+      .then(function (j) {
+        if (!j.ok) { swap("login"); throw new Error("Account created — please sign in."); }
+        location.reload();
+      })
+      .catch(function (e) { bad(e.message || "Failed."); })
+      .then(function () { if (btn) { btn.disabled = false; btn.style.opacity = ""; } });
+  }
+  document.addEventListener("submit", function (e) {
+    if (!e.target || e.target.id !== "register-form") return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    goReg(e.target.querySelector("button[type=submit]"));
+  }, true);
 })();

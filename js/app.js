@@ -81,7 +81,7 @@ try { window.__v155b = "1"; } catch (e) {}
       if (seq !== routeSeq) { clearInterval(poll); return; }
       if (barDone || tooLong) {
         clearInterval(poll);
-        setTimeout(land, 2000);              /* v210: hold at 100% for 2 seconds */
+        setTimeout(land, 400);              /* v210: hold at 100% for 2 seconds */
       }
     }, 60);
   }
@@ -104,7 +104,7 @@ try { window.__v155b = "1"; } catch (e) {}
       var lf = document.getElementById("fill"), lp = document.getElementById("pct");
       if (lf && lf !== fill) { fill = lf; try { fill.style.transition = "width 90ms linear"; } catch (e) {} }
       if (lp && lp !== pct) pct = lp;
-      var t = Math.min(1, (Date.now() - T0) / 1400);
+      var t = Math.min(1, (Date.now() - T0) / 1000);
       var v = t < 0.85 ? (t / 0.85) * 92 : 92 + ((t - 0.85) / 0.15) * 8;
       paint(v);
       if (t >= 1) {
@@ -9745,12 +9745,7 @@ try { /* v163proc: native thinking card */
       t.parentNode.insertBefore(w, t); w.appendChild(t);
     });
   }, 2500);
-  setTimeout(function () {
-    [].slice.call(document.querySelectorAll('[id*="splash"],[class*="splash"]')).forEach(function (e) {
-      var cs = getComputedStyle(e);
-      if (cs.position === "fixed" || cs.position === "absolute") e.style.display = "none";
-    });
-  }, 3500);
+  ;
 })();
 
 /* ===== v251b: showcase — dashboard editor + modules render (display-only) ===== */
@@ -11163,20 +11158,7 @@ try { /* v163proc: native thinking card */
   ].join("");
   document.head.appendChild(st);
 
-  /* splash exit watcher */
-  var exit = setInterval(function () {
-    if (!window.__v207barFin) return;
-    clearInterval(exit);
-    setTimeout(function () {
-      var s = document.getElementById("loading");
-      if (s && s.offsetParent !== null) {
-        s.classList.add("exit");
-        setTimeout(function () {
-          if (s && [].slice.call(document.querySelectorAll(".screen.show")).length) s.classList.remove("show");
-        }, 600);
-      }
-    }, 180);
-  }, 200);
+  
 
   var QA = [
     ["Help me plan a product launch for Friday.", "Convened three angles: audience, message, risk. Verdict: launch to your waitlist first, keep the press for week two \u2014 momentum beats reach. Want the day-by-day plan?"],
@@ -11482,4 +11464,69 @@ try { /* v163proc: native thinking card */
       d2.textContent = window.__BUILD; f.appendChild(d2); clearInterval(t3);
     }
   }, 900);
+})();
+
+/* ===== v284: register owner, screen switch, unified mark ===== */
+(function () {
+  if (window.__v284) return; window.__v284 = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    "#loading img.logo,#login .badge img,#register .badge img,header .m-av img,.model .m-av img{content:url('/assets/land-mark-320.png?v=5') !important}",
+    "#login .badge,#register .badge,#loading .logo-wrap,#loading .halo{border:0 !important;box-shadow:none !important;background:transparent !important}",
+    "#loading .halo::before,#loading .halo::after{display:none !important}",
+    "#login .badge img,#register .badge img{border-radius:50%}",
+    "#land .caps > *,#land .steps > *{transition:transform .18s ease}#land .caps > *:active,#land .steps > *:active{transform:translateY(-2px)}",
+    "#land .tiercta{width:100%}"
+  ].join("");
+  document.head.appendChild(st);
+  function swap(id) {
+    ["loading","login","register","app"].forEach(function (sid) {
+      var sc = document.getElementById(sid); if (!sc) return;
+      if (sid === id) { sc.classList.add("show"); sc.style.display = ""; }
+      else { sc.classList.remove("show"); if (sid === "loading") sc.style.display = "none"; }
+    });
+    window.scrollTo(0, 0);
+  }
+  document.addEventListener("click", function (e) {
+    var a = e.target && e.target.closest ? e.target.closest("a[data-goto]") : null;
+    if (!a) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    swap(a.getAttribute("data-goto") === "register" ? "register" : "login");
+  }, true);
+  function goReg(btn) {
+    var r = document.getElementById("register");
+    var name = (document.getElementById("reg-name") || {}).value || "";
+    var email = ((document.getElementById("reg-email") || {}).value || "").trim().toLowerCase();
+    var pw = (r.querySelector('input[type="password"]') || {}).value || "";
+    var chk = r.querySelector('input[type="checkbox"]');
+    var alt = r.querySelector(".alt");
+    function bad(m) {
+      var d = document.getElementById("v284err");
+      if (!d) { d = document.createElement("p"); d.id = "v284err"; d.style.cssText = "color:#ff9db1;font:12.5px system-ui;margin:8px 0 0"; alt && alt.parentNode.insertBefore(d, alt); }
+      d.textContent = m;
+    }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return bad("Enter a valid email.");
+    if (pw.length < 6) return bad("Password needs 6+ characters.");
+    if (chk && !chk.checked) return bad("Please accept the terms.");
+    if (btn) { btn.disabled = true; btn.style.opacity = ".6"; }
+    fetch("/api/auth/register", { method:"POST", credentials:"include", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ name: name.trim() || email.split("@")[0], email: email, password: pw }) })
+      .then(function (x) { return x.json().catch(function () { return {}; }); })
+      .then(function (j) {
+        if (!j.ok) throw new Error(j.error || "Registration failed.");
+        return fetch("/api/auth/login", { method:"POST", credentials:"include", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ email: email, password: pw }) }).then(function (x) { return x.json().catch(function () { return {}; }); });
+      })
+      .then(function (j) {
+        if (!j.ok) { swap("login"); throw new Error("Account created — please sign in."); }
+        location.reload();
+      })
+      .catch(function (e) { bad(e.message || "Failed."); })
+      .then(function () { if (btn) { btn.disabled = false; btn.style.opacity = ""; } });
+  }
+  document.addEventListener("submit", function (e) {
+    if (!e.target || e.target.id !== "register-form") return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    goReg(e.target.querySelector("button[type=submit]"));
+  }, true);
 })();
