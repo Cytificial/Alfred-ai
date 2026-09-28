@@ -239,6 +239,50 @@ def maybe_handle(handler, method):
         _t = _p + ".tmp"; open(_t, "w").write(_j.dumps({"ok": True, "items": items})); _os.replace(_t, _p)
         return _send(handler, 200, {"ok": True, "count": len(items)})
 
+    if method == "GET" and p == "/api/admin/lab":
+        import json as _j, os as _os
+        _p = _os.path.normpath(_os.path.join(_os.path.dirname(DBP), "catalog.json"))
+        try: cat = _j.load(open(_p))
+        except Exception: cat = {"items": []}
+        return _send(handler, 200, {"ok": True, "items": cat.get("items", [])[:200]})
+
+    if method == "POST" and p == "/api/admin/lab/save":
+        import json as _j, os as _os
+        b = _body(handler); items = []
+        for it in (b.get("items") or [])[:200]:
+            if not isinstance(it, dict): continue
+            mid = str(it.get("id", "")).strip()[:60]
+            if not mid: continue
+            items.append({"id": mid, "name": str(it.get("name", ""))[:40].strip() or mid,
+                          "provider": str(it.get("provider", "google"))[:12],
+                          "tier": str(it.get("tier", "Pro")).capitalize() if str(it.get("tier", "")).lower() in ("free", "pro", "ultra") else "Pro",
+                          "status": str(it.get("status", "testing"))[:10]})
+        _p = _os.path.normpath(_os.path.join(_os.path.dirname(DBP), "catalog.json"))
+        _t = _p + ".tmp"; open(_t, "w").write(_j.dumps({"items": items})); _os.replace(_t, _p)
+        return _send(handler, 200, {"ok": True, "count": len(items)})
+
+    if method == "POST" and p == "/api/admin/lab/test":
+        import json as _j, time as _t, urllib.request as _u, urllib.parse as _up
+        b = _body(handler); mid = str(b.get("id", "")); prov = str(b.get("provider", "google"))
+        try:
+            if prov == "openrouter":
+                k = _prov._keys().get("openrouter", "")
+                if not k: return _send(handler, 200, {"ok": False, "error": "no openrouter key"})
+                rq = _u.Request("https://openrouter.ai/api/v1/chat/completions",
+                    data=_j.dumps({"model": mid, "messages": [{"role": "user", "content": "Reply OK"}], "max_tokens": 8}).encode(),
+                    headers={"Content-Type": "application/json", "Authorization": "Bearer " + k}, method="POST")
+            else:
+                cfg = _cfg(); k = (cfg.get("gemini_key") or "").strip()
+                if not k: return _send(handler, 200, {"ok": False, "error": "no google key"})
+                rq = _u.Request("https://generativelanguage.googleapis.com/v1beta/models/" + _up.quote(mid, safe="") + ":generateContent?key=" + _up.quote(k),
+                    data=_j.dumps({"contents": [{"role": "user", "parts": [{"text": "Reply OK"}]}], "generationConfig": {"maxOutputTokens": 8}}).encode(),
+                    headers={"Content-Type": "application/json"}, method="POST")
+            t0 = _t.time()
+            with _u.urlopen(rq, timeout=30) as r: _j.loads(r.read().decode())
+            return _send(handler, 200, {"ok": True, "ms": int((_t.time() - t0) * 1000)})
+        except Exception as e:
+            return _send(handler, 200, {"ok": False, "error": str(e)[:120]})
+
     if method == "GET" and p == "/api/admin/providers":
         return _send(handler, 200, _prov.public())
 

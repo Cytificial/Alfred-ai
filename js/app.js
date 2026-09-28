@@ -12160,3 +12160,59 @@ try { /* v163proc: native thinking card */
     }, 250);
   }, true);
 })();
+
+/* ===== v293: Model Lab — add/test/remove, admin-only ===== */
+(function () {
+  if (window.__v293) return; window.__v293 = "1";
+  function api(p, o) { return fetch(p, Object.assign({ credentials: "include" }, o || {})).then(function (r) { return r.json().catch(function () { return {}; }); }); }
+  var items = null;
+  function card(v) {
+    var c = document.getElementById("v293lab"); if (c) return c;
+    c = document.createElement("div"); c.id = "v293lab";
+    c.style.cssText = "background:rgba(255,255,255,.05);border:1px solid rgba(159,216,255,.18);border-radius:14px;padding:14px;margin:10px 0;font:12px system-ui;color:#e8f2ff";
+    c.innerHTML = '<b style="font-size:13px">Model Lab</b> <span style="color:#8fb8d8">— world catalog: add, test, remove</span>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0">'
+      + '<input id="v293id" placeholder="model id (e.g. moonshotai/kimi-k2:free)" style="flex:1;min-width:150px;background:rgba(0,0,0,.3);color:#e8f2ff;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:7px">'
+      + '<select id="v293p" style="background:rgba(0,0,0,.3);color:#e8f2ff;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:7px"><option value="google">google</option><option value="openrouter">openrouter</option></select>'
+      + '<select id="v293t" style="background:rgba(0,0,0,.3);color:#e8f2ff;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:7px"><option>Free</option><option selected>Pro</option><option>Ultra</option></select>'
+      + '<button id="v293add" style="background:#2e7fd6;color:#fff;border:0;border-radius:8px;padding:7px 14px;cursor:pointer">Add</button></div>'
+      + '<div id="v293rows"></div><div id="v293st" style="color:#8fb8d8;margin-top:6px;min-height:16px"></div>';
+    v.insertBefore(c, v.firstChild);
+    c.querySelector("#v293add").onclick = function () {
+      var id = c.querySelector("#v293id").value.trim(); if (!id) return;
+      items = items || [];
+      items.unshift({ id: id, name: id, provider: c.querySelector("#v293p").value, tier: c.querySelector("#v293t").value, status: "testing" });
+      c.querySelector("#v293id").value = ""; render();
+    };
+    render();
+    return c;
+  }
+  function render() {
+    var rows = document.getElementById("v293rows"); if (!rows) return;
+    rows.innerHTML = (items || []).map(function (m, i) {
+      return '<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.07)">'
+        + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + m.id + ' · ' + m.provider + ' · ' + m.tier + '</span>'
+        + '<span data-st="' + i + '" style="color:#8fb8d8;min-width:70px">' + (m.status || "") + '</span>'
+        + '<button data-t="' + i + '" style="background:transparent;color:#5fe8b0;border:1px solid rgba(95,232,176,.4);border-radius:8px;padding:4px 10px;cursor:pointer">test</button>'
+        + '<button data-x="' + i + '" style="background:transparent;color:#ff6b6b;border:1px solid rgba(255,107,107,.4);border-radius:8px;padding:4px 10px;cursor:pointer">x</button></div>';
+    }).join("") || '<div style="color:#8fb8d8">Empty — add your first model above.</div>';
+    [].slice.call(rows.querySelectorAll("[data-t]")).forEach(function (b) {
+      b.onclick = function () {
+        var m = items[+b.getAttribute("data-t")], s = rows.querySelector('[data-st="' + b.getAttribute("data-t") + '"]');
+        s.textContent = "testing…";
+        api("/api/admin/lab/test", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: m.id, provider: m.provider }) })
+          .then(function (j) { s.textContent = j.ok ? "OK " + j.ms + "ms" : "FAIL"; s.style.color = j.ok ? "#5fe8b0" : "#ff6b6b"; });
+      };
+    });
+    [].slice.call(rows.querySelectorAll("[data-x]")).forEach(function (b) {
+      b.onclick = function () { items.splice(+b.getAttribute("data-x"), 1); render(); };
+    });
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-admin");
+    if (!v || v.offsetParent === null) return;
+    card(v);
+    if (items === null) api("/api/admin/lab").then(function (j) { items = (j && j.items) || []; render(); });
+  }, 1500);
+})();
