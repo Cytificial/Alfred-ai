@@ -105,7 +105,7 @@ def persona(name):
 
 def _tier_persona(user, plan):
     """v272: the level you pay for is the mind you feel."""
-    base = _tier_persona(user, plan)
+    base = persona(user.get("name"))
     if plan == "Ultra":
         base += ("\nULTRA LEVEL - THE COUNCIL: Alfred convenes his Deep-think Council. "
                  "Answer with depth: weigh angles and trade-offs, land on a confident conclusion. "
