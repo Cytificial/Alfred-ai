@@ -1,4 +1,5 @@
-   + '<path d="'+d+'" stroke="url(#'+id+')" stroke-width="4.5" stroke-linecap="round" fill="none"/>'
+ne"/>'
+           + '<path d="'+d+'" stroke="url(#'+id+')" stroke-width="4.5" stroke-linecap="round" fill="none"/>'
            + '<path d="'+d+'" stroke="'+c.core+'" stroke-width="1.1" stroke-linecap="round" opacity=".45" fill="none"/>';
     }
     return '<svg viewBox="0 0 48 48" class="alfmark104" aria-hidden="true">'
@@ -2599,4 +2600,4 @@ try { /* v163proc: native thinking card */
     return of.apply(this, arguments).then(function (res) {
       res.clone().json().then(function (j) {
         if (j && j.ok === false && j.error) {
-          var b = null, list = document.querySelectorAll(".msg.ai .bubble");
+          var b = null, list = document.querySelectorAll(".ms

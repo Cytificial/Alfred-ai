@@ -1,4 +1,4 @@
-/* v288flags */try{['v269','v270','v276s','v277','v278','v280','v281','v284','v285b'].forEach(function(k){try{window['__'+k]='1';}catch(e){}});}catch(e){}
+/* v288flags */try{['v269','v270','v273b','v275','v276s','v277','v278','v280','v281','v284','v285b'].forEach(function(k){try{window['__'+k]='1';}catch(e){}});}catch(e){}
 /* v285: unauth route — loading -> landing (no login flash) */
 window.__v285route = function () {
   var tries = 0;
@@ -11511,7 +11511,7 @@ try { /* v163proc: native thinking card */
     var a = e.target && e.target.closest ? e.target.closest("a[data-goto]") : null;
     if (!a) return;
     e.preventDefault(); e.stopImmediatePropagation();
-    swap(a.getAttribute("data-goto") === "register" ? "register" : "login");
+    var L0=document.getElementById("land"); if(L0) L0.style.display="none"; swap(a.getAttribute("data-goto") === "register" ? "register" : "login");
   }, true);
   function goReg(btn) {
     var r = document.getElementById("register");
@@ -11617,7 +11617,7 @@ try { /* v163proc: native thinking card */
       var a = e.target && e.target.closest ? e.target.closest("a[data-goto]") : null;
       if (!a) return;
       e.preventDefault(); e.stopImmediatePropagation();
-      swap(a.getAttribute("data-goto") === "register" ? "register" : "login");
+      var L0=document.getElementById("land"); if(L0) L0.style.display="none"; swap(a.getAttribute("data-goto") === "register" ? "register" : "login");
     }, true);
     function goReg(btn) {
       var r = document.getElementById("register"); if (!r) return;
@@ -11725,7 +11725,7 @@ try { /* v163proc: native thinking card */
   }
   document.addEventListener("click", function (e) {
     var a = e.target && e.target.closest ? e.target.closest("a[data-goto]") : null;
-    if (a) { e.preventDefault(); e.stopImmediatePropagation(); swap(a.getAttribute("data-goto") === "register" ? "register" : "login"); return; }
+    if (a) { e.preventDefault(); e.stopImmediatePropagation(); var L0=document.getElementById("land"); if(L0) L0.style.display="none"; swap(a.getAttribute("data-goto") === "register" ? "register" : "login"); return; }
     var t = e.target && e.target.closest ? e.target.closest("#land button, #land a") : null;
     if (!t) return;
     var txt = (t.textContent || "").trim().toLowerCase();
@@ -11950,4 +11950,165 @@ try { /* v163proc: native thinking card */
   function tryBuild() { var L = document.getElementById("land"); if (L && L.offsetParent !== null) build(); }
   build();
   setInterval(function () { if (document.hidden) return; var L = document.getElementById("land"); if (L && L.offsetParent !== null && !L.getAttribute("data-v288")) build(); }, 1200);
+})();
+
+/* ===== v289: landing 2.0 — own scroller, starfield, aurora, shimmer, progress ===== */
+(function () {
+  if (window.__v289) return; window.__v289 = "1";
+  var RM = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var st = document.createElement("style");
+  st.textContent = [
+    "#land{position:fixed;inset:0;height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;z-index:40;background:#080D17}",
+    "#land .vnav{flex-wrap:nowrap}",
+    "#land .vnav .sin{white-space:nowrap;flex-shrink:0}",
+    "@media (max-width:420px){#land .vnav .lk{display:none}#land .vnav b{font-size:12.5px}#land .vnav{padding:12px 16px}}",
+    "#land .vprog{position:sticky;top:0;height:3px;z-index:12;background:transparent;margin:0}",
+    "#land .vprog i{display:block;height:100%;width:0;background:linear-gradient(90deg,#4fc3ff,#66CCFF)}",
+    "#land .vhero{overflow:hidden}",
+    "#land .vstars{position:absolute;inset:0;pointer-events:none;z-index:1}",
+    "#land .vorb{position:absolute;border-radius:50%;filter:blur(70px);opacity:.33;pointer-events:none;z-index:0}",
+    "#land .vorb1{width:440px;height:440px;top:-90px;right:-120px;background:radial-gradient(circle,#1d6fa3,transparent 70%);animation:v289d1 21s ease-in-out infinite alternate}",
+    "#land .vorb2{width:380px;height:380px;bottom:-60px;left:-110px;background:radial-gradient(circle,#3b2f7d,transparent 70%);animation:v289d2 27s ease-in-out infinite alternate}",
+    "@keyframes v289d1{to{transform:translate(-60px,50px) scale(1.12)}}",
+    "@keyframes v289d2{to{transform:translate(70px,-40px) scale(1.08)}}",
+    "#land .vhero .vsec{z-index:2}",
+    "#land .vhero h1 em{background:linear-gradient(90deg,#4fc3ff,#9fd8ff,#4fc3ff);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:v289sh 6s linear infinite}",
+    "@keyframes v289sh{to{background-position:200% 0}}",
+    "#land .vcard,#land .vtier{transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}",
+    "#land .vcard:active,#land .vtier:active{transform:translateY(-3px);border-color:rgba(102,204,255,.35);box-shadow:0 14px 34px rgba(0,0,0,.35)}",
+    "#land .vtier{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02))}",
+    "@media (prefers-reduced-motion:reduce){#land .vorb1,#land .vorb2,#land .vhero h1 em{animation:none !important}}"
+  ].join("");
+  document.head.appendChild(st);
+
+  var A289 = "Convened three angles: audience, message, risk. Verdict: launch to your waitlist first, keep the press for week two \u2014 momentum beats reach. Want the day-by-day plan?";
+  function build() {
+    var L = document.getElementById("land");
+    if (!L || L.getAttribute("data-v289")) return;
+    L.setAttribute("data-v289", "1");
+    L.innerHTML = '<div class="vprog"><i id="v289p"></i></div>'
+      + '<nav class="vnav"><img src="/assets/land-mark-320.png?v=5" alt=""><b>ALFRED AI</b>'
+      + '<a class="lk" href="#how">How</a><a class="lk" href="#faq">FAQ</a><button class="sin" type="button">Sign in</button></nav>'
+      + '<section class="vhero hero">'
+      + '<canvas class="vstars"></canvas><div class="vorb vorb1"></div><div class="vorb vorb2"></div><div class="vbg"></div>'
+      + '<div class="vsec"><div class="vk">ALFRED AI \u00b7 PERSONAL INTELLIGENCE</div>'
+      + '<h1>One butler.<br>A <em>world of minds.</em></h1>'
+      + '<p class="vsub">Ask once. Alfred convenes the sharpest AI minds alive \u2014 and returns one answer worth acting on. No tabs. No prompt engineering. Just ask.</p>'
+      + '<div class="vcta"><button class="cta" type="button">Chat with Alfred</button><a class="ghost" href="#how">See how it works</a></div>'
+      + '<p class="vmom">Tuesday, 6:47am \u2014 you ask. The council is already thinking.</p></div></section>'
+      + '<div class="vstrip"><span><b>Online</b> now</span><span><b>Minds</b> convened</span><span><b>Worlds</b> growing</span><span><b>Answers</b> worth acting on</span></div>'
+      + '<section><div class="vsec"><div class="vk">FIG 01 \u00b7 THE PRODUCT</div>'
+      + '<div class="vdemo"><div class="vq">Help me plan a product launch for Friday.</div>'
+      + '<div class="vtag">Council convened</div><div class="va" id="v289a"></div>'
+      + '<div class="vchips"><span class="vchip">Vision</span><span class="vchip">Deep Reason</span><span class="vchip">Worlds</span><span class="vchip">Memory</span><span class="vchip">Explore</span></div></div></div></section>'
+      + '<section><div class="vsec" id="how"><div class="vk">FIG 02 \u00b7 HOW IT WORKS</div><div class="vgrid">'
+      + '<div class="vcard"><b>1 \u00b7 Ask once</b><span>Type it the way you\u2019d say it. No tricks, no templates.</span></div>'
+      + '<div class="vcard"><b>2 \u00b7 The council weighs</b><span>Alfred convenes multiple advanced minds and argues the angles.</span></div>'
+      + '<div class="vcard"><b>3 \u00b7 One answer</b><span>A single, confident reply \u2014 refined, not averaged.</span></div>'
+      + '</div></div></section>'
+      + '<section><div class="vsec"><div class="vk">FIG 03 \u00b7 WHAT HE CAN DO</div><div class="vgrid">'
+      + '<div class="vcard"><b>Vision</b><span>Show him a photo \u2014 he reads it natively.</span></div>'
+      + '<div class="vcard"><b>Deep Reason</b><span>Hard problems, weighed from every angle.</span></div>'
+      + '<div class="vcard"><b>Worlds</b><span>Every chat grows its own living galaxy.</span></div>'
+      + '<div class="vcard"><b>Memory</b><span>He keeps the thread across conversations.</span></div>'
+      + '<div class="vcard"><b>Explore</b><span>A living feed of designs, fresh daily.</span></div>'
+      + '<div class="vcard"><b>Modules</b><span>An arsenal that grows every week.</span></div>'
+      + '</div></div></section>'
+      + '<section><div class="vsec"><div class="vk">FIG 04 \u00b7 CHOOSE YOUR LEVEL</div><div class="vtiers">'
+      + '<div class="vtier"><h3>Free</h3><div class="tp">Meet your butler</div><ul><li>15 messages a day</li><li>3 image creations</li><li>3 standard minds</li><li>Core modules</li></ul><a class="gow" data-goto="login" href="#">Start free</a></div>'
+      + '<div class="vtier"><h3>Pro</h3><div class="tp">Full speed</div><ul><li>Unlimited chats</li><li>150 image creations a day</li><li>6 latest-generation minds</li><li>Every module \u00b7 priority lanes</li></ul><a class="go" data-goto="login" href="#">Go Pro</a></div>'
+      + '<div class="vtier ultra"><span class="crown">\u2605 MOST POWERFUL</span><h3>Ultra</h3><div class="tp">The full council</div><ul><li>Everything in Pro, multiplied</li><li>500 image creations a day</li><li>4 apex minds + Deep-think Council</li><li>First to every new ability</li><li>Founder badge</li></ul><a class="go" data-goto="login" href="#">Go Ultra</a></div>'
+      + '</div></div></section>'
+      + '<section><div class="vsec"><div class="vk">FIG 05 \u00b7 RECENTLY SHARPENED</div>'
+      + '<div style="border-bottom:1px solid rgba(255,255,255,.08);padding:13px 2px;display:flex;gap:18px"><span style="font:600 12px Sora;color:#66CCFF;min-width:96px">THIS WEEK</span><span style="font-size:13.5px;color:#C7D6E8">Council upgrade \u2014 answers now weighed by multiple minds</span></div>'
+      + '<div style="border-bottom:1px solid rgba(255,255,255,.08);padding:13px 2px;display:flex;gap:18px"><span style="font:600 12px Sora;color:#66CCFF;min-width:96px">LAST WEEK</span><span style="font-size:13.5px;color:#C7D6E8">Vision \u2014 Alfred reads photos natively</span></div>'
+      + '<div style="padding:13px 2px;display:flex;gap:18px"><span style="font:600 12px Sora;color:#66CCFF;min-width:96px">EARLIER</span><span style="font-size:13.5px;color:#C7D6E8">Living Explore \u2014 fresh designs every day</span></div></div></section>'
+      + '<section><div class="vsec"><p class="vman">You don\u2019t need ten AIs.<br>You need <em>one that thinks with all of them.</em></p></div></section>'
+      + '<section id="faq"><div class="vsec vfaq"><div class="vk">FIG 06 \u00b7 QUESTIONS</div>'
+      + '<details open><summary>What exactly is Alfred?</summary><p>A personal AI butler. Behind the scenes he convenes several advanced AI minds and returns one polished answer \u2014 you experience a single, consistent intelligence.</p></details>'
+      + '<details><summary>Why does he feel different?</summary><p>Hard questions get argued from multiple angles before you see a word. One answer, already refined.</p></details>'
+      + '<details><summary>Are my conversations private?</summary><p>Your chats stay yours, on your account, and sign-out is instant from Settings.</p></details>'
+      + '<details><summary>What are Levels?</summary><p>Free, Pro and Ultra change how hard Alfred thinks and how much you can create each day. The level you pick is the mind you feel.</p></details>'
+      + '<details><summary>Does Alfred get better?</summary><p>Every week. New abilities land first for Ultra, and the changelog above is the honest record.</p></details></div></section>'
+      + '<section><div class="vsec vinv"><div class="vk">FOR INVESTORS &amp; PARTNERS</div>'
+      + '<div class="vh" style="font-size:clamp(1.7rem,6vw,2.6rem)">Building a more useful kind of AI.</div>'
+      + '<p class="vsub" style="margin:14px auto 0;max-width:480px">Alfred is the consumer face of multi-mind intelligence. Talk to us.</p>'
+      + '<a href="mailto:cyberartificial1@gmail.com?subject=Alfred%20AI">cyberartificial1@gmail.com</a></div></section>'
+      + '<div class="vfoot"><img src="/assets/land-mark-320.png?v=5" alt=""><b style="letter-spacing:2px;color:#EAF3FF">ALFRED AI</b><span>\u00a9 Alfred AI \u00b7 Your Mind, Amplified \u00b7 V1</span></div>';
+    /* typing demo */
+    var t0 = null;
+    (function type(ts) {
+      var el = document.getElementById("v289a"); if (!el) return;
+      if (t0 === null) t0 = ts;
+      var n = Math.min(A289.length, Math.floor((ts - t0) / 22));
+      el.textContent = A289.slice(0, n);
+      if (n < A289.length) requestAnimationFrame(type);
+    })(performance.now());
+    /* reveals (root = the scroller) */
+    if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add("rin"); io.unobserve(en.target); } });
+      }, { root: L, threshold: .08 });
+      [].slice.call(L.querySelectorAll(".vsec, .vstrip")).forEach(function (s) { s.classList.add("rv288"); io.observe(s); });
+    }
+    /* smooth-scroll anchors inside the scroller */
+    document.addEventListener("click", function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('#land a[href^="#"]:not([data-goto])') : null;
+      if (!a) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      var t = L.querySelector(a.getAttribute("href"));
+      if (t) t.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "start" });
+    }, true);
+    /* progress + parallax (rAF-throttled, passive) */
+    var bg = L.querySelector(".vbg"), o1 = L.querySelector(".vorb1"), o2 = L.querySelector(".vorb2"),
+        pr = document.getElementById("v289p"), tick = false;
+    L.addEventListener("scroll", function () {
+      if (tick) return; tick = true;
+      requestAnimationFrame(function () {
+        tick = false;
+        var max = L.scrollHeight - L.clientHeight, y = L.scrollTop || 0;
+        if (pr) pr.style.width = (max > 0 ? (y / max) * 100 : 0) + "%";
+        if (!RM) {
+          if (bg) bg.style.transform = "translateY(" + (y * .3) + "px)";
+          if (o1) o1.style.transform = "translateY(" + (y * .12) + "px)";
+          if (o2) o2.style.transform = "translateY(" + (y * .18) + "px)";
+        }
+      });
+    }, { passive: true });
+    /* starfield: 3 depth layers, paused when hidden */
+    var cv = L.querySelector(".vstars");
+    if (cv && cv.getContext && !RM) {
+      var cx = cv.getContext("2d"), stars = [], W = 0, H = 0, run = true;
+      function size() {
+        W = cv.width = cv.offsetWidth * (window.devicePixelRatio || 1);
+        H = cv.height = cv.offsetHeight * (window.devicePixelRatio || 1);
+        stars = [];
+        for (var i = 0; i < 90; i++) stars.push({
+          x: Math.random() * W, y: Math.random() * H,
+          z: .4 + Math.random() * .6, r: (Math.random() * 1.4 + .4) * (window.devicePixelRatio || 1),
+          p: Math.random() * 6.28, s: .5 + Math.random() * 1.5
+        });
+      }
+      size(); window.addEventListener("resize", size);
+      (function draw() {
+        if (run && !document.hidden) {
+          cx.clearRect(0, 0, W, H);
+          for (var i = 0; i < stars.length; i++) {
+            var t = stars[i], a = (.25 + .55 * t.z) * (.6 + .4 * Math.sin(Date.now() / 900 * t.s + t.p));
+            cx.beginPath(); cx.arc(t.x, t.y, t.r * t.z, 0, 6.283);
+            cx.fillStyle = "rgba(200,230,255," + a.toFixed(3) + ")"; cx.fill();
+          }
+        }
+        requestAnimationFrame(draw);
+      })();
+      document.addEventListener("visibilitychange", function () { run = !document.hidden; });
+    }
+  }
+  build();
+  setInterval(function () {
+    if (document.hidden) return;
+    var L = document.getElementById("land");
+    if (L && L.offsetParent !== null && !L.getAttribute("data-v289")) build();
+    [].slice.call(document.querySelectorAll("#land .navin")).forEach(function (b) { if (b.parentNode) b.parentNode.removeChild(b); });
+  }, 1400);
 })();

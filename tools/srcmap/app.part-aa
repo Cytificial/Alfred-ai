@@ -1,4 +1,4 @@
-/* v288flags */try{['v269','v270','v276s','v277','v278','v280','v281','v284','v285b'].forEach(function(k){try{window['__'+k]='1';}catch(e){}});}catch(e){}
+/* v288flags */try{['v269','v270','v273b','v275','v276s','v277','v278','v280','v281','v284','v285b'].forEach(function(k){try{window['__'+k]='1';}catch(e){}});}catch(e){}
 /* v285: unauth route — loading -> landing (no login flash) */
 window.__v285route = function () {
   var tries = 0;
@@ -2520,4 +2520,4 @@ window.__v152 = "1"; /* v154 retires v152 */
       var rx = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
       var cxy = src.x.toFixed(2) + " " + src.y.toFixed(2);
       out += '<ellipse cx="' + src.x.toFixed(2) + '" cy="' + src.y.toFixed(2) + '" rx="' + rx.toFixed(2)
-        + '" ry="' + (rx * .4).toFixed(2) + '" transform="rotate(' + ang
+        + '" ry="' + (rx * .4).toFixed(2) + '" transform=

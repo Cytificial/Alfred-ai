@@ -1,4 +1,4 @@
-
+g.ai .bubble");
           for (var i = list.length - 1; i >= 0; i--)
             if (!(list[i].textContent || "").trim()) { b = list[i]; break; }
           if (b) { b.textContent = "⚠ " + j.error; b.style.color = "#ffd9a8";
@@ -2477,4 +2477,4 @@
       var card = e;
       while (card.parentElement && card !== sc && (card.parentElement.textContent || "").indexOf("Start a new conversation") === -1) card = card.parentElement;
       if (card === sc || !card.parentElement) return;
-      if (card.getAttribute("data-
+      if (card.getA
