@@ -1,0 +1,411 @@
+extContent || "").length;
+      if (L > len && !c.querySelector("button")) { len = L; b = c; }
+    });
+    return b;
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    /* 1) New Chat card: climb UP until the card contains its subtitle */
+    var sc = scope();
+    [].slice.call(sc.querySelectorAll("*")).forEach(function (e) {
+      if (e.children.length || (e.textContent || "").trim() !== "New Chat") return;
+      var card = e;
+      while (card && card !== sc && (card.textContent || "").indexOf("Start a new conversation") === -1) card = card.parentElement;
+      if (!card || card === sc || card.getAttribute("data-v253nc")) return;
+      card.setAttribute("data-v253nc", "1");
+      [].slice.call(card.querySelectorAll("img,svg")).forEach(function (im) { im.style.display = "none"; });
+    });
+    /* hero img sweep retired in v256 - CSS rule owns it */
+    /* 3) bubble roles: rows with .msg-av = Alfred, without = user */
+    var av = document.querySelector("#view-chat .msg-av");
+    if (!av) return;
+    var cont = av.parentElement && av.parentElement.parentElement ? av.parentElement.parentElement : null;
+    if (!cont) return;
+    [].slice.call(cont.children).forEach(function (row) {
+      if (row.getAttribute("data-v253r")) return;
+      var bubble = best(row); if (!bubble) return;
+      row.setAttribute("data-v253r", "1");
+      bubble.classList.add(row.querySelector(".msg-av") ? "v253-ai-b" : "v253-user-b");
+    });
+  }, 1400);
+})();
+
+/* ===== v254: admin tab scroll, chat hero kill, tier titles, explore variety ===== */
+(function () {
+  if (window.__v254) return; window.__v254 = "1";
+  /* A) admin tab bar -> horizontal scroll lane */
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-admin"); if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll("*")).some(function (e) {
+      var kids = [].slice.call(e.children);
+      var t = kids.map(function (k) { return (k.textContent || "").trim(); }).join("|");
+      if (kids.length >= 3 && t.indexOf("Users") > -1 && t.indexOf("Billing") > -1) {
+        if (!e.classList.contains("v254tabs")) e.classList.add("v254tabs");
+        return true;
+      }
+      return false;
+    });
+  }, 2000);
+  /* B) chat: kill background-image hero + big/broken imgs (header untouched - it's outside #view-chat) */
+  setInterval(function () {
+    if (document.hidden) return;
+    var c = document.getElementById("view-chat"); if (!c || c.offsetParent === null) return;
+    [].slice.call(c.querySelectorAll("*")).forEach(function (e) {
+      if (e.getAttribute("data-v254bg")) return;
+      var bi = (getComputedStyle(e).backgroundImage || "");
+      if ((bi.indexOf("brand-") > -1 || bi.indexOf("lambda-") > -1 || bi.indexOf("logo") > -1) && e.offsetHeight >= 140) {
+        e.style.backgroundImage = "none"; e.setAttribute("data-v254bg", "1");
+      }
+    });
+    [].slice.call(c.querySelectorAll("img")).forEach(function (im) {
+      var src = im.getAttribute("src") || "";
+      if ((src.indexOf("brand-") > -1 || src.indexOf("lambda-") > -1) && (im.offsetWidth >= 120 || im.offsetHeight >= 120)) { im.style.display = "none"; return; }
+      if (im.complete && im.naturalWidth === 0 && src && src.indexOf("data:") !== 0) im.style.display = "none";
+    });
+  }, 1500);
+  /* C) modules: tier titles from subtitle keywords (Free/Pro/Ultra where they belong) */
+  var MAP = []; /* superseded by v255 deterministic fix */
+  setInterval(function () {
+    if (document.hidden) return;
+    var m = document.getElementById("view-modules"); if (!m || m.offsetParent === null) return;
+    MAP.forEach(function (pair) {
+      [].slice.call(m.querySelectorAll("*")).forEach(function (e) {
+        var t = e.textContent || "";
+        if (t.indexOf(pair[0]) === -1 || t.length > 260) return;
+        var root = e.parentElement; if (!root) return;
+        if (root.getAttribute("data-v254t") === pair[1]) return;
+        root.setAttribute("data-v254t", pair[1]);
+        [].slice.call(root.querySelectorAll("*")).every(function (x) {
+          if (x.children.length) return true;
+          var xt = (x.textContent || "").trim();
+          if (xt === "Free" || xt === "Pro" || xt === "Ultra") { x.textContent = pair[1]; return false; }
+          return true;
+        });
+      });
+    });
+  }, 1600);
+  /* D) explore: unique seed per image per visit, self-heal on error */
+  setInterval(function () {
+    if (document.hidden) return;
+    var x = document.getElementById("view-explore"); if (!x || x.offsetParent === null) return;
+    [].slice.call(x.querySelectorAll("img")).forEach(function (im) {
+      var src = im.getAttribute("src") || "";
+      if (!src || src.indexOf("data:") === 0) return;
+      var poll = src.indexOf("pollinations") > -1;
+      if (!poll && src.indexOf("unsplash") === -1 && src.indexOf("/image") === -1) return;
+      if (im.getAttribute("data-v254s")) return;
+      im.setAttribute("data-v254s", "1");
+      var base = src.split("&seed=")[0].split("?seed=")[0];
+      function url(s) { return base + (base.indexOf("?") > -1 ? "&" : "?") + "seed=" + s + (poll ? "&nologo=true" : ""); }
+      im.src = url(String(Date.now() % 1000000) + String(Math.floor(Math.random() * 9999)));
+      im.addEventListener("error", function h() {
+        im.removeEventListener("error", h);
+        im.src = url(String(Math.floor(Math.random() * 9999999)));
+        im.addEventListener("error", function () {
+          im.style.display = "none";
+          var p = im.parentElement; if (p) p.style.background = "linear-gradient(135deg,#1b2a44,#0e1830)";
+        });
+      });
+    });
+  }, 2500);
+})();
+
+/* ===== v255: deterministic module tiers, sidebar scroll, sibling icons, shell sweep ===== */
+(function () {
+  if (window.__v255) return; window.__v255 = "1";
+  /* A) module tier titles — climb from subtitle to the SMALLEST container holding a tier leaf */
+  var MAP = [["standard minds", "Free"], ["latest-generation", "Pro"], ["apex minds", "Ultra"]];
+  function tierLeaf(root) {
+    var L = [].slice.call(root.querySelectorAll("*"));
+    for (var i = 0; i < L.length; i++) {
+      if (!L[i].children.length) {
+        var t = (L[i].textContent || "").trim();
+        if (t === "Free" || t === "Pro" || t === "Ultra") return L[i];
+      }
+    }
+    return null;
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var m = document.getElementById("view-modules"); if (!m || m.offsetParent === null) return;
+    [].slice.call(m.querySelectorAll("[data-v254t]")).forEach(function (e) { e.removeAttribute("data-v254t"); });
+    MAP.forEach(function (pair) {
+      var subs = [].slice.call(m.querySelectorAll("*")).filter(function (e) {
+        var t = e.textContent || "";
+        return t.indexOf(pair[0]) > -1 && t.length < 300;
+      });
+      if (!subs.length) return;
+      subs.sort(function (a, b) { return (a.textContent || "").length - (b.textContent || "").length; });
+      var n = subs[0];
+      while (n && n !== m) {
+        var tl = tierLeaf(n);
+        if (tl) { if (tl.textContent !== pair[1]) tl.textContent = pair[1]; break; }
+        n = n.parentElement;
+      }
+    });
+  }, 1700);
+  /* B) sidebar: list scrolls internally, Admin always reachable; New Chat sibling icons die */
+  setInterval(function () {
+    if (document.hidden) return;
+    var sc = document.querySelector("aside,nav,[class*='sidebar'],[class*='drawer']") || document;
+    var set = false;
+    [].slice.call(sc.querySelectorAll("*")).forEach(function (e) {
+      if (set || e.children.length) return;
+      if ((e.textContent || "").trim() !== "Settings") return;
+      var n = e.parentElement;
+      while (n && n !== sc) {
+        var t = n.textContent || "";
+        if (t.indexOf("Explore") > -1 && t.indexOf("History") > -1) {
+          if (!n.getAttribute("data-v255sc")) {
+            n.setAttribute("data-v255sc", "1");
+            n.style.cssText += ";overflow-y:auto;min-height:0;flex:1 1 auto;padding-bottom:120px;scrollbar-width:none";
+            n.style.setProperty("-webkit-overflow-scrolling", "touch");
+          }
+          set = true; return;
+        }
+        n = n.parentElement;
+      }
+    });
+    [].slice.call(sc.querySelectorAll("*")).forEach(function (e) {
+      if (e.children.length || (e.textContent || "").trim() !== "New Chat") return;
+      var card = e;
+      while (card && card !== sc && (card.textContent || "").indexOf("Start a new conversation") === -1) card = card.parentElement;
+      if (!card || card === sc) return;
+      var zones = [card];
+      if (card.parentElement && card.parentElement !== sc && (card.parentElement.textContent || "").indexOf("ALFRED") === -1) zones.push(card.parentElement);
+      zones.forEach(function (z) {
+        [].slice.call(z.querySelectorAll("img,svg")).forEach(function (im) { im.style.display = "none"; });
+      });
+    });
+  }, 1600);
+  /* C) chat: empty avatar shells die (typing dots + composer protected) */
+  setInterval(function () {
+    if (document.hidden) return;
+    var c = document.getElementById("view-chat"); if (!c || c.offsetParent === null) return;
+    [].slice.call(c.querySelectorAll("*")).forEach(function (e) {
+      if (e.getAttribute("data-v255sh") || e.closest("#composer")) return;
+      if (e.querySelector && e.querySelector(".v129-dots, i, button, svg, img, video")) return;
+      var r = parseFloat(getComputedStyle(e).borderRadius) || 0;
+      if (r >= 14 && e.offsetHeight >= 24 && e.offsetHeight <= 90 && !(e.textContent || "").trim()) {
+        e.setAttribute("data-v255sh", "1"); e.style.display = "none";
+      }
+    });
+  }, 1500);
+  /* D) admin: showcase editor belongs under the tab row */
+  setInterval(function () {
+    if (document.hidden) return;
+    var ed = document.getElementById("v251b-editor"), tabs = document.querySelector("#view-admin .v254tabs");
+    if (ed && tabs && ed.nextElementSibling !== tabs && !tabs.contains(ed)) tabs.parentNode.insertBefore(ed, tabs.nextSibling);
+  }, 2600);
+})();
+
+/* ===== v258: nav truth (admin lit on #/admin) + plan truth (top bar + CURRENT) ===== */
+(function () {
+  if (window.__v258) return; window.__v258 = "1";
+  var NAMES = ["Chat", "Explore", "Modules", "History", "Plans", "Settings", "Admin"];
+  function rows() {
+    var found = [];
+    [].slice.call(document.querySelectorAll("aside *, nav *, [class*='sidebar'] *, [class*='drawer'] *")).forEach(function (e) {
+      if (e.children.length > 3) return;
+      var t = (e.textContent || "").trim();
+      if (NAMES.indexOf(t) > -1) found.push(e);
+    });
+    var out = {};
+    found.forEach(function (e) {          /* keep outermost match per name */
+      var nested = found.some(function (o) { return o !== e && o.contains(e); });
+      if (!nested && !out[(e.textContent || "").trim()]) out[(e.textContent || "").trim()] = e;
+    });
+    return out;
+  }
+  function marker(rs) {
+    var chat = rs["Chat"]; if (!chat) return null;
+    var common = {};
+    NAMES.forEach(function (n) { var r = rs[n]; if (r && r !== chat) [].slice.call(r.classList).forEach(function (c) { common[c] = 1; }); });
+    var mk = [].slice.call(chat.classList).filter(function (c) { return !common[c]; });
+    return mk.length ? mk : null;
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    try {
+      var rs = rows(); if (!rs["Admin"]) return;
+      var mk = marker(rs); if (!mk) return;
+      var onAdmin = (location.hash || "").indexOf("admin") > -1;
+      if (onAdmin) {
+        NAMES.forEach(function (n) {
+          var r = rs[n]; if (!r) return;
+          mk.forEach(function (c) { r.classList[n === "Admin" ? "add" : "remove"](c); });
+        });
+        rs["Admin"].setAttribute("data-v258lit", "1");
+      } else if (rs["Admin"].getAttribute("data-v258lit")) {
+        mk.forEach(function (c) { rs["Admin"].classList.remove(c); });
+        rs["Admin"].removeAttribute("data-v258lit");
+      }
+      /* self-heal: router lost the marker after admin visit? relight current route */
+      if (!onAdmin && !NAMES.some(function (n) { return rs[n] && mk.every(function (c) { return rs[n].classList.contains(c); }); })) {
+        var seg = (location.hash || "").replace(/^#\/?/, "").split(/[?#]/)[0];
+        var name = seg.charAt(0).toUpperCase() + seg.slice(1);
+        if (rs[name]) mk.forEach(function (c) { rs[name].classList.add(c); });
+      }
+    } catch (e) {}
+  }, 1200);
+
+  function tok() {
+    try {
+      for (var k in localStorage) {
+        var v = localStorage.getItem(k) || "";
+        if (v.length >= 24 && /^[A-Za-z0-9_\-.]+$/.test(v)) return v;
+      }
+    } catch (e) {}
+    return "";
+  }
+  function syncPlan() {
+    fetch("/api/auth/me", { credentials: "include", headers: { "X-Alfred-Token": tok() } })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (j) {
+        var p = j && j.user && j.user.plan;
+        if (["Free", "Pro", "Ultra"].indexOf(p) < 0) return;
+        /* top bar tier word follows the REAL plan */
+        [].slice.call(document.querySelectorAll("header, .model, [class*='topbar'], [class*='top-bar']")).forEach(function (h) {
+          [].slice.call(h.querySelectorAll("*")).forEach(function (e) {
+            if (e.children.length) return;
+            var t = (e.textContent || "").trim();
+            if ((t === "Free" || t === "Pro" || t === "Ultra") && t !== p) e.textContent = p;
+          });
+        });
+        /* modules CURRENT badge follows the REAL plan */
+        var m = document.getElementById("view-modules");
+        if (!m || m.offsetParent === null) return;
+        [].slice.call(m.querySelectorAll("[data-v258clone]")).forEach(function (c) { if (c.getAttribute("data-v258clone") !== p) c.parentNode.removeChild(c); });
+        if (m.getAttribute("data-v258cur") === p) return;
+        var badge = null, titles = [];
+        [].slice.call(m.querySelectorAll("*")).forEach(function (e) {
+          if (e.children.length) return;
+          var t = (e.textContent || "").trim();
+          if (!badge && t.toUpperCase() === "CURRENT") badge = e;
+          else if (t === "Free" || t === "Pro" || t === "Ultra") titles.push(e);
+        });
+        titles = titles.filter(function (t) { return !titles.some(function (o) { return o !== t && o.contains(t); }); });
+        var target = titles.filter(function (t) { return t.textContent.trim() === p; })[0];
+        if (!badge || !target) return;
+        var clone = badge.cloneNode(true);
+        clone.setAttribute("data-v258clone", p);
+        badge.style.display = "none";
+        if (target.nextSibling) target.parentNode.insertBefore(clone, target.nextSibling);
+        else target.parentNode.appendChild(clone);
+        m.setAttribute("data-v258cur", p);
+      }).catch(function () {});
+  }
+  syncPlan(); setInterval(function () { if (!document.hidden) syncPlan(); }, 20000);
+})();
+
+/* ===== v259: source-truth fixes (nav = .nav-item/.active/data-view, views = .show) ===== */
+(function () {
+  if (window.__v259) return; window.__v259 = "1";
+  var adminRow = null;
+  function findRow() {
+    var rows = [].slice.call(document.querySelectorAll("#nav .nav-item, nav .nav-item, a.nav-item"));
+    adminRow = rows.filter(function (r) { return (r.textContent || "").trim() === "Admin"; })[0] || adminRow;
+    return adminRow;
+  }
+  function showView(name) {
+    [].slice.call(document.querySelectorAll(".view")).forEach(function (v) {
+      v.classList.toggle("show", v.id === "view-" + name);
+      if (v.id !== "view-" + name && v.style.display) v.style.display = "";
+    });
+  }
+  function light(name) {
+    [].slice.call(document.querySelectorAll(".nav-item")).forEach(function (r) {
+      r.classList.toggle("active", (r.textContent || "").trim().toLowerCase() === name);
+    });
+  }
+  function wire() {
+    var r = findRow(); if (!r || r.getAttribute("data-v259w")) return;
+    r.setAttribute("data-view", "admin"); r.setAttribute("data-v259w", "1");
+    r.addEventListener("click", function (e) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      light("admin"); showView("admin");
+      if ((location.hash || "") !== "#/admin") location.hash = "#/admin";
+    }, true);
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    wire();
+    if ((location.hash || "").indexOf("admin") > -1) { light("admin"); showView("admin"); }
+  }, 900);
+  window.addEventListener("hashchange", function () {
+    setTimeout(function () {
+      if ((location.hash || "").indexOf("admin") > -1) { light("admin"); showView("admin"); }
+    }, 80);
+  });
+  /* explore: image regenerated FROM its own caption — match guaranteed */
+  setInterval(function () {
+    if (document.hidden) return;
+    var x = document.getElementById("view-explore"); if (!x || x.offsetParent === null) return;
+    [].slice.call(x.querySelectorAll("img")).forEach(function (im) {
+      if (im.getAttribute("data-v259m")) return;
+      var p = im.parentElement, cap = "";
+      for (var up = 0; up < 4 && p; up++) {
+        var t = (p.innerText || "").trim();
+        if (t.length > cap.length) cap = t;
+        if (t.length > 30) break;
+        p = p.parentElement;
+      }
+      cap = cap.split("\n").filter(function (l) { return l.trim().length > 12; })[0] || "";
+      if (!cap) return;
+      im.setAttribute("data-v259m", "1"); im.setAttribute("data-v254s", "1");
+      im.src = "https://image.pollinations.ai/prompt/" + encodeURIComponent(cap.slice(0, 140)) +
+               "?width=768&height=1024&nologo=true&seed=" + Math.floor(Math.random() * 999999);
+    });
+  }, 3000);
+})();
+
+/* ===== v260: explore truth v2 — longest-line captions, never-dark cards ===== */
+(function () {
+  if (window.__v260) return; window.__v260 = "1";
+  var JUNK = /^(by |try it$|inspiration$|community pick$|♥|\d+$)/i;
+  function caption(node) {
+    var best = "";
+    [].slice.call(node.querySelectorAll("*")).forEach(function (e) {
+      if (e.children.length || e.tagName === "IMG") return;
+      (e.textContent || "").split("\n").forEach(function (l) {
+        l = l.trim();
+        if (l.length > best.length && l.length > 20 && !JUNK.test(l)) best = l;
+      });
+    });
+    return best;
+  }
+  function paint(im) {
+    var cap = "", p = im.parentElement;
+    for (var up = 0; up < 4 && p && !cap; up++) { cap = caption(p); if (!cap) p = p.parentElement; }
+    if (!cap) return;
+    im.setAttribute("data-v260m", "1");
+    im.style.opacity = ".2";
+    var base = "https://image.pollinations.ai/prompt/" + encodeURIComponent(cap.slice(0, 160)) +
+               "?width=768&height=1024&nologo=true&";
+    function load(seed) {
+      im.onload = function () { im.style.opacity = "1"; im.setAttribute("data-v260done", "1"); };
+      im.onerror = function () {
+        if (im.getAttribute("data-v260r")) {
+          im.style.opacity = "1"; im.style.display = "none";
+          if (im.parentElement) im.parentElement.style.background = "linear-gradient(135deg,#1b2a44,#0e1830)";
+        } else { im.setAttribute("data-v260r", "1"); load(String(Math.floor(Math.random() * 999999))); }
+      };
+      im.src = base + "seed=" + seed;
+    }
+    load(String(Math.floor(Math.random() * 999999)));
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var x = document.getElementById("view-explore"); if (!x || x.offsetParent === null) return;
+    [].slice.call(x.querySelectorAll("img")).forEach(function (im) {
+      if ((im.getAttribute("src") || "").indexOf("data:") === 0) return;
+      if (!im.getAttribute("data-v260m")) paint(im);
+    });
+  }, 2500);
+  var st = document.createElement("style");
+  st.textContent = "#view-explore img{transition:opacity .4s}" +
+    "#view-explore img[data-v260m]:not([data-v260done]){background:linear-gradient(100deg,#12203a 30%,#1c3050 50%,#12203a 70%);background-size:200% 100%;animation:v260sh 1.2s infinite}" +
+    "@keyframes v260sh{to{background-position:-200% 0}}";
+  document.head.appendChild(st);
+})();

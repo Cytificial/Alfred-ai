@@ -1,0 +1,2477 @@
+; } catch(e){ return ""; } }
+  var old = document.getElementById("v157cr"); if (old) old.style.display = "none";
+  var pill = document.getElementById("v158cr");
+  if (!pill) {
+    pill = document.createElement("div"); pill.id = "v158cr";
+    pill.style.cssText = "position:fixed;top:76px;right:12px;z-index:99999;display:none;" +
+      "font:700 12px/1 system-ui,-apple-system,sans-serif;color:#ffe9c2;" +
+      "background:linear-gradient(135deg,rgba(64,40,10,.88),rgba(28,18,6,.88));" +
+      "border:1px solid rgba(255,190,90,.55);border-radius:999px;padding:7px 12px;" +
+      "box-shadow:0 2px 14px rgba(0,8,25,.55);backdrop-filter:blur(6px);";
+    (document.body || document.documentElement).appendChild(pill);
+  }
+  function set(n, plan) {
+    pill.style.display = "block";
+    pill.textContent = "⚡ " + n + (plan ? "  ·  " + plan : "");
+    if (!plan) return;
+    try { localStorage.setItem("alfred_plan", plan); localStorage.setItem("plan", plan); } catch(e){}
+    try { window.dispatchEvent(new StorageEvent("storage",
+      { key: "alfred_plan", newValue: plan })); } catch(e){}
+    var els = document.querySelectorAll("b,div,span,p,h1,h2,h3");
+    for (var i = 0; i < els.length; i++) {
+      var r = els[i].getBoundingClientRect();
+      if (!r.width || r.top > 200 || r.height > 70) continue;
+      var w = document.createTreeWalker(els[i], NodeFilter.SHOW_TEXT, null), n;
+      while ((n = w.nextNode())) {
+        var v = n.nodeValue.trim();
+        if ((v === "Free" || v === "Pro") && v.toLowerCase() !== plan.toLowerCase())
+          n.nodeValue = n.nodeValue.replace(v, plan);
+      }
+    }
+  }
+  window.__v158cr = function () {
+    fetch("http://" + location.hostname + ":8082/api/usage",
+      { credentials: "include", headers: { "X-Alfred-Token": tok() } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j && j.ok) set(j.remaining, j.plan); })
+      .catch(function () {});
+  };
+  window.__v158cr();
+  setInterval(window.__v158cr, 45000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) window.__v158cr(); });
+})();
+
+/* ===== v159a: admission state machine — valid token walks in, logout walks out ===== */
+(function () {
+  if (window.__v159) return; window.__v159 = "1";
+  function tok() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
+  function admit() {
+    var pw = document.querySelector("input[type='password']");
+    if (!pw || !tok()) return;
+    var g = null;
+    try { g = sessionStorage.getItem("v159adm"); } catch (e) {}
+    if (g && g === tok().slice(0, 8)) return;          /* once per token — no loops */
+    try { sessionStorage.setItem("v159adm", tok().slice(0, 8)); } catch (e) {}
+    location.replace("/#/chat");                        /* full navigation = the proven path */
+  }
+  fetch("http://" + location.hostname + ":8082/api/usage",
+    { credentials: "include", headers: { "X-Alfred-Token": tok() } })
+    .then(function (r) {
+      if (r.status === 401) {                           /* dead token: wipe, never admit */
+        try { localStorage.removeItem("alfred_token");
+              localStorage.removeItem("alfred_authed"); } catch (e) {}
+        return null;
+      }
+      return r.ok ? r.json() : null;
+    })
+    .then(function (j) {
+      if (j && j.ok) { setTimeout(admit, 600); setTimeout(admit, 2200); }
+    }).catch(function () {});
+  var of = window.fetch;                                /* logout: reload to the gate */
+  window.fetch = function (u, o) {
+    var p = of.apply(this, arguments);
+    try {
+      var s = typeof u === "string" ? u : (u && u.url) || "";
+      if (s.indexOf("/api/auth/logout") > -1)
+        p.then(function () { setTimeout(function () { location.replace("/"); }, 400); })
+         .catch(function () {});
+    } catch (e) {}
+    return p;
+  };
+  var tk = 0;                                           /* stale toast: killed forever */
+  function killToast() {
+    var els = document.querySelectorAll("div,span");
+    for (var i = 0; i < els.length; i++) {
+      if ((els[i].textContent || "").trim().indexOf("tap Sign In once to continue") > -1) {
+        var c = els[i];
+        while (c && c !== document.body && c.parentElement &&
+               getComputedStyle(c).position !== "fixed") c = c.parentElement;
+        if (c && c !== document.body) c.remove();
+      }
+    }
+  }
+  new MutationObserver(function () {
+    clearTimeout(tk); tk = setTimeout(killToast, 150);
+  }).observe(document.documentElement, { childList: true, subtree: true });
+  killToast();
+})();
+
+/* ===== v159b: plan label on the header only (never tier cards), pill hides on logout ===== */
+(function () {
+  if (window.__v159b) return; window.__v159b = "1";
+  var busy = false, last = null;
+  function swap(plan) {
+    if (!plan) return;
+    var h = (location.hash || "").toLowerCase();
+    if (h.indexOf("module") > -1 || h.indexOf("plan") > -1 || h.indexOf("setting") > -1) return;
+    var hits = 0;
+    var els = document.querySelectorAll("b,div,span,p,h1,h2,h3");
+    for (var i = 0; i < els.length && hits < 3; i++) {
+      var el = els[i], r = el.getBoundingClientRect();
+      if (!r.width || r.height > 60 || r.top > innerHeight * 0.45) continue;
+      var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null), n;
+      while ((n = w.nextNode())) {
+        var v = n.nodeValue.trim();
+        if ((v === "Free" || v === "Pro") && v.toLowerCase() !== plan.toLowerCase()) {
+          n.nodeValue = n.nodeValue.replace(v, plan); hits++;
+        }
+      }
+    }
+  }
+  setInterval(function () {
+    if (busy) return; busy = true;
+    var t = ""; try { t = localStorage.getItem("alfred_token") || ""; } catch (e) {}
+    fetch("http://" + location.hostname + ":8082/api/usage",
+      { credentials: "include", headers: { "X-Alfred-Token": t } })
+      .then(function (r) {
+        busy = false;
+        var p = document.getElementById("v158cr");
+        if (r.status === 401 && p) p.style.display = "none";
+        return r.ok ? r.json() : null;
+      })
+      .then(function (j) {
+        if (j && j.ok && j.plan !== last) { last = j.plan; swap(j.plan); }
+      })
+      .catch(function () { busy = false; });
+  }, 4000);
+})();
+
+/* ===== v160a: credits pill lives IN the side nav — only while the drawer is open ===== */
+(function () {
+  if (window.__v160a) return; window.__v160a = "1";
+  var css = document.createElement("style");
+  css.textContent = "#v158cr{display:none !important}" +
+    "#v160cr{display:none;align-items:center;gap:8px;font:700 12.5px/1 system-ui,sans-serif;" +
+    "color:#ffe9c2;background:linear-gradient(135deg,rgba(64,40,10,.92),rgba(30,20,7,.92));" +
+    "border:1px solid rgba(255,190,90,.55);border-radius:14px;padding:10px 12px;" +
+    "margin:10px 14px 2px;box-shadow:0 2px 12px rgba(0,8,25,.4);}" +
+    "#v160cr.low{color:#ffd2c9;border-color:rgba(255,120,110,.6);" +
+    "background:linear-gradient(135deg,rgba(70,20,12,.92),rgba(34,10,7,.92));}" +
+    "#v160cr .v160b{flex:1;height:5px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden}" +
+    "#v160cr .v160b i{display:block;height:100%;width:100%;border-radius:4px;" +
+    "background:linear-gradient(90deg,#ffc46b,#ff9d5c);transition:width .5s}" +
+    "#v160cr.low .v160b i{background:linear-gradient(90deg,#ff8f7d,#ff6b5c)}";
+  (document.head || document.documentElement).appendChild(css);
+  var pill = document.createElement("div"); pill.id = "v160cr";
+  pill.innerHTML = "<span class='v160t'>⚡ …</span><span class='v160b'><i></i></span>";
+  var lastTxt = "";
+  function sidebar() {
+    var cands = document.querySelectorAll('[class*="side" i],[id*="side" i]'), best = null;
+    for (var i = 0; i < cands.length; i++) {
+      var el = cands[i], r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+      if (r.width > 170 && r.width < innerWidth * 0.92 && r.height > 220 &&
+          r.left > -10 && r.left < 60 &&                 /* truly on-screen, left edge */
+          cs.display !== "none" && cs.visibility !== "hidden") {
+        if (!best || r.height > best.getBoundingClientRect().height) best = el;
+      }
+    }
+    return best;
+  }
+  function place() {
+    var s = sidebar();
+    if (!s) { if (pill.parentNode) pill.style.display = "none"; return; }
+    var foot = s.querySelector('[class*="foot" i]');
+    if (foot && foot.parentNode) {
+      if (pill.parentNode !== foot.parentNode) foot.parentNode.insertBefore(pill, foot);
+    } else if (pill.parentNode !== s) s.appendChild(pill);
+    pill.style.display = "flex";
+  }
+  function tok() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
+  function update() {
+    fetch("http://" + location.hostname + ":8082/api/usage",
+      { credentials: "include", headers: { "X-Alfred-Token": tok() } })
+      .then(function (r) {
+        if (r.status === 401) { pill.style.display = "none"; return null; }
+        return r.ok ? r.json() : null;
+      })
+      .then(function (j) {
+        if (!(j && j.ok)) return;
+        var t = "⚡ " + j.remaining + " · " + j.plan;
+        if (t !== lastTxt) {
+          lastTxt = t;
+          pill.querySelector(".v160t").textContent = t;
+          pill.classList.toggle("low", j.remaining <= 5);
+          pill.querySelector(".v160b i").style.width =
+            Math.max(3, Math.round(j.remaining / Math.max(1, j.cap) * 100)) + "%";
+        }
+        place();
+      }).catch(function () {});
+  }
+  window.__v158cr = update;                  /* chat replies refresh it instantly */
+  update(); setInterval(update, 30000);
+  setInterval(place, 600);                   /* follows the drawer open/close */
+  window.addEventListener("resize", place);
+})();
+
+/* ===== v160b: out of credits? Alfred still speaks — in character ===== */
+(function () {
+  if (window.__v160b) return; window.__v160b = "1";
+  function speak(errText, name) {
+    var list = document.querySelectorAll(".msg.ai .bubble"), b = null;
+    for (var i = list.length - 1; i >= 0; i--)
+      if (!(list[i].textContent || "").trim()) { b = list[i]; break; }
+    if (!b) {                                       /* no empty bubble? make one */
+      var any = document.querySelector(".msg");
+      var box = any ? any.parentElement : null;
+      if (!box) return;
+      var el = document.createElement("div"); el.className = "msg ai";
+      b = document.createElement("div"); b.className = "bubble";
+      el.appendChild(b); box.appendChild(el);
+    }
+    var msg;
+    if (/used all .* messages|messages for today/i.test(errText))
+      msg = "I have poured every last thought into our day together, " + name +
+            " — even a butler's mind must rest. Your credits return at midnight, " +
+            "or you may unlock more of me anytime in Plans. 🌙";
+    else if (/faster than I can think/i.test(errText))
+      msg = "One moment — I can only pour so quickly. Give me a breath and ask again. ☕";
+    else
+      msg = "Forgive me — something interrupted me mid-thought. Try once more, " + name + ".";
+    b.textContent = msg;
+    b.style.color = "#ffe3c9";
+    try { delete b.dataset.v154md; } catch (e) {}
+  }
+  var of = window.fetch;
+  window.fetch = function (u, o) {
+    var p = of.apply(this, arguments);
+    try {
+      var s = typeof u === "string" ? u : (u && u.url) || "";
+      if (o && o.method === "POST" && s.indexOf(":8082/api/chat") > -1 &&
+          s.indexOf("/stream") === -1 && s.indexOf("/api/chats") === -1) {
+        p.then(function (r) {
+          r.clone().json().then(function (j) {
+            if (j && j.ok === false && j.error) {
+              var n = "Fred";
+              try { n = localStorage.getItem("alfred_name") || "Fred"; } catch (e) {}
+              speak(j.error, n.charAt(0).toUpperCase() + n.slice(1));
+            }
+          }).catch(function () {});
+        }).catch(function () {});
+      }
+    } catch (e) {}
+    return p;
+  };
+})();
+
+/* ===== v161e: stable plan label + Ultra theme + thinking card ===== */
+(function () {
+  if (window.__v161e) return; window.__v161e = "1";
+  var css = document.createElement("style");
+  css.textContent =
+    "body.v161ultra .msg-av,body.v161ultra .av{box-shadow:0 0 14px rgba(255,180,80,.55)," +
+    "0 0 4px rgba(255,200,120,.8) !important;border-color:rgba(255,190,100,.7) !important;}" +
+    "body.v161ultra .composer{border-color:rgba(255,190,100,.4) !important;}" +
+    "body.v161ultra #v160cr{border-color:rgba(255,210,130,.85) !important;}" +
+    "#v161think{position:fixed;left:50%;transform:translateX(-50%);bottom:112px;z-index:9998;" +
+    "display:none;align-items:center;gap:9px;padding:9px 16px;border-radius:999px;" +
+    "background:rgba(10,22,46,.85);border:1px solid rgba(130,190,255,.4);color:#cfe6ff;" +
+    "font-size:13px;backdrop-filter:blur(8px);box-shadow:0 4px 18px rgba(0,8,30,.5);}" +
+    "#v161think i{width:7px;height:7px;border-radius:50%;background:#7cc4ff;display:inline-block;" +
+    "animation:v161t 1s infinite alternate;}" +
+    "#v161think i:nth-child(2){animation-delay:.2s}#v161think i:nth-child(3){animation-delay:.4s}" +
+    "@keyframes v161t{from{opacity:.25}to{opacity:1;transform:translateY(-3px)}}";
+  (document.head || document.documentElement).appendChild(css);
+  function tok() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
+  var plan = "";
+  /* stable label: fast sweep + scoped observer — no visible flip */
+  function fix() {
+    if (!plan || plan === "Free") return;
+    var els = document.querySelectorAll("b,div,span,p,h1,h2,h3"), hits = 0;
+    for (var i = 0; i < els.length && hits < 3; i++) {
+      var el = els[i], r = el.getBoundingClientRect();
+      if (!r.width || r.height > 60 || r.top > innerHeight * 0.45) continue;
+      var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null), n;
+      while ((n = w.nextNode())) {
+        var v = n.nodeValue.trim();
+        if ((v === "Free" || v === "Pro") && v !== plan) { n.nodeValue = n.nodeValue.replace(v, plan); hits++; }
+      }
+    }
+  }
+  setInterval(fix, 700);
+  setInterval(function () {
+    fetch("http://" + location.hostname + ":8082/api/usage",
+      { credentials: "include", headers: { "X-Alfred-Token": tok() } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (!(j && j.ok)) return;
+        plan = j.plan;
+        document.body.classList.toggle("v161ultra", plan === "Ultra");
+        fix();
+      }).catch(function () {});
+  }, 6000);
+  /* thinking card: drives the app's own .proc element if present, else glass chip */
+  var chip = document.createElement("div"); chip.id = "v161think";
+  chip.innerHTML = "<span><i></i><i></i><i></i></span><span class='v161tt'>Thinking…</span>";
+  (document.body || document.documentElement).appendChild(chip);
+  var words = ["Thinking…", "Consulting the engines…", "Composing…"];
+  var rot = null, obs = null, fail = null;
+  function native() {
+    var els = document.querySelectorAll('[class*="proc"]');
+    for (var i = 0; i < els.length; i++)
+      if ((els[i].textContent || "").indexOf("Thinking") > -1 && els[i].offsetParent) return els[i];
+    return null;
+  }
+  function hide() {
+    chip.style.display = "none"; clearInterval(rot);
+    if (obs) { try { obs.disconnect(); } catch (e) {} obs = null; }
+    if (fail) { clearTimeout(fail); fail = null; }
+    var n = native(); if (n) n.style.display = "";
+  }
+  var of = window.fetch;
+  window.fetch = function (u, o) {
+    var s = typeof u === "string" ? u : (u && u.url) || "";
+    if (!(o && o.method === "POST" && s.indexOf(":8082/api/chat") > -1 &&
+          s.indexOf("/stream") === -1 && s.indexOf("/api/chats") === -1))
+      return of.apply(this, arguments);
+    hide();
+    var n = native();
+    if (n) { n.style.display = "flex"; }
+    else chip.style.display = "flex";
+    var wi = 0;
+    rot = setInterval(function () {
+      wi = (wi + 1) % words.length;
+      chip.querySelector(".v161tt").textContent = words[wi];
+      var pt = document.querySelector(".proc-title");
+      if (pt && native()) pt.textContent = words[wi];
+    }, 1400);
+    var bub = null;
+    try { var d = document.querySelector(".v129-dots"); if (d) bub = d.closest(".bubble"); } catch (e) {}
+    if (bub && !bub.dataset.v161w) {
+      bub.dataset.v161w = "1";
+      obs = new MutationObserver(function () {
+        if ((bub.textContent || "").replace(/▌/g, "").trim().length > 1) hide();
+      });
+      obs.observe(bub, { childList: true, characterData: true, subtree: true });
+    }
+    fail = setTimeout(hide, 45000);
+    return of.apply(this, arguments).then(function (res) {
+      setTimeout(hide, 400); return res;
+    }).catch(function (e) { hide(); throw e; });
+  };
+})();
+
+/* ===== v163b: label harmonizer (light) — store now agrees, war is over ===== */
+(function () {
+  if (window.__v163b) return; window.__v163b = "1";
+  function tok() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
+  var plan = "";
+  setInterval(function () {
+    fetch("http://" + location.hostname + ":8082/api/usage",
+      { credentials: "include", headers: { "X-Alfred-Token": tok() } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j && j.ok) plan = j.plan; }).catch(function () {});
+  }, 8000);
+  setInterval(function () {
+    if (!plan || plan === "Free") return;
+    var els = document.querySelectorAll("b,div,span,p,h1,h2,h3"), hits = 0;
+    for (var i = 0; i < els.length && hits < 3; i++) {
+      var el = els[i], r = el.getBoundingClientRect();
+      if (!r.width || r.height > 60 || r.top > innerHeight * 0.45) continue;
+      var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null), n;
+      while ((n = w.nextNode())) {
+        var v = n.nodeValue.trim();
+        if ((v === "Free" || v === "Pro") && v.toLowerCase() !== plan.toLowerCase()) {
+          n.nodeValue = n.nodeValue.replace(v, plan); hits++;
+        }
+      }
+    }
+  }, 1000);
+})();
+
+/* ===== v163b: label harmonizer (light) — store now agrees, war is over ===== */
+(function () {
+  if (window.__v163b) return; window.__v163b = "1";
+  function tok() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
+  var plan = "";
+  setInterval(function () {
+    fetch("http://" + location.hostname + ":8082/api/usage",
+      { credentials: "include", headers: { "X-Alfred-Token": tok() } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j && j.ok) plan = j.plan; }).catch(function () {});
+  }, 8000);
+  setInterval(function () {
+    if (!plan || plan === "Free") return;
+    var els = document.querySelectorAll("b,div,span,p,h1,h2,h3"), hits = 0;
+    for (var i = 0; i < els.length && hits < 3; i++) {
+      var el = els[i], r = el.getBoundingClientRect();
+      if (!r.width || r.height > 60 || r.top > innerHeight * 0.45) continue;
+      var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null), n;
+      while ((n = w.nextNode())) {
+        var v = n.nodeValue.trim();
+        if ((v === "Free" || v === "Pro") && v.toLowerCase() !== plan.toLowerCase()) {
+          n.nodeValue = n.nodeValue.replace(v, plan); hits++;
+        }
+      }
+    }
+  }, 1000);
+})();
+
+/* ===== v164b: /api/auth/me carries the token (phone Chrome drops cookies) ===== */
+(function () {
+  if (window.__v164b) return; window.__v164b = "1";
+  var of = window.fetch;
+  window.fetch = function (u, o) {
+    try {
+      var s = typeof u === "string" ? u : (u && u.url) || "";
+      if (s.indexOf("/api/auth/me") > -1) {
+        var t = "";
+        try { t = localStorage.getItem("alfred_token") || ""; } catch (e) {}
+        if (t) {
+          o = o || {};
+          var h = Object.assign({}, o.headers || {});
+          if (!h["X-Alfred-Token"]) h["X-Alfred-Token"] = t;
+          o.headers = h;
+        }
+      }
+    } catch (e) {}
+    return of.call(this, u, o);
+  };
+})();
+/* v168: restore the login gate after a demo-view swap; never override real auth */
+(function () {
+  if (window.__v168) return;
+  window.__v168 = true;
+
+  var API = "http://" + location.hostname + ":8082";
+  var RECOVERY_KEY = "v168_gate_reload";
+  var realFetch = window.fetch;
+  var loginInFlight = 0, recovering = false;
+
+  function token() {
+    try { return localStorage.getItem("alfred_token") || ""; }
+    catch (e) { return ""; }
+  }
+  function visible(el) {
+    if (!el || !el.getClientRects().length) return false;
+    var s = getComputedStyle(el);
+    return s.display !== "none" && s.visibility !== "hidden";
+  }
+  function loginRoute() {
+    return /^#\/?login(?:[/?]|$)/i.test(location.hash || "");
+  }
+  function gateVisible() {
+    return Array.prototype.some.call(
+      document.querySelectorAll('input[type="password"]'), visible);
+  }
+  function composerVisible() {
+    return Array.prototype.some.call(
+      document.querySelectorAll(
+        ".composer,#composer,[data-composer],textarea[placeholder*='message' i],[contenteditable='true']"
+      ), visible);
+  }
+  function hideCredits() {
+    try {
+      document.querySelectorAll(
+        "#v160cr,[id*='credit' i],[class*='credit' i],[id*='usage' i],[class*='usage' i]"
+      ).forEach(function (e) { e.style.setProperty("display", "none", "important"); });
+      document.querySelectorAll("span,div,section,aside").forEach(function (e) {
+        var t = (e.textContent || "").trim();
+        if (t.length > 40 || !/⚡/.test(t) || !/(…|\.{3})/.test(t)) return;
+        for (var n = e; n && n !== document.body; n = n.parentElement) {
+          var r = n.getBoundingClientRect();
+          if (r.width >= 140 && r.width <= 500 && r.height >= 28 && r.height <= 130) {
+            n.style.setProperty("display", "none", "important");
+            break;
+          }
+        }
+      });
+    } catch (e) {}
+  }
+
+  function probe(sent, retried) {
+    return realFetch(API + "/api/usage", {
+      credentials: "include",
+      headers: { "X-Alfred-Token": sent }
+    }).then(function (r) {
+      if (r.status !== 401) return r.ok ? true : null;
+      var current = token();
+      if (current !== sent) return retried ? null : probe(current, true);
+      try {
+        localStorage.removeItem("alfred_token");
+        localStorage.removeItem("alfred_authed");
+      } catch (e) {}
+      hideCredits();
+      return false;
+    }).catch(function () { return null; });
+  }
+
+  function recoverGate() {
+    if (recovering) return;
+    recovering = true;
+    var deadline = Date.now() + 5000;
+
+    function inspect() {
+      if (Date.now() > deadline) { recovering = false; return; }
+      if (loginInFlight || !loginRoute() || gateVisible() || !composerVisible()) {
+        setTimeout(inspect, 250);
+        return;
+      }
+      probe(token(), false).then(function (valid) {
+        if (valid === false && loginRoute() && composerVisible() && !gateVisible()) {
+          try {
+            if (!sessionStorage.getItem(RECOVERY_KEY)) {
+              sessionStorage.setItem(RECOVERY_KEY, "1");
+              location.reload();       /* same #/login; boots the real gate */
+              return;
+            }
+          } catch (e) { location.reload(); return; }
+          hideCredits();
+        }
+        recovering = false;
+      });
+    }
+    setTimeout(inspect, 300);
+  }
+
+  /* refill the one-reload budget after the gate is genuinely visible */
+  var gateSince = 0;
+  setInterval(function () {
+    if (loginRoute() && gateVisible()) {
+      if (!gateSince) gateSince = Date.now();
+      if (Date.now() - gateSince > 1200) {
+        try { sessionStorage.removeItem(RECOVERY_KEY); } catch (e) {}
+      }
+    } else gateSince = 0;
+  }, 250);
+
+  window.fetch = function (input, init) {
+    var url = typeof input === "string" ? input : (input && input.url) || "";
+    var p = realFetch.apply(this, arguments);
+
+    if (url.indexOf("/api/auth/login") !== -1) {
+      try { sessionStorage.removeItem(RECOVERY_KEY); } catch (e) {}
+      loginInFlight++;
+      p.then(function (r) {
+        return r.clone().json().then(function (j) {
+          if (j && j.ok && j.token) {
+            try { sessionStorage.removeItem(RECOVERY_KEY); } catch (e) {}
+          } else recoverGate();
+        }, recoverGate);
+      }).catch(function () {}).then(function () {
+        loginInFlight = Math.max(0, loginInFlight - 1);
+      });
+    }
+
+    if (/\/api\/chat(?:\/stream)?(?:[?#]|$)/.test(url)) {
+      p.then(function (r) {
+        if (r.status === 401) recoverGate();
+      }).catch(function () {});
+    }
+    return p;
+  };
+})();
+
+/* v170b: keep the header plan label in sync; cosmetic only */
+(function () {
+  if (window.__v170b) return;
+  window.__v170b = true;
+
+  function planName(id) {
+    id = String(id || "").toLowerCase();
+    return id === "ultra" ? "Ultra" : id === "pro" ? "Pro" :
+           id === "free" ? "Free" : "";
+  }
+  function enrich(value) {
+    try {
+      var p = JSON.parse(value);
+      if (!p || typeof p !== "object") return value;
+      var name = planName(p.id);
+      if (!name) return value;
+      p.name = name; p.label = name;
+      return JSON.stringify(p);
+    } catch (e) { return value; }
+  }
+  try {
+    var originalSet = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (this === localStorage && String(key) === "alfred_plan")
+        value = enrich(String(value));
+      return originalSet.call(this, key, value);
+    };
+    var saved = localStorage.getItem("alfred_plan");
+    if (saved) originalSet.call(localStorage, "alfred_plan", enrich(saved));
+  } catch (e) {}
+
+  function syncHeader() {
+    var name = "";
+    try {
+      var p = JSON.parse(localStorage.getItem("alfred_plan") || "{}");
+      name = planName(p.id);
+    } catch (e) {}
+    if (!name || !document.body) return;
+    try {
+      var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      var node;
+      while ((node = walker.nextNode())) {
+        if (!/^(Free|Pro|Ultra)$/.test((node.nodeValue || "").trim())) continue;
+        var range = document.createRange();
+        range.selectNodeContents(node);
+        var rect = range.getBoundingClientRect();
+        if (rect.width && rect.top >= 0 && rect.top <= 170 &&
+            node.nodeValue.trim() !== name) {
+          node.nodeValue = name;
+        }
+      }
+    } catch (e) {}
+  }
+  syncHeader();
+  setInterval(syncHeader, 1500);
+})();
+
+/* v170c: normalize alfred_plan writes without discarding plan metadata */
+(function () {
+  if (window.__v170c) return;
+  window.__v170c = true;
+
+  function canon(raw) {
+    var p = raw;
+    try { p = JSON.parse(String(raw)); } catch (e) {}
+    if (typeof p === "string") p = { id: p };
+    if (!p || typeof p !== "object" || Array.isArray(p)) return null;
+    var m = String(p.id || p.plan || p.name || "")
+      .toLowerCase().match(/\b(ultra|pro|free)\b/);
+    if (!m) return null;
+    p.id = m[1];
+    p.name = p.label = m[1].charAt(0).toUpperCase() + m[1].slice(1);
+    return JSON.stringify(p);
+  }
+
+  var prev = Storage.prototype.setItem;
+  function fix() {
+    try {
+      var raw = localStorage.getItem("alfred_plan");
+      if (raw === null) return;
+      var clean = canon(raw);
+      if (clean && clean !== raw) prev.call(localStorage, "alfred_plan", clean);
+    } catch (e) {}
+  }
+  Storage.prototype.setItem = function (key, value) {
+    try {
+      if (this === localStorage && String(key) === "alfred_plan") {
+        var clean = canon(value);
+        if (clean) value = clean;
+      }
+    } catch (e) {}
+    return prev.call(this, key, value);
+  };
+
+  fix();
+  setTimeout(fix, 400);
+  setInterval(fix, 2000);
+  window.addEventListener("storage", function (e) {
+    if (e.key === "alfred_plan") setTimeout(fix, 0);
+  });
+})();
+
+/* v171: 10-second health badge — is the doctor on duty? */
+(function(){
+  if(window.__v171) return; window.__v171="1";
+  function badge(){
+    var b=document.getElementById("v171badge");
+    if(!b){ b=document.createElement("div"); b.id="v171badge";
+      b.style.cssText="position:fixed;bottom:6px;right:6px;z-index:2147483647;background:rgba(0,0,0,.75);color:#7fd48f;font:11px monospace;padding:4px 8px;border-radius:8px;pointer-events:none";
+      (document.body||document.documentElement).appendChild(b); }
+    var gate=document.getElementById("alfred-gate");
+    var vis=gate&&getComputedStyle(gate).display!=="none";
+    var plan="";try{plan=localStorage.getItem("alfred_plan")||"";}catch(e){}
+    b.textContent="v170:"+(window.__v170?"LIVE":"DEAD")+" gate:"+(gate?(vis?"OPEN":"hidden"):"none")+" plan:"+plan.slice(0,40);
+  }
+  badge(); setInterval(badge,1000);
+})();
+
+/* v171b: instant header plan repaint (MutationObserver) — wins the paint war */
+(function () {
+  if (window.__v171b) return; window.__v171b = "1";
+  function planLabel() {
+    try {
+      var p = JSON.parse(localStorage.getItem("alfred_plan") || "{}");
+      var id = String(p.id || "").toLowerCase();
+      return id === "ultra" ? "Ultra" : id === "pro" ? "Pro" : id === "free" ? "Free" : "";
+    } catch (e) { return ""; }
+  }
+  function repaint() {
+    var name = planLabel(); if (!name || !document.body) return;
+    try {
+      var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), n;
+      while ((n = w.nextNode())) {
+        var t = (n.nodeValue || "").trim();
+        if (!/^(Free|Pro|Ultra)$/.test(t)) continue;
+        var r = document.createRange(); r.selectNodeContents(n);
+        var b = r.getBoundingClientRect();
+        if (b.width && b.top >= 0 && b.top <= 200 && t !== name) n.nodeValue = name;
+      }
+    } catch (e) {}
+  }
+  repaint(); setInterval(repaint, 700);
+  try {
+    var mo = new MutationObserver(function () { repaint(); });
+    mo.observe(document.body, { childList: true, subtree: true, characterData: true });
+  } catch (e) {}
+})();
+
+/* v172: prevent the second post-login reload; keep v170's normal app boot */
+(function () {
+  if (window.__v172) return;
+  window.__v172 = true;
+
+  var KEY = "v170boot2";
+  function arm() {
+    try { sessionStorage.setItem(KEY, "1"); } catch (e) {}
+  }
+  try {
+    if (sessionStorage.getItem(KEY) === "1") {
+      setTimeout(function () { try { sessionStorage.removeItem(KEY); } catch (e) {} }, 15000);
+    }
+  } catch (e) {}
+
+  var previous = window.fetch;
+  window.fetch = function (input) {
+    var url = typeof input === "string" ? input : (input && input.url) || "";
+    var result = previous.apply(this, arguments);
+    if (/\/api\/auth\/(login|register)(?:[?#]|$)/.test(url)) {
+      result.then(function (response) {
+        return response.clone().json().then(function (data) {
+          if (data && data.ok && data.token) arm();
+        }).catch(function () {});
+      }).catch(function () {});
+    }
+    return result;
+  };
+})();
+
+/* v173: server-verified plan wins; repair stale boot cache once */
+(function () {
+  if (window.__v173) return;
+  window.__v173 = true;
+
+  var FIX = "v173_plan_fix";
+  var authPlan = "";
+
+  function idOf(raw) {
+    try {
+      var p = JSON.parse(raw);
+      if (typeof p === "string") return p.toLowerCase();
+      return String(p && (p.id || p.plan || p.name) || "").toLowerCase();
+    } catch (e) { return String(raw || "").toLowerCase(); }
+  }
+  function doc(plan, raw) {
+    var p = {};
+    try {
+      var old = JSON.parse(raw || "{}");
+      if (old && typeof old === "object" && !Array.isArray(old)) p = old;
+      else if (typeof old === "string") p.id = old;
+    } catch (e) {}
+    p.id = plan.toLowerCase();
+    p.name = p.label = plan;
+    return JSON.stringify(p);
+  }
+  function sync(plan) {
+    authPlan = plan;
+    localStorage.setItem("alfred_plan", doc(plan, localStorage.getItem("alfred_plan")));
+    localStorage.setItem("alfred_plan_cache", doc(plan, localStorage.getItem("alfred_plan_cache")));
+  }
+  function repair() {
+    var token = "";
+    try { token = localStorage.getItem("alfred_token") || ""; } catch (e) {}
+    fetch("/api/auth/me", {
+      credentials: "include",
+      headers: { "X-Alfred-Token": token }
+    }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var plan = j && j.ok && j.user && String(j.user.plan || "");
+        if (!/^(free|pro|ultra)$/i.test(plan)) return;
+        plan = plan.charAt(0).toUpperCase() + plan.slice(1).toLowerCase();
+
+        var mismatch =
+          idOf(localStorage.getItem("alfred_plan")) !== plan.toLowerCase() ||
+          idOf(localStorage.getItem("alfred_plan_cache")) !== plan.toLowerCase();
+
+        sync(plan);
+        if (!mismatch) {
+          try { sessionStorage.removeItem(FIX); } catch (e) {}
+          return;
+        }
+        var tried = false;
+        try { tried = sessionStorage.getItem(FIX) === "1"; } catch (e) {}
+        if (!tried) {
+          try { sessionStorage.setItem(FIX, "1"); } catch (e) {}
+          location.reload();                      /* ONE repair reload, then boot fresh */
+        }
+      }).catch(function () {});
+  }
+
+  /* after verification, no layer may write a stale plan back */
+  var prevSet = Storage.prototype.setItem;
+  Storage.prototype.setItem = function (key, value) {
+    try {
+      if (this === localStorage && authPlan &&
+          (key === "alfred_plan" || key === "alfred_plan_cache")) {
+        value = doc(authPlan, String(value));
+      }
+    } catch (e) {}
+    return prevSet.call(this, key, value);
+  };
+
+  /* sign-in from settings → land on chat (v170 owns the #/login case) */
+  var prevFetch = window.fetch;
+  window.fetch = function (input) {
+    var url = typeof input === "string" ? input : (input && input.url) || "";
+    var result = prevFetch.apply(this, arguments);
+    if (/\/api\/auth\/(login|register)(?:[?#]|$)/.test(url)) {
+      result.then(function (r) {
+        return r.clone().json().then(function (j) {
+          if (!j || !j.ok || !j.token) return;
+          if (j.user && /^(free|pro|ultra)$/i.test(String(j.user.plan || ""))) sync(j.user.plan);
+          var h = location.hash || "";
+          if (!/login/i.test(h) && !/chat/i.test(h)) location.hash = "#/chat";
+        }).catch(function () {});
+      }).catch(function () {});
+    }
+    return result;
+  };
+
+  repair();
+})();
+
+/* v175: modules taps become REAL — server plan, pill and header follow */
+(function () {
+  if (window.__v175) return; window.__v175 = "1";
+
+  function tierFromCard(el) {
+    for (var n = el, i = 0; n && i < 8; i++, n = n.parentElement) {
+      if (!n.querySelector) continue;
+      var hs = n.querySelectorAll("h1,h2,h3,b,strong,div,span");
+      for (var k = 0; k < hs.length; k++) {
+        var t = (hs[k].textContent || "").trim();
+        if (/^(Free|Pro|Ultra)$/.test(t)) return t.toLowerCase();
+      }
+    }
+    return "";
+  }
+  function writePlan(id) {
+    try {
+      var cap = id.charAt(0).toUpperCase() + id.slice(1);
+      var doc = JSON.stringify({ id: id, name: cap, label: cap });
+      localStorage.setItem("alfred_plan", doc);
+      localStorage.setItem("alfred_plan_cache", doc);
+    } catch (e) {}
+  }
+  function repaintPill(remaining, plan) {
+    try {
+      var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), x;
+      while ((x = w.nextNode())) {
+        var t = x.nodeValue || "";
+        if (t.length > 40) continue;
+        var m = t.match(/(\d+)\s*\u00b7\s*(Free|Pro|Ultra)/);
+        if (m) x.nodeValue = t.replace(/(\d+)\s*\u00b7\s*(Free|Pro|Ultra)/,
+          (remaining != null ? remaining : m[1]) + " \u00b7 " + (plan || m[2]));
+      }
+    } catch (e) {}
+  }
+
+  document.addEventListener("click", function (ev) {
+    if (!ev.isTrusted) return;
+    if ((location.hash || "").indexOf("mod") === -1) return;
+    var tier = tierFromCard(ev.target);
+    if (!tier) return;
+    setTimeout(function () {
+      try {
+        var token = "";
+        try { token = localStorage.getItem("alfred_token") || ""; } catch (e) {}
+        fetch("/api/auth/plan", {
+          method: "POST", credentials: "same-origin",
+          headers: { "Content-Type": "application/json", "X-Alfred-Token": token },
+          body: JSON.stringify({ plan: tier })
+        }).then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) {
+            if (!j || !j.ok) return;
+            writePlan(String(j.plan || tier).toLowerCase());
+            repaintPill(j.remaining, j.plan || tier);
+            try { window.dispatchEvent(new CustomEvent("alfred:plan-updated", { detail: j })); } catch (e) {}
+          }).catch(function () {});
+      } catch (e) {}
+    }, 450);
+  }, true);
+})();
+
+/* v176: kill the phantom login card — boot /me syncs alfred_authed (fail-closed) */
+(function () {
+  if (window.__v176) return; window.__v176 = "1";
+  var GUARD = "v176sync";
+  try { if (sessionStorage.getItem(GUARD) === "1")
+    setTimeout(function () { try { sessionStorage.removeItem(GUARD); } catch (e) {} }, 12000);
+  } catch (e) {}
+  var token = "";
+  try { token = localStorage.getItem("alfred_token") || ""; } catch (e) {}
+  fetch("/api/auth/me", { credentials: "same-origin", headers: { "X-Alfred-Token": token } })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (j) {
+      if (!(j && j.ok && j.user)) return;              /* not signed in: do nothing */
+      try { localStorage.setItem("alfred_authed", "1"); } catch (e) {}
+      var pw = document.querySelector("input[type='password']");
+      var already = false;
+      try { already = sessionStorage.getItem(GUARD) === "1"; } catch (e) {}
+      if (pw && !already) {                            /* demo card showing over a live session */
+        try { sessionStorage.setItem(GUARD, "1"); } catch (e) {}
+        /* v203: no reload */
+      }
+    }).catch(function () {});
+})();
+
+/* v178: plain login — no remembered prefill; you type, or you don't get in */
+(function () {
+  if (window.__v178) return; window.__v178 = "1";
+  function cardVisible() {
+    var ins = document.querySelectorAll("input[type='password']");
+    for (var i = 0; i < ins.length; i++) {
+      var r = ins[i].getBoundingClientRect();
+      if (r.width && r.height) return true;
+    }
+    return false;
+  }
+  var cleared = false;
+  function plainify() {
+    if (cleared || !cardVisible()) return;
+    try {
+      var em = document.querySelector("input[type='email'], input[autocomplete='username']");
+      var pw = document.querySelector("input[type='password']");
+      if (em && em.value) em.value = "";
+      if (pw && pw.value) pw.value = "";
+      var cb = document.querySelector("input[type='checkbox']");
+      if (cb) cb.checked = false;
+      cleared = true;
+    } catch (e) {}
+  }
+  plainify();
+  setInterval(plainify, 1200);
+})();
+
+/* v179: truth-guard — the server's 401 outranks any UI trick */
+(function () {
+  if (window.__v179) return; window.__v179 = "1";
+  var watch = 0;
+  function wipe() {
+    try { localStorage.removeItem("alfred_authed"); } catch (e) {}
+    try { localStorage.removeItem("alfred_token"); } catch (e) {}
+    var els = document.querySelectorAll("div,section,span,p");
+    for (var i = 0; i < els.length; i++) {
+      var t = (els[i].textContent || "");
+      if (t.indexOf("Signed in") > -1 && t.indexOf("tap Sign In") > -1 && t.length < 120)
+        els[i].style.display = "none";
+    }
+  }
+  var of = window.fetch;
+  window.fetch = function (u, o) {
+    var s = typeof u === "string" ? u : (u && u.url) || "";
+    var p = of.apply(this, arguments);
+    if (/\/api\/auth\/(login|register)(\?|$)/.test(s)) {
+      p.then(function (r) {
+        if (r.status === 401 || r.status === 403) {
+          wipe(); watch = Date.now() + 10000;         /* 10s re-wipe window */
+        }
+      }).catch(function () {});
+    }
+    return p;
+  };
+  setInterval(function () {
+    if (Date.now() > watch) return;
+    try { if (localStorage.getItem("alfred_authed")) wipe(); } catch (e) {}
+  }, 1200);
+})();
+
+/* v180: Modules is view-only — admin selects, users see their paid tier */
+(function () {
+  if (window.__v180) return; window.__v180 = "1";
+  var admin = false;
+  function who() {
+    var token = "";
+    try { token = localStorage.getItem("alfred_token") || ""; } catch (e) {}
+    fetch("/api/auth/me", { credentials: "same-origin", headers: { "X-Alfred-Token": token } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        admin = !!(j && j.ok && j.user &&
+          String(j.user.email || "").toLowerCase() === "fred@test.com");
+      }).catch(function () { admin = false; });
+  }
+  who(); setInterval(who, 60000);
+  function tierCard(el) {
+    for (var n = el, i = 0; n && i < 8; i++, n = n.parentElement) {
+      if (!n.querySelector) continue;
+      var hs = n.querySelectorAll("h1,h2,h3,b,strong,div,span");
+      for (var k = 0; k < hs.length; k++)
+        if (/^(Free|Pro|Ultra)$/.test((hs[k].textContent || "").trim())) return true;
+    }
+    return false;
+  }
+  document.addEventListener("click", function (ev) {
+    if (!ev.isTrusted || admin) return;
+    if ((location.hash || "").indexOf("mod") === -1) return;
+    if (!tierCard(ev.target)) return;
+    ev.preventDefault(); ev.stopPropagation();
+    try {
+      var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), n;
+      while ((n = w.nextNode()))
+        if (/View only/.test(n.nodeValue || "")) return;
+    } catch (e) {}
+    try { if (typeof showToast === "function") showToast("View only — your plan comes from your package", true); } catch (e) {}
+  }, true);
+})();
+
+/* v181: boot router — live session goes straight to chat; login page only when signed out */
+(function () {
+  if (window.__v181) return; window.__v181 = "1";
+  var loggingOut = false, checking = false;
+  var of = window.fetch;
+  window.fetch = function (u, o) {
+    var s = typeof u === "string" ? u : (u && u.url) || "";
+    var p = of.apply(this, arguments);
+    if (/\/api\/auth\/logout/.test(s)) {
+      loggingOut = true;
+      p.then(function () {
+        try { localStorage.removeItem("alfred_authed"); } catch (e) {}
+        setTimeout(function () { loggingOut = false; }, 3000);
+      }).catch(function () { loggingOut = false; });
+    }
+    return p;
+  };
+  function boot() {
+    if (checking || loggingOut) return;
+    checking = true;
+    var token = "";
+    try { token = localStorage.getItem("alfred_token") || ""; } catch (e) {}
+    fetch("/api/auth/me", { credentials: "same-origin", headers: { "X-Alfred-Token": token } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        checking = false;
+        var h = location.hash || "";
+        if (j && j.ok && j.user) {
+          try { localStorage.setItem("alfred_authed", "1"); } catch (e) {}
+          if (h === "" || h === "#" || h === "#/" || h.indexOf("login") > -1) {
+            try { location.hash = "#/chat"; } catch (e) {}
+          }
+        }
+      }).catch(function () { checking = false; });
+  }
+  boot();
+  window.addEventListener("hashchange", boot);
+})();
+
+/* v186: debug badges never block taps */
+(function () {
+  if (window.__v186) return; window.__v186 = "1";
+  var css = document.createElement("style");
+  css.textContent = "div[style*='rgba(8,12,24']{pointer-events:none !important;}";
+  (document.head || document.documentElement).appendChild(css);
+})();
+
+/* v187: tap probe — names whatever sits under a top-left tap */
+(function () {
+  if (window.__v187) return; window.__v187 = "1";
+  function say(m){ try{ console.log(m); }catch(e){} try{ if(typeof showToast==="function") showToast(m); }catch(e){} }
+  document.addEventListener("click", function (ev) {
+    var x = ev.clientX || 0, y = ev.clientY || 0;
+    if (x > 140 || y > 280) return;               /* probe only the hamburger corner */
+    setTimeout(function () {
+      try {
+        var el = document.elementFromPoint(x, y), d = "nothing";
+        if (el) d = el.tagName.toLowerCase() + (el.id ? "#" + el.id : "") +
+          (el.className && typeof el.className === "string" ? "." + el.className.split(" ").slice(0,2).join(".") : "");
+        say("v187 tap " + x + "," + y + " → " + d);
+      } catch (e) {}
+    }, 60);
+  }, true);
+})();
+
+/* v188: hamburger rescue — opens the nav directly, reports into the debug badge */
+(function () {
+  if (window.__v188) return; window.__v188 = "1";
+  function badge(m) {
+    try { var b = document.querySelector("div[style*='rgba(8,12,24']"); if (b) b.textContent += "\n" + m; } catch (e) {}
+  }
+  function arm() {
+    var sb = document.getElementById("sidebar"), sc = document.getElementById("scrim");
+    if (!sb || !sc) { setTimeout(arm, 400); return; }
+    badge("v188 armed");
+    window.addEventListener("click", function (e) {
+      var b = e.target && e.target.closest ? e.target.closest("#burger") : null;
+      if (!b) return;
+      e.preventDefault();
+      sb.classList.add("open"); sc.classList.add("on");
+      badge("v188 OPEN");
+    }, true);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", arm);
+  else arm();
+})();
+
+
+/* v189: drawer layering — sidebar above scrim, always tappable */
+(function () {
+  if (window.__v189) return; window.__v189 = "1";
+  var css = document.createElement("style");
+  css.textContent = "@media (max-width:899px){"
+    + "#sidebar.open{z-index:10020 !important;pointer-events:auto !important;}"
+    + "#scrim.on{z-index:10010 !important;}}";
+  (document.head || document.documentElement).appendChild(css);
+})();
+
+/* v190: drawer owner — open on burger, close on outside tap, close after nav tap */
+(function () {
+  if (window.__v190) return; window.__v190 = "1";
+  var sb = null, sc = null;
+  function ready() {
+    if (!sb) { sb = document.getElementById("sidebar"); sc = document.getElementById("scrim"); }
+    return !!(sb && sc);
+  }
+  window.addEventListener("click", function (e) {
+    if (!ready()) return;
+    var t = e.target;
+    if (t && t.closest && t.closest("#burger")) {
+      sb.classList.add("open"); sc.classList.add("on"); return;
+    }
+    if (!sb.classList.contains("open")) return;
+    if (sb.contains(t)) {
+      if (t.closest && t.closest(".nav-item")) { sb.classList.remove("open"); sc.classList.remove("on"); }
+      return;                                   /* taps inside stay free */
+    }
+    sb.classList.remove("open"); sc.classList.remove("on");   /* outside tap closes */
+  }, true);
+})();
+
+/* v191: nav taps drive the hash router — one navigation system */
+(function () {
+  if (window.__v191) return; window.__v191 = "1";
+  var OK = { chat:1, explore:1, modules:1, history:1, plans:1, settings:1 };
+  document.addEventListener("click", function (e) {
+    var it = e.target && e.target.closest ? e.target.closest(".nav-item") : null;
+    if (!it) return;
+    var v = it.getAttribute("data-view");
+    if (!v || !OK[v]) return;
+    try { location.hash = "#/" + v; } catch (er) {}
+  }, true);
+})();
+
+/* v192: drawer you control — stays open to read, closes only when you say */
+(function () {
+  if (window.__v192) return; window.__v192 = "1";
+  function isOpen(){ var s=document.getElementById("sidebar"); return !!(s&&s.classList.contains("open")); }
+  function close(){ var s=document.getElementById("sidebar"),c=document.getElementById("scrim");
+    if(s) s.classList.remove("open"); if(c) c.classList.remove("on"); }
+  window.addEventListener("click", function (e) {
+    var s=document.getElementById("sidebar"), c=document.getElementById("scrim");
+    if (!s || !c) return;
+    var t = e.target;
+    if (t && t.closest && t.closest("#burger")) {
+      e.preventDefault(); e.stopPropagation();          /* native always-open can't fight */
+      if (isOpen()) close(); else { s.classList.add("open"); c.classList.add("on"); }
+      return;
+    }
+    if (isOpen() && s.contains(t) && t.closest && t.closest(".nav-item")) close();
+  }, true);
+})();
+
+/* v193: login with eye open is still server-verified — .pw field counts */
+(function () {
+  if (window.__v193) return; window.__v193 = "1";
+  document.addEventListener("click", function (ev) {
+    var b = ev.target && ev.target.closest ? ev.target.closest("button,[role='button']") : null;
+    if (!b) return;
+    var t = (b.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
+    if (!/^(sign in|enter alfred)$/.test(t)) return;
+    var card = b.closest("div,section,form");
+    if (!card) return;
+    var pw = card.querySelector(".pw");
+    if (!pw) return;
+    if (card.querySelector("input[type='password']")) return;   /* v123 owns the eye-closed state */
+    ev.preventDefault(); ev.stopPropagation();
+    if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
+    var em = card.querySelector("input[type='email'], input[autocomplete='username']");
+    if (!em || !em.value || !pw.value) {
+      try { if (typeof showToast === "function") showToast("Type your email and password", true); } catch (e) {}
+      return;
+    }
+    var cb = card.querySelector("input[type='checkbox']");
+    fetch("/api/auth/login", { method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: em.value.trim(), password: pw.value, remember: !!(cb && cb.checked) })
+    }).then(function (r) { return r.json().then(function (j) { return { j: j }; }); })
+      .then(function (x) {
+        if (x.j && x.j.ok) {
+          try { localStorage.setItem("alfred_token", x.j.token); localStorage.setItem("alfred_authed", "1"); } catch (e) {}
+          location.hash = "#/chat";
+        } else {
+          try { if (typeof showToast === "function") showToast((x.j && x.j.error) || "Email or password is incorrect.", true); } catch (e) {}
+        }
+      }).catch(function () { try { if (typeof showToast === "function") showToast("Network error — try again", true); } catch (e) {} });
+  }, true);
+})();
+
+/* v197: reveal without breaking type - CSS does the showing */
+(function () {
+  var css = document.createElement("style");
+  css.textContent = "input.pw.showing{-webkit-text-security:none !important;}";
+  (document.head || document.documentElement).appendChild(css);
+  /* safety net: any password field flipped to text gets snapped back */
+  setInterval(function () {
+    document.querySelectorAll('input.pw').forEach(function (p) {
+      if (p.type !== "password") p.type = "password";
+    });
+  }, 400);
+})();
+
+/* v198: token saved BEFORE the app navigates - the loop-breaker */
+(function () {
+  if (window.__v198) return; window.__v198 = "1";
+  var of = window.fetch;
+  window.fetch = function (u, o) {
+    var s = typeof u === "string" ? u : (u && u.url) || "";
+    var p = of.apply(this, arguments);
+    if (/\/api\/auth\/(login|register)(\?|$)/.test(s)) {
+      return p.then(function (r) {
+        try {
+          return r.clone().json().then(function (j) {
+            if (j && j.ok && j.token) {
+              try { localStorage.setItem("alfred_token", j.token); } catch (e) {}
+              try { localStorage.setItem("alfred_authed", "1"); } catch (e) {}
+              if (j.user && j.user.name) {
+                try { localStorage.setItem("alfred_name", j.user.name); } catch (e) {}
+              }
+            }
+            return r;                       /* only now does the app see the response */
+          });
+        } catch (e) { return r; }
+      });
+    }
+    return p;
+  };
+})();
+
+/* v199: bounce tracer — tags every navigation with the auth state at that moment */
+(function () {
+  if (window.__v199) return; window.__v199 = "1";
+  function state() {
+    var t = 0, a = "-", c = "no";
+    try { t = (localStorage.getItem("alfred_token") || "").length; } catch (e) {}
+    try { a = localStorage.getItem("alfred_authed") || "-"; } catch (e) {}
+    try { c = /alfred_session/.test(document.cookie || "") ? "yes" : "no"; } catch (e) {}
+    return "tok=" + t + " authed=" + a + " cookie=" + c;
+  }
+  function mark(kind) {
+    try {
+      var b = document.getElementById("v199badge");
+      if (!b) {
+        b = document.createElement("div"); b.id = "v199badge";
+        b.style.cssText = "position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#001b36;color:#8fd0ff;border:1px solid #2a6cff;border-radius:12px;padding:8px 12px;font:12px monospace;max-width:94vw;box-shadow:0 8px 30px rgba(0,0,0,.6)";
+        (document.body || document.documentElement).appendChild(b);
+      }
+      b.textContent = kind + " | " + state() + " | " + new Date().toLocaleTimeString();
+    } catch (e) {}
+  }
+  var oR = location.reload.bind(location);
+  location.reload = function () { mark("RELOAD"); setTimeout(oR, 2500); };
+  var oP = location.replace.bind(location);
+  location.replace = function (u) { mark("REPLACE " + u); setTimeout(function () { oP(u); }, 2500); };
+  window.addEventListener("hashchange", function () { mark("HASH→" + location.hash); });
+  var of = window.fetch;
+  window.fetch = function (u, o) {
+    var s = typeof u === "string" ? u : (u && u.url) || "";
+    var p = of.apply(this, arguments);
+    if (s.indexOf("/api/auth/me") > -1) {
+      p.then(function (r) { if (r.status !== 200) mark("ME-FAIL " + r.status); }).catch(function () { mark("ME-NET"); });
+    }
+    return p;
+  };
+})();
+
+/* v200: bounce historian — log survives reloads, shows the full sequence */
+(function () {
+  if (window.__v200) return; window.__v200 = "1";
+  var KEY = "v200log";
+  function log(ev) {
+    var L = [];
+    try { L = JSON.parse(sessionStorage.getItem(KEY) || "[]"); } catch (e) {}
+    L.push(ev + " @" + new Date().toLocaleTimeString());
+    L = L.slice(-6);
+    try { sessionStorage.setItem(KEY, JSON.stringify(L)); } catch (e) {}
+    try {
+      var b = document.getElementById("v199badge");
+      if (!b) {
+        b = document.createElement("div"); b.id = "v199badge";
+        b.style.cssText = "position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#001b36;color:#8fd0ff;border:1px solid #2a6cff;border-radius:12px;padding:8px 12px;font:11px monospace;max-width:94vw;white-space:pre";
+        (document.body || document.documentElement).appendChild(b);
+      }
+      b.textContent = L.join("\n");
+    } catch (e) {}
+  }
+  window.addEventListener("pagehide", function () { log("PAGEHIDE (real nav/reload)"); });
+  window.addEventListener("pageshow", function () { log("PAGESHOW"); });
+  window.addEventListener("hashchange", function () { log("HASH→" + location.hash); });
+  var of = window.fetch;
+  window.fetch = function (u, o) {
+    var s = typeof u === "string" ? u : (u && u.url) || "";
+    var p = of.apply(this, arguments);
+    if (s.indexOf("/api/auth/me") > -1) {
+      p.then(function (r) { if (r.status !== 200) log("ME-FAIL " + r.status); })
+       .catch(function () { log("ME-NET-ERR"); });
+    }
+    return p;
+  };
+  log("PAGELOAD " + location.hash);
+})();
+
+/* v222: reload-hijacks retired - app may reload and self-heal again *//* v204b: light YOUR CHATS ghost sweep — checkpoints only, no loops */
+(function () {
+  if (window.__v204b) return; window.__v204b = "1";
+  function killChats() {
+    var all = document.querySelectorAll("b,span,h1,h2,h3,div,p");
+    for (var i = 0; i < all.length; i++) {
+      if ((all[i].textContent || "").trim().toUpperCase() !== "YOUR CHATS") continue;
+      var n = all[i], hit = null;
+      for (var k = 0; n && k < 8; k++, n = n.parentElement) {
+        var cs; try { cs = getComputedStyle(n); } catch (e) { break; }
+        if (cs.position === "fixed" || cs.position === "absolute" || cs.zIndex !== "auto") { hit = n; break; }
+      }
+      (hit || (all[i].parentElement && all[i].parentElement.parentElement) || all[i]).remove();
+      return;
+    }
+  }
+  function sweep() { killChats(); setTimeout(killChats, 300); }
+  sweep();
+  window.addEventListener("hashchange", sweep);
+  setTimeout(sweep, 3000); setTimeout(sweep, 10000); setTimeout(sweep, 25000);
+})();
+
+/* v212: hide the ghost chat panel by heading + Delete + message count */
+(function () {
+  if (window.__v212) return;
+  window.__v212 = "1";
+  var heading = /your\s+chats/i;
+  var queued = false;
+
+  function inspect(seed) {
+    for (var p = seed, depth = 0; p && p !== document.body && depth < 12;
+         p = p.parentElement, depth++) {
+      var text = p.textContent || "";
+      if (text.length >= 400) break;
+      if (!heading.test(text) || !/\bmessages?\b/i.test(text)) continue;
+      var controls = p.querySelectorAll("button,a,[role='button']");
+      var hasDelete = false;
+      for (var i = 0; i < controls.length; i++) {
+        var c = controls[i];
+        if (/\bdelete\b/i.test((c.textContent || "") + " " +
+            (c.getAttribute("aria-label") || "") + " " +
+            (c.getAttribute("title") || ""))) { hasDelete = true; break; }
+      }
+      if (!hasDelete) continue;
+      p.setAttribute("data-v212", "1");
+      p.style.setProperty("display", "none", "important");
+      return true;
+    }
+    return false;
+  }
+
+  function sweep() {
+    if (!document.body) return;
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), n;
+    while ((n = walker.nextNode())) {
+      if (heading.test(n.nodeValue || "")) { inspect(n.parentElement); continue; }
+      for (var q = n.parentElement, d = 0; q && q !== document.body && d < 6;
+           q = q.parentElement, d++) {
+        var qt = q.textContent || "";
+        if (qt.length > 120) break;
+        if (heading.test(qt)) { inspect(q); break; }
+      }
+    }
+  }
+
+  function schedule() {
+    if (queued) return;
+    queued = true;
+    setTimeout(function () { queued = false; sweep(); }, 200);
+  }
+
+  var observer = new MutationObserver(function (records) {
+    var onlyOurs = records.length > 0 && records.every(function (r) {
+      return r.type === "attributes" && r.target.hasAttribute("data-v212") &&
+        (r.attributeName === "style" || r.attributeName === "data-v212");
+    });
+    if (!onlyOurs) schedule();
+  });
+  observer.observe(document.body, {
+    childList: true, subtree: true, characterData: true,
+    attributes: true, attributeFilter: ["style", "class", "data-v212"]
+  });
+
+  sweep();
+  window.addEventListener("hashchange", sweep);
+  var ticks = 0;
+  var timer = setInterval(function () {
+    sweep();
+    if (++ticks >= 60) clearInterval(timer);
+  }, 1500);
+})();
+
+
+/* v213: fallback - hide any already-rendered v155b Your chats panel */
+(function () {
+  if (window.__v213) return;
+  window.__v213 = "1";
+  function hidePanel() {
+    if (!document.body) return;
+    var hs = document.querySelectorAll("h4");
+    for (var i = 0; i < hs.length; i++) {
+      if ((hs[i].textContent || "").replace(/\s+/g, " ").trim().toLowerCase() !== "your chats") continue;
+      for (var p = hs[i].parentElement; p && p !== document.body; p = p.parentElement) {
+        if (!p.querySelector || !p.querySelector(".v155list")) continue;
+        p.style.setProperty("display", "none", "important");
+        p.setAttribute("data-v213", "1");
+        break;
+      }
+    }
+  }
+  var queued = false;
+  var observer = new MutationObserver(function () {
+    if (queued) return;
+    queued = true;
+    setTimeout(function () { queued = false; hidePanel(); }, 150);
+  });
+  observer.observe(document.body, {
+    childList: true, subtree: true, characterData: true,
+    attributes: true, attributeFilter: ["style", "class"]
+  });
+  hidePanel();
+  window.addEventListener("hashchange", hidePanel);
+  var ticks = 0;
+  var timer = setInterval(function () {
+    hidePanel();
+    if (++ticks >= 40) clearInterval(timer);
+  }, 1500);
+})();
+
+/* v214: ONE plan authority — the server paints header, credits pill, sidebar footer */
+(function () {
+  if (window.__v214) return; window.__v214 = "1";
+  var NAME = { free: "Free", pro: "Pro", ultra: "Ultra" };
+  var busy = false;
+  function tok() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
+  function paint(plan, remaining) {
+    plan = NAME[(plan || "free").toLowerCase()] || "Free";
+    try {
+      var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), n;
+      while ((n = w.nextNode())) {
+        var t = (n.nodeValue || "").trim();
+        var inBubble = n.parentElement && n.parentElement.closest &&
+                       n.parentElement.closest(".bubble, .msg");
+        if (inBubble) continue;
+        /* credits pill: "8 · Free" → "111 · Pro" */
+        if (/^\d+\s*·\s*(Free|Pro|Ultra)$/i.test(t))
+          n.nodeValue = (remaining != null ? remaining : t.split("·")[0].trim()) + " · " + plan;
+        /* header badge + stray plan labels near the top */
+        else if (/^(Free|Pro|Ultra)( Plan| · Preview)?$/i.test(t)) {
+          var r = n.parentElement.getBoundingClientRect();
+          if (r.top >= 0 && r.top <= 170) n.nodeValue = plan;
+        }
+      }
+    } catch (e) {}
+    /* sidebar footer: "Fred / Ultra · Preview" → "Fred / Pro" */
+    try {
+      var un = document.getElementById("user-name");
+      if (un) {
+        var sib = un.parentElement.querySelector("i");
+        if (sib) sib.textContent = plan;
+      }
+    } catch (e) {}
+  }
+  function sync() {
+    if (busy) return; busy = true;
+    var h = { credentials: "include", headers: { "X-Alfred-Token": tok() } };
+    Promise.all([
+      fetch("/api/auth/me", h).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
+      fetch("http://" + location.hostname + ":8082/api/usage", h)
+        .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+    ]).then(function (res) {
+      var me = res[0], us = res[1];
+      if (me && me.ok && me.user) {
+        try { localStorage.setItem("alfred_plan", JSON.stringify({ id: (me.user.plan || "free").toLowerCase() })); } catch (e) {}
+        paint(me.user.plan, us && typeof us.remaining === "number" ? us.remaining : null);
+      }
+      busy = false;
+    });
+  }
+  sync();
+  window.addEventListener("hashchange", sync);
+  setInterval(sync, 10000);
+})();
+
+
+/* v215: badge sweeper — leftover debug badges go (v186 already made them untappable) */
+(function () {
+  if (window.__v215) return; window.__v215 = "1";
+  function sweep() {
+    try {
+      var b = document.getElementById("v199badge");
+      if (b) b.remove();
+      var all = document.querySelectorAll("div[style*='rgba(8,12,24']");
+      for (var i = 0; i < all.length; i++) all[i].remove();
+    } catch (e) {}
+  }
+  sweep();
+  setTimeout(sweep, 600); setTimeout(sweep, 1800);
+  var n = 0, t = setInterval(function () { sweep(); if (++n > 4) clearInterval(t); }, 5000);
+})();
+
+/* v216: Admin dashboard — Users / Models & Brain / Billing / Logs (server-guarded) */
+(function () {
+  if (window.__v216) return; window.__v216 = "1";
+  var ADMIN_EMAIL = "fred@test.com";
+  function tok(){ try { return localStorage.getItem("alfred_token")||""; } catch(e){ return ""; } }
+  function api(p, opt) {
+    opt = opt || {}; opt.credentials = "include";
+    opt.headers = Object.assign({ "X-Alfred-Token": tok() }, opt.headers||{});
+    if (opt.body && !opt.headers["Content-Type"]) opt.headers["Content-Type"] = "application/json";
+    return fetch(p, opt).then(function(r){ return r.json().catch(function(){ return {}; }); });
+  }
+  function say(m){ try { if (typeof showToast === "function") showToast(m); } catch(e){} }
+  function esc(s){ var d=document.createElement("div"); d.textContent=(s==null?"":String(s)); return d.innerHTML; }
+  var sec = null, cur = "users", OV = null;
+
+  var CSS = ".adm-wrap{padding:18px;max-width:920px;margin:0 auto;color:#eaf4ff}" +
+    ".adm-tabs{display:flex;gap:8px;margin:10px 0 14px}" +
+    ".adm-tab{padding:8px 14px;border-radius:18px;border:1px solid rgba(120,180,255,.3);background:rgba(255,255,255,.05);color:#dce9ff;cursor:pointer;font-size:13px}" +
+    ".adm-tab.on{background:linear-gradient(90deg,#3b82f6,#06b6d4);border:0;color:#fff;font-weight:700}" +
+    ".adm-card{background:rgba(10,20,44,.72);border:1px solid rgba(110,170,255,.18);border-radius:16px;padding:14px;margin-bottom:12px}" +
+    ".adm-t{width:100%;border-collapse:collapse;font-size:13px}" +
+    ".adm-t th{text-align:left;color:#9db8e8;font-weight:600;padding:6px 4px}" +
+    ".adm-t td{padding:6px 4px;border-top:1px solid rgba(120,180,255,.12)}" +
+    ".adm-in{background:rgba(255,255,255,.06);border:1px solid rgba(120,180,255,.28);border-radius:8px;color:#eaf4ff;padding:6px 8px;font-size:13px}" +
+    ".adm-btn{padding:7px 14px;border:0;border-radius:16px;background:linear-gradient(90deg,#3b82f6,#06b6d4);color:#fff;font-weight:700;cursor:pointer}" +
+    ".adm-pill{display:inline-block;background:rgba(255,255,255,.06);border-radius:12px;padding:8px 12px;font-size:12px;color:#bfe3ff;margin:4px 6px 4px 0}";
+
+  function engineLine(j){
+    var e = j.engine || {};
+    return e.ok ? ("Brain online — " + esc(e.model||"")) : ("Brain OFFLINE — " + esc(e.error||""));
+  }
+
+  function build() {
+    var nav = document.getElementById("nav"); if (!nav) return false;
+    var st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st);
+    var a = document.createElement("a");
+    a.className = "nav-item"; a.setAttribute("data-view", "admin");
+    a.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg><span>Admin</span>';
+    nav.appendChild(a);
+    sec = document.createElement("section"); sec.className = "view"; sec.id = "view-admin";
+    sec.innerHTML = '<div class="adm-wrap"><h2 style="margin:6px 0 2px"><span class="glowdot"></span>Admin Dashboard</h2>' +
+      '<div class="adm-tabs"><button class="adm-tab on" data-t="users">Users</button>' +
+      '<button class="adm-tab" data-t="brain">Models &amp; Brain</button>' +
+      '<button class="adm-tab" data-t="billing">Billing</button>' +
+      '<button class="adm-tab" data-t="logs">Logs</button></div><div id="adm-body"></div></div>';
+    var views = document.querySelector(".views") || document.body;
+    views.appendChild(sec);
+    a.addEventListener("click", function () {
+      document.querySelectorAll(".nav-item").forEach(function(n){ n.classList.remove("active"); });
+      a.classList.add("active");
+      document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("show"); });
+      sec.classList.add("show");
+      try { var sb=document.getElementById("sidebar"), sc=document.getElementById("scrim");
+            if (sb) sb.classList.remove("open"); if (sc) sc.classList.remove("on"); } catch(e){}
+      load(cur);
+    });
+    sec.querySelectorAll(".adm-tab").forEach(function (b) {
+      b.addEventListener("click", function () {
+        sec.querySelectorAll(".adm-tab").forEach(function(x){ x.classList.remove("on"); });
+        b.classList.add("on"); cur = b.getAttribute("data-t"); load(cur);
+      });
+    });
+    return true;
+  }
+
+  function load(t) {
+    var body = document.getElementById("adm-body"); if (!body) return;
+    body.innerHTML = '<div class="adm-card">Loading…</div>';
+    if (t === "brain") return brainTab(body);
+    api("/api/admin/overview").then(function (j) {
+      if (!j.ok) { body.innerHTML = '<div class="adm-card">Admin API: ' + esc(j.error) + '</div>'; return; }
+      OV = j;
+      if (t === "users") usersTab(body, j);
+      else if (t === "billing") billTab(body, j);
+      else logsTab(body, j);
+    });
+  }
+
+  function usersTab(body, j) {
+    var rows = (j.users||[]).map(function (u) {
+      var opts = ["Free","Pro","Ultra"].map(function(p){ return '<option'+(u.plan===p?' selected':'')+'>'+p+'</option>'; }).join("");
+      return '<tr><td>'+esc(u.email)+'</td><td>'+esc(u.name)+'</td>' +
+        '<td><select class="adm-in">'+opts+'</select></td>' +
+        '<td><button class="adm-btn" data-em="'+esc(u.email)+'">Save</button></td></tr>';
+    }).join("");
+    body.innerHTML = '<div class="adm-card"><b>'+engineLine(j)+'</b></div>' +
+      '<div class="adm-card"><table class="adm-t"><tr><th>Email</th><th>Name</th><th>Plan</th><th></th></tr>'+rows+'</table></div>';
+    body.querySelectorAll("button[data-em]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var em = b.getAttribute("data-em");
+        var sel = b.closest("tr").querySelector("select");
+        api("/api/admin/users/plan", { method:"POST", body: JSON.stringify({ email: em, plan: sel.value }) })
+          .then(function (r) { say(r.ok ? (em + " → " + sel.value + " ✓") : (r.error || "failed")); load("users"); });
+      });
+    });
+  }
+
+  function billTab(body, j) {
+    var caps = (j.brain && j.brain.daily_caps) || {}, by = j.byPlan || {};
+    body.innerHTML = '<div class="adm-card"><b>Daily message caps</b><br>' +
+      ["Free","Pro","Ultra"].map(function(p){
+        return '<span class="adm-pill">'+p+': '+esc(caps[p]!=null?caps[p]:"—")+' msgs/day</span><span class="adm-pill">'+(by[p]||0)+' user(s)</span>';
+      }).join("") +
+      '<div style="margin-top:8px;color:#9db8e8">Total users: '+(j.users||[]).length+' — caps are editable in Models &amp; Brain.</div></div>';
+  }
+
+  function logsTab(body, j) {
+    var rows = (j.logs||[]).map(function (l) {
+      var d = new Date((l.ts||0)*1000);
+      return '<tr><td>'+(isNaN(d)?"—":d.toLocaleString())+'</td><td>'+esc(l.email)+'</td>' +
+        '<td style="color:'+(l.ok?'#7dffb0':'#ff9db1')+'">'+(l.ok?'OK':'BAD')+'</td><td>'+esc(l.reason)+'</td></tr>';
+    }).join("");
+    body.innerHTML = '<div class="adm-card"><b>Recent sign-ins</b><table class="adm-t"><tr><th>Time</th><th>Email</th><th></th><th>Reason</th></tr>'+rows+'</table></div>';
+  }
+
+  function brainTab(body) {
+    api("/api/admin/brain").then(function (j) {
+      if (!j.ok) { body.innerHTML = '<div class="adm-card">Admin API: '+esc(j.error)+'</div>'; return; }
+      var c = j.config || {}, caps = c.daily_caps || {}, pn = c.public_names || {};
+      body.innerHTML =
+        '<div class="adm-card"><b>'+engineLine(j)+'</b><div class="adm-pill">API key: '+esc(c.gemini_key||"not set")+'</div></div>' +
+        '<div class="adm-card"><b>Model chain</b> <i style="color:#9db8e8">(first = best, then fallbacks — one per line)</i><br>' +
+          '<textarea id="adm-chain" class="adm-in" rows="3" style="width:100%">'+esc((c.chain||[]).join("\n"))+'</textarea></div>' +
+        '<div class="adm-card"><table class="adm-t"><tr><th>Tier</th><th>Caps/day</th><th>Shown as</th></tr>' +
+          ["Free","Pro","Ultra"].map(function(p){
+            return '<tr><td>'+p+'</td><td><input class="adm-in" id="cap-'+p+'" style="width:80px" value="'+esc(caps[p]!=null?caps[p]:"")+'"></td>' +
+                   '<td><input class="adm-in" id="pn-'+p+'" style="width:130px" value="'+esc(pn[p]||"")+'"></td></tr>';
+          }).join("") +
+          '<tr><td>Minute limit</td><td><input class="adm-in" id="adm-min" style="width:80px" value="'+esc(c.minute_limit!=null?c.minute_limit:"")+'"></td><td></td></tr>' +
+          '<tr><td>Context msgs</td><td><input class="adm-in" id="adm-ctx" style="width:80px" value="'+esc(c.context_messages!=null?c.context_messages:"")+'"></td><td></td></tr>' +
+        '</table></div>' +
+        '<button class="adm-btn" id="adm-save">Save brain config</button>' +
+        '<div class="adm-card" style="margin-top:10px;color:#9db8e8">After saving, restart the brain to apply:<br><code>pkill -f brain.py; sleep 1; nohup python3 backend/brain.py &gt;&gt; backend/engine.log 2&gt;&amp;1 &amp;</code></div>';
+      document.getElementById("adm-save").addEventListener("click", function () {
+        var g = function(id){ var e = document.getElementById(id); return e ? e.value : ""; };
+        var caps = {}, pn = {};
+        ["Free","Pro","Ultra"].forEach(function(p){
+          if (g("cap-"+p) !== "") caps[p] = parseInt(g("cap-"+p),10) || 1;
+          if (g("pn-"+p) !== "") pn[p] = g("pn-"+p);
+        });
+        api("/api/admin/brain", { method: "POST", body: JSON.stringify({
+          chain: g("adm-chain").split("\n").map(function(s){ return s.trim(); }).filter(Boolean),
+          daily_caps: caps, public_names: pn,
+          minute_limit: parseInt(g("adm-min"),10) || 6,
+          context_messages: parseInt(g("adm-ctx"),10) || 12
+        })}).then(function (r) { say(r.ok ? "Brain config saved ✓ — restart the brain to apply" : (r.error || "save failed")); });
+      });
+    });
+  }
+
+  function boot() {
+    api("/api/auth/me").then(function (j) {
+      if (!(j && j.ok && j.user && (j.user.email||"").toLowerCase() === ADMIN_EMAIL)) return;
+      if (!build()) setTimeout(boot, 400);
+    }).catch(function(){});
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else setTimeout(boot, 200);
+})();
+
+/* ===== v224: Settings — profile, security, sessions, health ===== */
+(function () {
+  var view = document.getElementById("view-settings");
+  if (!view || view.dataset.set224) return;
+  view.dataset.set224 = "1";
+  function tok(){ try { return localStorage.getItem("alfred_token") || ""; } catch(e){ return ""; } }
+  function toast(m){ var t=document.createElement("div"); t.textContent=m;
+    t.style.cssText="position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#123;color:#cfe8ff;border:1px solid rgba(120,200,255,.4);padding:10px 18px;border-radius:12px;font:13px system-ui;z-index:99";
+    document.body.appendChild(t); setTimeout(function(){ t.remove(); },2600); }
+  function api(p,o){ return fetch(p, Object.assign({ credentials:"include",
+    headers:{ "Content-Type":"application/json", "X-Alfred-Token":tok() } }, o||{}))
+    .then(function(r){ return r.json(); }); }
+  var card="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:16px;margin-bottom:14px";
+  var lab="font-size:11px;letter-spacing:.12em;opacity:.6;margin-bottom:10px";
+  var inp="width:100%;box-sizing:border-box;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.14);border-radius:10px;color:#e8f2ff;padding:10px 12px;font:14px system-ui;margin:6px 0";
+  var btn="background:#2e7fd6;color:#fff;border:0;border-radius:10px;padding:10px 16px;font:600 13px system-ui;margin-top:8px;width:100%";
+  view.innerHTML =
+    '<div style="max-width:640px;margin:0 auto;padding:16px">'
+    + '<h1 style="font-size:26px;margin:4px 0 2px">Settings</h1>'
+    + '<p style="opacity:.7;margin:0 0 16px;font-size:13px">Tune Alfred to feel like yours.</p>'
+    + '<div style="'+card+'"><div style="'+lab+'">PROFILE</div><div id="s224-prof" style="opacity:.6;font-size:13px">loading…</div></div>'
+    + '<div style="'+card+'"><div style="'+lab+'">PASSWORD</div>'
+    + '<input id="s224-cur" type="password" placeholder="Current password" style="'+inp+'">'
+    + '<input id="s224-n1" type="password" placeholder="New password (8+ chars, letters & numbers)" style="'+inp+'">'
+    + '<input id="s224-n2" type="password" placeholder="Repeat new password" style="'+inp+'">'
+    + '<button id="s224-save" type="button" style="'+btn+'">Update password</button></div>'
+    + '<div style="'+card+'"><div style="'+lab+'">SESSIONS</div><div id="s224-sess" style="opacity:.7;font-size:13px">loading…</div>'
+    + '<button id="s224-revoke" type="button" style="'+btn+'">Sign out other devices</button></div>'
+    + '<div style="'+card+'"><div style="'+lab+'">SYSTEM</div><div id="s224-health" style="opacity:.7;font-size:13px">checking…</div></div>'
+    + '</div>';
+  api("/api/auth/me").then(function(j){
+    var u=j&&j.user;
+    document.getElementById("s224-prof").innerHTML = u
+      ? '<b>'+String(u.name||"—")+'</b> · '+String(u.email||"")+' · <span style="color:#9fd8ff">'+String(u.plan||"Free")+'</span>'
+      : 'Not signed in';
+  }).catch(function(){});
+  function sessions(){
+    api("/api/auth/sessions").then(function(j){
+      var r=(j&&j.sessions)||[]; var cur=r.filter(function(s){return s.current;}).length;
+      document.getElementById("s224-sess").textContent =
+        r.length+" active session"+(r.length===1?"":"s")+(cur?" · this device ✓":"");
+    }).catch(function(){});
+  }
+  sessions();
+  document.getElementById("s224-revoke").onclick=function(){
+    api("/api/auth/revoke-others",{method:"POST"}).then(function(j){
+      toast(j.ok?"Other devices signed out ✓":(j.error||"Failed")); sessions();
+    }).catch(function(){}); };
+  document.getElementById("s224-save").onclick=function(){
+    var c=document.getElementById("s224-cur").value, n=document.getElementById("s224-n1").value,
+        n2=document.getElementById("s224-n2").value;
+    if(!(n.length>=8 && /[a-zA-Z]/.test(n) && /[0-9]/.test(n))) return toast("New password needs 8+ chars, letters & numbers");
+    if(n!==n2) return toast("New passwords don't match");
+    api("/api/auth/change-password",{method:"POST",body:JSON.stringify({current:c,next:n})})
+      .then(function(j){
+        if(j&&j.ok){ toast("Password updated ✓"); ["s224-cur","s224-n1","s224-n2"].forEach(function(id){document.getElementById(id).value="";}); }
+        else toast((j&&j.error)||"Failed");
+      }).catch(function(){}); };
+  fetch("/api/health").then(function(r){return r.json();}).then(function(j){
+    document.getElementById("s224-health").textContent =
+      (j&&j.ok) ? "Alfred online — brain "+(j.brain||"ready")+" ✓" : "Alfred waking up…";
+  }).catch(function(){ document.getElementById("s224-health").textContent="Offline"; });
+})();
+
+/* ===== v227: Admin card (visible only to admins) ===== */
+(function () {
+  var view = document.getElementById("view-settings");
+  if (!view || view.dataset.admin227) return;
+  view.dataset.admin227 = "1";
+  function tok(){ try { return localStorage.getItem("alfred_token") || ""; } catch(e){ return ""; } }
+  function call(p, o){ return fetch(p, Object.assign({ credentials:"include",
+    headers:{ "Content-Type":"application/json", "X-Alfred-Token":tok() } }, o||{})).then(function(r){ return r.json(); }); }
+  call("/api/admin/overview").then(function (j) {
+    if (!j || !j.ok) return;                            /* non-admins: card never appears */
+    var wrap = view.querySelector("div"); if (!wrap) return;
+    var card = document.createElement("div");
+    card.style.cssText = "background:rgba(255,255,255,.05);border:1px solid rgba(255,80,80,.25);border-radius:16px;padding:16px;margin-bottom:14px";
+    function row(u){
+      var r = document.createElement("div");
+      r.style.cssText = "display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07)";
+      var sel = document.createElement("select");
+      sel.style.cssText = "background:rgba(0,0,0,.3);color:#e8f2ff;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:4px 6px;font:12px system-ui";
+      ["Free","Pro","Ultra"].forEach(function(p){
+        var o=document.createElement("option"); o.value=p; o.textContent=p; if(p===u.plan)o.selected=true; sel.appendChild(o); });
+      sel.onchange = function(){ call("/api/admin/users/plan",{method:"POST",body:JSON.stringify({email:u.email,plan:sel.value})})
+        .then(function(x){ sel.style.outline = x.ok ? "1px solid #5fe8b0" : "1px solid #ff6b6b"; setTimeout(function(){sel.style.outline="";},1200); }); };
+      var del = document.createElement("button");
+      del.type="button"; del.textContent="delete";
+      del.style.cssText = "margin-left:auto;background:transparent;color:#ff6b6b;border:1px solid rgba(255,107,107,.4);border-radius:8px;padding:4px 10px;font:12px system-ui";
+      var armed = 0;
+      del.onclick = function(){
+        if (!armed) { armed=1; del.textContent="sure?"; del.style.background="rgba(255,107,107,.15)";
+          setTimeout(function(){ armed=0; del.textContent="delete"; del.style.background="transparent"; }, 3000); return; }
+        call("/api/admin/users/delete",{method:"POST",body:JSON.stringify({email:u.email})})
+          .then(function(x){ if(x.ok){ r.remove(); } else { del.textContent=x.error||"fail"; } }); };
+      var em = document.createElement("span");
+      em.style.cssText = "font:13px system-ui;color:#e8f2ff;overflow:hidden;text-overflow:ellipsis";
+      em.textContent = u.email;
+      r.appendChild(em); r.appendChild(sel); r.appendChild(del);
+      return r;
+    }
+    var head = document.createElement("div");
+    head.style.cssText = "font-size:11px;letter-spacing:.12em;opacity:.6;margin-bottom:10px";
+    head.textContent = "ADMIN — " + (j.users||[]).length + " USERS";
+    card.appendChild(head);
+    (j.users||[]).forEach(function(u){ card.appendChild(row(u)); });
+    wrap.appendChild(card);
+  }).catch(function(){});
+})();
+
+/* v236: settings admin console retired - one admin surface: the dashboard */
+
+/* ===== v229.2: reliability - real failures only (5xx/network), auth 401 silent ===== */
+(function () {
+  if (window.__v229) return; window.__v229 = "1";
+  var of = window.fetch, last = null, el = null, tmr = null;
+  function bubble(msg) {
+    if (!el) {
+      el = document.createElement("div");
+      el.style.cssText = "position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:999;"
+        + "background:#2a1420;border:1px solid rgba(255,107,107,.45);color:#ffd9d9;border-radius:14px;"
+        + "padding:10px 14px;font:13px system-ui;display:flex;gap:10px;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.45)";
+      var txt = document.createElement("span"), btn = document.createElement("button");
+      txt.id = "v229msg"; btn.type = "button"; btn.textContent = "Retry";
+      btn.style.cssText = "background:#ff6b6b;color:#fff;border:0;border-radius:9px;padding:6px 14px;font:600 13px system-ui";
+      btn.onclick = function () {
+        if (!last) return;
+        btn.textContent = "..."; btn.disabled = true;
+        of(last.u, last.o).then(function () { el.style.display = "none"; btn.textContent = "Retry"; btn.disabled = false; })
+          .catch(function () { btn.textContent = "Retry"; btn.disabled = false; });
+      };
+      el.appendChild(txt); el.appendChild(btn); document.body.appendChild(el);
+    }
+    document.getElementById("v229msg").textContent = "Alfred couldn't answer - " + msg;
+    el.style.display = "flex";
+    clearTimeout(tmr); tmr = setTimeout(function () { if (el) el.style.display = "none"; }, 8000);
+  }
+  window.fetch = function (u, o) {
+    var s = ""; try { s = String(u); } catch (e) {}
+    var p = of.apply(this, arguments);
+    if (s.indexOf("/api/chat") === -1 || s.indexOf("/api/auth") > -1 || !o || o.method !== "POST") return p;
+    try { last = { u: u, o: { method: "POST", headers: o.headers, body: o.body, credentials: o.credentials || "include" } }; } catch (e) {}
+    return p.then(function (r) {
+      if (r.status >= 500) bubble("server trouble (" + r.status + ")");
+      else if (r.status === 429) bubble("slow down - a moment, then Retry");
+      return r;
+    }).catch(function (e) { bubble("connection failed"); throw e; });
+  };
+})();
+
+
+/* ===== v235: Providers tab — registry, rescan, chain editors ===== */
+(function () {
+  if (window.__v235) return; window.__v235 = "1";
+  var J = null;
+  function pf(p, o) {
+    o = o || {}; o.credentials = "include";
+    o.headers = Object.assign({ "Content-Type": "application/json",
+      "X-Alfred-Token": localStorage.getItem("alfred_token") || "" }, o.headers || {});
+    return fetch(p, o).then(function (r) { return r.json(); });
+  }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function toast(m) { var t = document.createElement("div"); t.className = "ex-toast"; t.textContent = m;
+    document.body.appendChild(t); setTimeout(function () { t.classList.add("bye"); }, 2400);
+    setTimeout(function () { t.remove(); }, 3000); }
+  function catalog() {
+    var out = [], tiers = (J && J.tiers) || {};
+    Object.keys(tiers).forEach(function (pid) {
+      (tiers[pid] || []).forEach(function (m) {
+        var id = (typeof m === "string") ? m : m.id;
+        if (id && out.indexOf(id) === -1) out.push(id); });
+    });
+    return out;
+  }
+  function render() {
+    var body = document.getElementById("adm-body"); if (!body) return;
+    body.innerHTML = '<div class="adm-card">Loading providers…</div>';
+    pf("/api/admin/providers").then(function (j) {
+      if (!j || !j.ok) { body.innerHTML = '<div class="adm-card">Providers API: ' + esc((j && j.error) || "failed") + '</div>'; return; }
+      J = j; paint(body);
+    });
+  }
+  function paint(body) {
+    var provs = J.providers || [], tiers = J.tiers || {}, chains = J.chains || {};
+    var h = '<div class="adm-card"><b>PROVIDERS</b><span style="opacity:.5;font-size:12px"> keys sealed — stored locally, never displayed</span>';
+    provs.forEach(function (p) {
+      h += '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07);flex-wrap:wrap">'
+        + '<b>' + esc(p.id) + '</b><span style="opacity:.55;font-size:12px">' + esc(p.type) + '</span>'
+        + '<span style="font-size:12px;color:' + (p.configured ? "#5fe8b0" : "#ff6b6b") + '">' + (p.configured ? "key ✓" : "no key") + '</span>'
+        + '<button type="button" class="adm-btn" data-scan="' + esc(p.id) + '" style="margin-left:auto;padding:4px 12px">rescan</button></div>';
+    });
+    h += '<details style="margin-top:10px"><summary style="cursor:pointer;opacity:.7;font-size:13px">+ add provider</summary>'
+      + '<div style="display:grid;gap:6px;margin-top:8px;max-width:420px">'
+      + '<input id="pv-id" class="adm-in" placeholder="id — e.g. openrouter">'
+      + '<select id="pv-type" class="adm-in"><option value="google">google</option><option value="openai">openai</option><option value="openrouter">openrouter</option></select>'
+      + '<input id="pv-url" class="adm-in" placeholder="base_url — e.g. https://api.openai.com/v1">'
+      + '<input id="pv-key" class="adm-in" type="password" placeholder="api key (sealed on disk, never shown)">'
+      + '<button type="button" class="adm-btn" id="pv-add">Add provider</button></div></details></div>';
+    ["Free", "Pro", "Ultra"].forEach(function (plan) {
+      var chain = chains[plan] || [];
+      h += '<div class="adm-card"><b>' + plan.toUpperCase() + ' CHAIN</b><span style="opacity:.5;font-size:12px"> 1 = default, falls through on fail/429</span>';
+      chain.forEach(function (m, i) {
+        h += '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:13px">'
+          + '<span style="opacity:.45;width:18px">' + (i + 1) + '</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis">' + esc(m) + '</span>'
+          + (i > 0 ? '<button type="button" class="adm-btn" data-up="' + plan + ':' + i + '" style="padding:2px 9px">↑</button>' : '')
+          + (i < chain.length - 1 ? '<button type="button" class="adm-btn" data-dn="' + plan + ':' + i + '" style="padding:2px 9px">↓</button>' : '')
+          + '<button type="button" class="adm-btn" data-rm="' + plan + ':' + i + '" style="padding:2px 9px;color:#ff6b6b">✕</button></div>';
+      });
+      var avail = catalog().filter(function (m) { return chain.indexOf(m) === -1; });
+      h += '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'
+        + '<select class="adm-in" data-addsel="' + plan + '" style="flex:1;min-width:180px">'
+        + avail.map(function (m) { return '<option>' + esc(m) + '</option>'; }).join("") + '</select>'
+        + '<button type="button" class="adm-btn" data-addm="' + plan + '" style="padding:4px 12px">+ add</button>'
+        + '<button type="button" class="adm-btn" data-save="' + plan + '" style="padding:4px 14px">Save chain</button></div></div>';
+    });
+    h += '<div class="adm-card"><details><summary style="cursor:pointer;opacity:.75"><b>FULL CATALOG</b> — '
+      + Object.keys(tiers).map(function (k) { return esc(k) + ": " + (tiers[k] || []).length; }).join(" · ") + '</summary>';
+    Object.keys(tiers).forEach(function (pid) {
+      h += '<div style="margin-top:8px"><b style="opacity:.65;font-size:12px">' + esc(pid) + '</b>';
+      (tiers[pid] || []).forEach(function (m) {
+        var id = (typeof m === "string") ? m : m.id, nm = (typeof m === "string") ? "" : (m.name || "");
+        h += '<div style="display:flex;gap:8px;font-size:12px;padding:2px 0"><span style="flex:1">' + esc(id) + '</span><span style="opacity:.45">' + esc(nm === id ? "" : nm) + '</span></div>';
+      });
+      h += '</div>';
+    });
+    h += '</details></div>';
+    body.innerHTML = h;
+    function mv(plan, i, d) { var c = J.chains[plan], j = i + d;
+      if (j < 0 || j >= c.length) return; var t = c[i]; c[i] = c[j]; c[j] = t; paint(body); }
+    body.querySelectorAll("[data-scan]").forEach(function (b) {
+      b.onclick = function () { b.textContent = "scanning…"; b.disabled = true;
+        pf("/api/admin/providers/scan", { method: "POST", body: JSON.stringify({ id: b.getAttribute("data-scan") }) })
+          .then(function (r) { toast(r.ok ? (r.count + " models scanned ✓") : ("scan failed — " + (r.error || "?"))); render(); }); };
+    });
+    var add = body.querySelector("#pv-add");
+    if (add) add.onclick = function () {
+      pf("/api/admin/providers/add", { method: "POST", body: JSON.stringify({
+        id: body.querySelector("#pv-id").value.trim(), type: body.querySelector("#pv-type").value,
+        base_url: body.querySelector("#pv-url").value.trim(), api_key: body.querySelector("#pv-key").value }) })
+        .then(function (r) { toast(r.ok ? "provider added ✓" : (r.error || "add failed")); render(); }); };
+    ["Free", "Pro", "Ultra"].forEach(function (plan) {
+      body.querySelectorAll('[data-up^="' + plan + ':"]').forEach(function (b) {
+        b.onclick = function () { mv(plan, +b.getAttribute("data-up").split(":")[1], -1); }; });
+      body.querySelectorAll('[data-dn^="' + plan + ':"]').forEach(function (b) {
+        b.onclick = function () { mv(plan, +b.getAttribute("data-dn").split(":")[1], 1); }; });
+      body.querySelectorAll('[data-rm^="' + plan + ':"]').forEach(function (b) {
+        b.onclick = function () { J.chains[plan].splice(+b.getAttribute("data-rm").split(":")[1], 1); paint(body); }; });
+      var ab = body.querySelector('[data-addm="' + plan + '"]');
+      if (ab) ab.onclick = function () {
+        var sel = body.querySelector('[data-addsel="' + plan + '"]');
+        if (sel && sel.value) { J.chains[plan].push(sel.value); paint(body); } };
+      var sb = body.querySelector('[data-save="' + plan + '"]');
+      if (sb) sb.onclick = function () {
+        pf("/api/admin/providers/chains", { method: "POST", body: JSON.stringify({ plan: plan, models: J.chains[plan] }) })
+          .then(function (r) { toast(r.ok ? (plan + " chain saved ✓ — live on next message") : (r.error || "save failed")); }); };
+    });
+  }
+  function boot() {
+    var btns = Array.prototype.slice.call(document.querySelectorAll("button")), anchor = null;
+    for (var i = 0; i < btns.length; i++) if ((btns[i].textContent || "").trim() === "Models & Brain") { anchor = btns[i]; break; }
+    if (!anchor || document.getElementById("pv-tab")) return !!anchor;
+    var b = document.createElement("button");
+    b.id = "pv-tab"; b.textContent = "Providers"; b.className = anchor.className;
+    b.onclick = render;
+    anchor.parentNode.insertBefore(b, anchor.nextSibling);
+    return true;
+  }
+  var iv = setInterval(function () { if (boot()) clearInterval(iv); }, 1200);
+})();
+
+/* ===== v237: uploads — attach/image buttons live, preview strip, vision ===== */
+(function () {
+  if (window.__v237) return; window.__v237 = "1";
+  var pending = [];
+  function toast(m){ var t=document.createElement("div"); t.className="ex-toast"; t.textContent=m;
+    document.body.appendChild(t); setTimeout(function(){t.classList.add("bye");},2200); setTimeout(function(){t.remove();},2800); }
+  function shrink(url, cb) {
+    var im = new Image();
+    im.onload = function () {
+      var s = Math.min(1, 1024 / Math.max(im.width, im.height));
+      var c = document.createElement("canvas"); c.width = Math.round(im.width*s); c.height = Math.round(im.height*s);
+      c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+      var d = c.toDataURL("image/jpeg", .85);
+      cb({ mime: "image/jpeg", data: d.split(",")[1], url: d });
+    }; im.src = url;
+  }
+  function strip() {
+    var el = document.getElementById("v237strip"); if (!el) return;
+    el.style.display = pending.length ? "flex" : "none"; el.innerHTML = "";
+    pending.forEach(function (p, i) {
+      var w = document.createElement("div"); w.style.cssText = "position:relative;flex:0 0 auto";
+      if (p.url) { var im = document.createElement("img"); im.src = p.url;
+        im.style.cssText = "height:52px;border-radius:10px;border:1px solid rgba(255,255,255,.25)"; w.appendChild(im); }
+      else { var t = document.createElement("span"); t.textContent = "📄 " + (p.name || "file");
+        t.style.cssText = "font:12px system-ui;color:#e8f2ff;background:rgba(0,0,0,.35);padding:14px 10px;border-radius:10px;display:inline-block"; w.appendChild(t); }
+      var x = document.createElement("button"); x.type = "button"; x.textContent = "✕";
+      x.style.cssText = "position:absolute;top:-6px;right:-6px;background:#ff6b6b;color:#fff;border:0;border-radius:50%;width:20px;height:20px;font:11px/20px system-ui";
+      x.onclick = function () { pending.splice(i, 1); strip(); }; w.appendChild(x); el.appendChild(w);
+    });
+  }
+  function wire() {
+    var form = document.getElementById("composer");
+    if (!form || form.dataset.v237) return; form.dataset.v237 = "1";
+    var st = document.createElement("div"); st.id = "v237strip";
+    st.style.cssText = "display:none;gap:8px;padding:6px 12px;overflow-x:auto"; form.insertBefore(st, form.firstChild);
+    function mk(accept) { var i = document.createElement("input"); i.type = "file"; i.accept = accept;
+      i.style.display = "none"; form.appendChild(i); return i; }
+    var iAny = mk("image/*,application/pdf,text/plain"), iImg = mk("image/*");
+    var bA = form.querySelector('.c-ic[aria-label="Attach"]'), bI = form.querySelector('.c-ic[aria-label="Image"]');
+    if (bA) bA.onclick = function () { iAny.click(); };
+    if (bI) bI.onclick = function () { iImg.click(); };
+    function add(files) {
+      Array.prototype.slice.call(files).slice(0, 2).forEach(function (f) {
+        if (f.size > 8 * 1024 * 1024) return toast("Too big — max 8MB");
+        if (!/^(image\/|application\/pdf|text\/plain)/.test(f.type)) return toast("Images, PDF and txt for now");
+        var r = new FileReader();
+        r.onload = function () {
+          if (/^image\//.test(f.type)) shrink(r.result, function (p) { pending.push(p); strip(); });
+          else { pending.push({ mime: f.type, data: String(r.result).split(",")[1], name: f.name }); strip(); }
+        }; r.readAsDataURL(f);
+      });
+    }
+    iAny.onchange = function () { add(iAny.files); iAny.value = ""; };
+    iImg.onchange = function () { add(iImg.files); iImg.value = ""; };
+    var of = window.fetch;
+    window.fetch = function (u, o) {
+      try {
+        var s = String(u || "");
+        if (pending.length && o && o.method === "POST" && s.indexOf("/api/chat") > -1 &&
+            typeof o.body === "string" && o.body.indexOf('"images"') === -1) {
+          var b = JSON.parse(o.body); b.images = pending.map(function (p) { return { mime: p.mime, data: p.data }; });
+          o = Object.assign({}, o, { body: JSON.stringify(b) });
+          pending = []; strip();
+        }
+      } catch (e) {}
+      return of.apply(this, arguments);
+    };
+  }
+  setInterval(function () { try { wire(); } catch (e) {} }, 900);
+})();
+
+/* ===== v239: admin row restored, dashboard user controls, profile fill ===== */
+(function () {
+  if (window.__v239) return; window.__v239 = "1";
+  function pf(p, o) { o = o || {}; o.credentials = "include";
+    o.headers = Object.assign({ "X-Alfred-Token": localStorage.getItem("alfred_token") || "" }, o.headers || {});
+    return fetch(p, o).then(function (r) { return r.json(); }); }
+  pf("/api/admin/overview").then(function (j) {
+    if (!j || !j.ok) return;
+    var rows = Array.prototype.slice.call(document.querySelectorAll("aside *, .sidebar *, #drawer *, nav *"))
+      .filter(function (e) { return e.children.length <= 2 && /^(Settings|Admin)$/i.test((e.textContent || "").trim()); });
+    var set = rows.filter(function (e) { return /^Settings$/i.test((e.textContent || "").trim()); })[0];
+    var row = rows.filter(function (e) { return /^Admin$/i.test((e.textContent || "").trim()); })[0];
+    if (!row && set) { row = set.cloneNode(true); set.parentNode.insertBefore(row, set.nextSibling); }
+    if (!row) return;
+    row.id = "v239-adminrow"; row.style.display = "";
+    Array.prototype.forEach.call(row.querySelectorAll("*"), function (e) {
+      if (!e.children.length && /Settings/i.test(e.textContent || "")) e.textContent = "Admin";
+    });
+    if (!row.children.length) row.textContent = "Admin";
+    row.onclick = function () { location.hash = "#/admin"; };
+  }).catch(function () {});
+  var body = document.getElementById("adm-body");
+  if (body && !body.dataset.v239) {
+    body.dataset.v239 = "1"; var t = null;
+    function aug() {
+      body.querySelectorAll("tr").forEach(function (tr) {
+        if (tr.dataset.v239r || !tr.querySelector("select")) return;
+        var sv = tr.querySelector("button[data-em]"); if (!sv) return;
+        tr.dataset.v239r = "1"; var email = sv.getAttribute("data-em");
+        var td = document.createElement("td"); td.style.whiteSpace = "nowrap";
+        [["logout", "#ffb46b", function (b) {
+            pf("/api/admin/users/revoke", { method: "POST", body: JSON.stringify({ email: email }) })
+              .then(function (x) { b.textContent = x.ok ? "out ✓" : "fail"; setTimeout(function () { b.textContent = "logout"; }, 1400); }); }],
+         ["delete", "#ff6b6b", function (b) {
+            if (b.textContent !== "sure?") { b.textContent = "sure?"; setTimeout(function () { b.textContent = "delete"; }, 2500); return; }
+            pf("/api/admin/users/delete", { method: "POST", body: JSON.stringify({ email: email }) })
+              .then(function (x) { b.textContent = x.ok ? "gone ✓" : "fail"; }); }]].forEach(function (c) {
+          var b = document.createElement("button"); b.type = "button"; b.textContent = c[0];
+          b.style.cssText = "background:transparent;color:" + c[1] + ";border:1px solid " + c[1] + "66;border-radius:8px;padding:3px 9px;font:12px system-ui;margin-left:6px";
+          b.onclick = function () { c[2](b); }; td.appendChild(b);
+        });
+        tr.appendChild(td);
+      });
+    }
+    new MutationObserver(function () { clearTimeout(t); t = setTimeout(aug, 150); }).observe(body, { childList: true, subtree: true });
+    aug();
+  }
+  pf("/api/auth/me").then(function (j) {
+    if (!j || !j.ok || !j.user) return;
+    var inp = document.querySelector('#view-settings input[placeholder*="call you"]');
+    if (inp) inp.value = j.user.name || "";
+    Array.prototype.forEach.call(document.querySelectorAll("#view-settings *"), function (e) {
+      if (!e.children.length && /Not signed in/i.test(e.textContent || "")) e.textContent = "Signed in as " + (j.user.email || "");
+    });
+  }).catch(function () {});
+})();
+
+/* v240 dedupe retired in v241 */
+
+/* v241 row block retired in v242 */
+
+/* retired in v243 */
+
+/* v243 row block retired in v244 */
+
+/* retired in v245 */
+
+/* ===== v244: modules — first render behaves like a real tier tap ===== */
+/* retired v247.1 */
+
+/* ===== v245: Admin row — always visible, outerHTML twin with shield ===== */
+/* retired v247.1 */
+
+/* ===== v245.1: Admin row — event-isolated, routes to dashboard ===== */
+(function () {
+  if (window.__v2451) return; window.__v2451 = "1";
+  var SHIELD = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#9fd8ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-2.9 8.2-7 10-4.1-1.8-7-5.6-7-10V6l7-3z"/></svg>';
+  function scope() { return document.querySelector("aside,nav,[class*='sidebar'],[class*='drawer']") || document; }
+  function srcRow() {
+    var sc = scope(), els = sc.querySelectorAll("*");
+    for (var i = 0; i < els.length; i++) {
+      var e = els[i];
+      if (!e.children.length && (e.textContent || "").trim() === "Settings" && e.offsetParent !== null) {
+        var r = e;
+        while (r.parentElement && r.parentElement !== sc && (r.parentElement.textContent || "").trim() === "Settings") r = r.parentElement;
+        return r;
+      }
+    }
+    return null;
+  }
+  function go(ev) {
+    if (ev) { ev.preventDefault(); ev.stopImmediatePropagation(); }
+    try { location.hash = "#/admin"; } catch (e) {}
+    setTimeout(function () {
+      var v = document.getElementById("view-admin");
+      if (!v || v.offsetParent === null) {
+        var alt = document.querySelector("[data-view='admin'],[data-page='admin'],[href='#/admin']");
+        if (alt) { alt.click(); return; }
+        [].slice.call(document.querySelectorAll(".view")).forEach(function (x) { x.style.display = "none"; });
+        if (v) v.style.display = "block";
+      }
+    }, 260);
+  }
+  setInterval(function () {
+    try { var _sc = scope(); _sc.style.scrollbarWidth = "none"; } catch (e) {}
+    if (document.getElementById("v2451-admin-row")) return;
+    var src = srcRow(); if (!src) return;
+    var row = src.cloneNode(true);
+    row.id = "v2451-admin-row";
+    [row].concat([].slice.call(row.querySelectorAll("*"))).forEach(function (x) {
+      [].slice.call(x.attributes).forEach(function (at) {
+        if (/^on/i.test(at.name) || /^(href|data-view|data-page|data-target|data-nav|data-route)$/i.test(at.name)) x.removeAttribute(at.name);
+      });
+      try { x.onclick = null; } catch (e) {}
+    });
+    var svg = row.querySelector("svg");
+    if (svg) { var t = document.createElement("span"); t.innerHTML = SHIELD; svg.replaceWith(t.firstChild); }
+    var leaf = null;
+    [].slice.call(row.querySelectorAll("*")).forEach(function (x) {
+      if (!x.children.length && /Settings/i.test(x.textContent || "")) leaf = x;
+    });
+    if (leaf) leaf.textContent = "Admin"; else row.textContent = "Admin";
+    row.addEventListener("click", go, true);
+    row.addEventListener("pointerdown", function (e) { e.stopImmediatePropagation(); }, true);
+    row.style.cursor = "pointer";
+    src.parentNode.insertBefore(row, src.nextSibling);
+  }, 1200);
+})();
+
+/* ===== v245.6: no double circles around the brand mark ===== */
+/* v245.6 retired - wrappers keep their rings */
+
+/* ===== v245.7: brand asset selector — wrapper provides the ring ===== */
+(function () {
+  if (window.__v2457) return; window.__v2457 = "1";
+  function isRound(el) {
+    try {
+      var r = parseFloat(getComputedStyle(el).borderRadius) || 0;
+      var b = Math.min(el.offsetWidth, el.offsetHeight) || 1;
+      return r >= b * 0.45;
+    } catch (e) { return false; }
+  }
+  function sweep() {
+    var imgs = document.querySelectorAll('img[src*="brand-192"]');
+    for (var i = 0; i < imgs.length; i++) {
+      var im = imgs[i], p = im.parentElement;
+      if (!p || p === document.body) continue;
+      if (isRound(p)) {                                    /* wrapper = the one ring */
+        if (im.src.indexOf("lambda-192") === -1) im.src = "/assets/lambda-192.png?v=1";
+      } else if (im.src.indexOf("brand-192") === -1) {
+        im.src = "/assets/brand-192.png?v=3";              /* standalone keeps its ring */
+      }
+    }
+  }
+  setInterval(sweep, 1200);
+  document.addEventListener("DOMContentLoaded", sweep);
+})();
+
+/* ===== v247: single Admin row - final authority over all injector generations ===== */
+/* v247 superseded by v248 */
+
+/* ===== v248: admin authority (shield) + chat avatar de-branding ===== */
+(function () {
+  if (window.__v248) return; window.__v248 = "1";
+  var SHIELD = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#9fd8ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-2.9 8.2-7 10-4.1-1.8-7-5.6-7-10V6l7-3z"/></svg>';
+  function scope() { return document.querySelector("aside,nav,[class*='sidebar'],[class*='drawer']") || document; }
+  function go(ev) {
+    if (ev) { ev.preventDefault(); ev.stopImmediatePropagation(); }
+    try { location.hash = "#/admin"; } catch (e) {}
+    setTimeout(function () {
+      var any = [].slice.call(document.querySelectorAll(".view")).some(function (x) { return x.offsetParent !== null; });
+      if (!any) { var v = document.getElementById("view-admin"); if (v) v.style.display = "block"; }
+    }, 420);
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var sc = scope(), keep = document.getElementById("v2451-admin-row"), leaves = [];
+    [].slice.call(sc.querySelectorAll("*")).forEach(function (e) {
+      if (!e.children.length && (e.textContent || "").trim() === "Admin") leaves.push(e);
+    });
+    if (!leaves.length) return;
+    var rows = leaves.map(function (leaf) {
+      var r = leaf;
+      while (r.parentElement && r.parentElement !== sc && (r.parentElement.textContent || "").trim() === "Admin") r = r.parentElement;
+      return r;
+    });
+    rows = rows.filter(function (r, i) { return rows.indexOf(r) === i; });
+    if (!keep) {
+      keep = rows[0]; keep.id = "v2451-admin-row";
+      keep.addEventListener("click", go, true);
+      keep.addEventListener("pointerdown", function (e) { e.stopImmediatePropagation(); }, true);
+    }
+    if (!keep.getAttribute("data-v248")) {
+      keep.setAttribute("data-v248", "1");
+      var svg = keep.querySelector("svg");
+      if (svg) { var t = document.createElement("span"); t.innerHTML = SHIELD; svg.replaceWith(t.firstChild); }
+      var leaf = null;
+      [].slice.call(keep.querySelectorAll("*")).forEach(function (x) {
+        if (!x.children.length && (x.textContent || "").trim() === "Admin") leaf = x;
+      });
+      if (leaf) leaf.textContent = "Admin";
+    }
+    rows.forEach(function (r) { if (r !== keep && r.parentNode) r.parentNode.removeChild(r); });
+  }, 1200);
+})();
+(function () {
+  if (window.__v248q) return; window.__v248q = "1";
+  var SPARK = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z" fill="#9fd8ff"/></svg>');
+  function sweep() {
+    var imgs = document.querySelectorAll('.msg-av img[src*="brand-"], .msg-av img[src*="lambda-"]');
+    for (var i = 0; i < imgs.length; i++) imgs[i].src = SPARK;
+  }
+  setInterval(function () { if (!document.hidden) sweep(); }, 1500);
+  document.addEventListener("DOMContentLoaded", sweep);
+})();
+
+/* ===== v249: copy buttons — code blocks + message bubbles ===== */
+(function () {
+  if (window.__v249) return; window.__v249 = "1";
+  function cp(txt, btn) {
+    function done() { var o = btn.textContent; btn.textContent = "✓";
+      setTimeout(function () { btn.textContent = "⧉"; }, 1200); }
+    function fb() { var ta = document.createElement("textarea"); ta.value = txt;
+      ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta);
+      ta.select(); try { document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta); done(); }
+    if (navigator.clipboard && navigator.clipboard.writeText)
+      navigator.clipboard.writeText(txt).then(done, fb); else fb();
+  }
+  function mk() {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "v249cp"; b.textContent = "⧉";
+    return b;
+  }
+  function sweepCode() {
+    var pres = document.querySelectorAll("#view-chat pre");
+    for (var i = 0; i < pres.length; i++) {
+      var p = pres[i];
+      if (p.getAttribute("data-v249")) continue;
+      p.setAttribute("data-v249", "1");
+      var b = mk(); b.addEventListener("click", function (e) {
+        e.stopPropagation(); cp(this.parentNode.innerText.replace(/⧉|✓/g, ""), this);
+      });
+      p.appendChild(b);
+    }
+  }
+  function sweepMsgs() {
+    var avs = document.querySelectorAll("#view-chat .msg-av");
+    for (var i = 0; i < avs.length; i++) {
+      var row = avs[i].parentElement; if (!row || row.classList.contains("v249row")) continue;
+      var best = null, len = 60;
+      [].slice.call(row.children).forEach(function (c) {
+        if (c === avs[i] || c.querySelector && c.querySelector(".msg-av")) return;
+        var L = (c.textContent || "").length;
+        if (L > len) { len = L; best = c; }
+      });
+      if (!best) continue;
+      row.classList.add("v249row");
+      var b = mk(); b.addEventListener("click", function (e) {
+        e.stopPropagation(); cp(this.parentNode.innerText.replace(/⧉|✓/g, ""), this);
+      });
+      row.appendChild(b);
+    }
+  }
+  setInterval(function () { if (document.hidden) return; try { sweepCode(); sweepMsgs(); } catch (e) {} }, 1500);
+  document.addEventListener("DOMContentLoaded", function () { sweepCode(); sweepMsgs(); });
+})();
+
+/* ===== v248b: admin metrics strip (schema-adaptive backend) ===== */
+(function () {
+  if (window.__v248b) return; window.__v248b = "1";
+  var tick = 0;
+  function fmt(n) { return (n === null || n === undefined) ? "—" : (n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n)); }
+  function card(label, val) {
+    return '<div style="flex:1;min-width:130px;background:rgba(255,255,255,.05);border:1px solid rgba(159,216,255,.18);border-radius:14px;padding:12px 14px">' +
+      '<div style="font:11px system-ui;color:#8fb8d8;text-transform:uppercase;letter-spacing:.08em">' + label + '</div>' +
+      '<div style="font:600 20px system-ui;color:#e8f2ff;margin-top:4px">' + val + '</div></div>';
+  }
+  function load(strip) {
+    fetch("/api/admin/metrics", { credentials: "include", headers: { "X-Alfred-Token": localStorage.getItem("alfred_token") || "" } }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || !j.ok) { strip.innerHTML = '<div style="font:12px system-ui;color:#ff8f8f">metrics: ' + ((j && j.error) || "unavailable") + '</div>'; return; }
+      var m = j.metrics || {}, mix = (m.model_mix && m.model_mix[0]) ? m.model_mix[0].model + " · " + m.model_mix[0].n : "—";
+      strip.innerHTML = card("Messages 24h", fmt(m.msgs_24h)) + card("Tokens 24h", fmt(m.tokens_24h)) +
+        card("Chats total", fmt(m.chats_total)) + card("Live sessions", fmt(m.active_sessions)) + card("Top model", mix) + card("Failed logins 24h", fmt(m.failed_24h));
+    }).catch(function () {});
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-admin");
+    if (!v || v.offsetParent === null) return;
+    var strip = document.getElementById("v248b-strip");
+    if (!strip) {
+      strip = document.createElement("div");
+      strip.id = "v248b-strip";
+      strip.style.cssText = "display:flex;gap:10px;flex-wrap:wrap;margin:10px 0";
+      v.insertBefore(strip, v.firstChild);
+      load(strip); tick = 0;
+      return;
+    }
+    if (++tick >= 15) { tick = 0; load(strip); }
+  }, 2000);
+})();
+
+/* ===== v251: router reconciler + splash watchdog + admin table scroll ===== */
+(function () {
+  if (window.__v251) return; window.__v251 = "1";
+  window.addEventListener("hashchange", function () {
+    setTimeout(function () {
+      if ((location.hash || "").indexOf("admin") > -1) return;
+      var views = [].slice.call(document.querySelectorAll(".view"));
+      var vis = views.filter(function (x) { return x.offsetParent !== null; });
+      if (!vis.length) return;                       /* router handled nothing -> fallback may act */
+      views.forEach(function (x) { if (x.style.display) x.style.display = ""; });
+      var h = (location.hash || "").replace("#/", "").split(/[?#]/)[0];
+      var t = document.getElementById("view-" + h);
+      if (t && t.offsetParent !== null) {
+        t.classList.remove("v251in"); void t.offsetWidth; t.classList.add("v251in");
+        setTimeout(function () { t.classList.remove("v251in"); }, 480);
+      }
+    }, 60);
+  });
+  setInterval(function () {
+    if (document.hidden) return;
+    [].slice.call(document.querySelectorAll("#view-admin table")).forEach(function (t) {
+      if (t.parentNode && t.parentNode.classList && t.parentNode.classList.contains("v251scroll")) return;
+      var w = document.createElement("div"); w.className = "v251scroll";
+      t.parentNode.insertBefore(w, t); w.appendChild(t);
+    });
+  }, 2500);
+  setTimeout(function () {
+    [].slice.call(document.querySelectorAll('[id*="splash"],[class*="splash"]')).forEach(function (e) {
+      var cs = getComputedStyle(e);
+      if (cs.position === "fixed" || cs.position === "absolute") e.style.display = "none";
+    });
+  }, 3500);
+})();
+
+/* ===== v251b: showcase — dashboard editor + modules render (display-only) ===== */
+(function () {
+  if (window.__v251b) return; window.__v251b = "1";
+  function api(p, opt) { return fetch(p, Object.assign({ credentials: "include", headers: { "X-Alfred-Token": localStorage.getItem("alfred_token") || "" } }, opt || {})).then(function (r) { return r.json().catch(function () { return {}; }); }); }
+  function editorCard(v) {
+    var c = document.createElement("div");
+    c.id = "v251b-editor";
+    c.style.cssText = "background:rgba(255,255,255,.05);border:1px solid rgba(159,216,255,.18);border-radius:14px;padding:14px;margin:10px 0";
+    c.innerHTML = '<div style="font:600 13px system-ui;color:#e8f2ff;margin-bottom:8px">Modules Showcase <span style="font-weight:400;color:#8fb8d8">(what visitors see — one item per line: Name | Description | Tier)</span></div>';
+    var ta = document.createElement("textarea");
+    ta.style.cssText = "width:100%;min-height:90px;background:rgba(0,0,0,.3);color:#e8f2ff;border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px;font:12px system-ui";
+    ta.placeholder = "Nano Vision | Sees and reasons about your images | Pro\nDeep Thought | Multi-step reasoning for hard problems | Ultra";
+    var row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px;margin-top:8px";
+    var save = document.createElement("button"); save.type = "button"; save.textContent = "Publish";
+    save.style.cssText = "background:#2e7fd6;color:#fff;border:0;border-radius:10px;padding:7px 16px;font:12px system-ui;cursor:pointer";
+    var st = document.createElement("span"); st.style.cssText = "font:12px system-ui;color:#8fb8d8;align-self:center";
+    save.onclick = function () {
+      var items = ta.value.split("\n").map(function (l) {
+        var p = l.split("|"); if (!p[0] || !p[0].trim()) return null;
+        return { name: (p[0] || "").trim(), desc: (p[1] || "").trim(), tier: (p[2] || "Pro").trim() };
+      }).filter(Boolean);
+      api("/api/admin/showcase", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: items }) })
+        .then(function (j) { st.textContent = j.ok ? "Published ✓ (" + j.count + " items)" : (j.error || "failed"); setTimeout(function(){ st.textContent = ""; }, 2500); });
+    };
+    var load = document.createElement("button"); load.type = "button"; load.textContent = "Load current";
+    load.style.cssText = "background:transparent;color:#cfe9ff;border:1px solid rgba(159,216,255,.3);border-radius:10px;padding:7px 12px;font:12px system-ui;cursor:pointer";
+    load.onclick = function () {
+      api("/api/admin/showcase").then(function (j) {
+        ta.value = (j.items || []).map(function (i) { return i.name + " | " + i.desc + " | " + i.tier; }).join("\n");
+        st.textContent = (j.items || []).length + " loaded";
+        setTimeout(function(){ st.textContent = ""; }, 2000);
+      });
+    };
+    row.appendChild(save); row.appendChild(load); row.appendChild(st);
+    c.appendChild(ta); c.appendChild(row);
+    var strip = document.getElementById("v248b-strip");
+    if (strip && strip.parentNode === v) v.insertBefore(c, strip.nextSibling); else v.insertBefore(c, v.firstChild);
+    load.click();
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-admin");
+    if (v && v.offsetParent !== null && !document.getElementById("v251b-editor")) editorCard(v);
+    var m = document.getElementById("view-modules");
+    if (m && m.offsetParent !== null && !m.getAttribute("data-v251sc")) {
+      fetch("/showcase.json").then(function (r) { return r.ok ? r.json() : { items: [] }; }).catch(function(){ return {items:[]}; }).then(function (j) {
+        var items = (j && j.items) || []; if (!items.length) return; m.setAttribute("data-v251sc", "1");
+        var sec = document.createElement("div");
+        sec.style.cssText = "margin:18px 0 8px";
+        var h = document.createElement("div");
+        h.style.cssText = "font:600 15px system-ui;color:#e8f2ff;margin-bottom:10px";
+        h.textContent = "Alfred's Arsenal — always growing";
+        sec.appendChild(h);
+        items.forEach(function (it) {
+          var card = document.createElement("div");
+          card.style.cssText = "background:rgba(255,255,255,.05);border:1px solid rgba(159,216,255,.18);border-radius:14px;padding:12px 14px;margin-bottom:8px";
+          var top = document.createElement("div"); top.style.cssText = "display:flex;align-items:center;gap:8px";
+          var nm = document.createElement("span"); nm.style.cssText = "font:600 13px system-ui;color:#e8f2ff"; nm.textContent = it.name;
+          var tier = document.createElement("span"); tier.style.cssText = "font:10px system-ui;color:#9fd8ff;border:1px solid rgba(159,216,255,.35);border-radius:99px;padding:1px 8px"; tier.textContent = it.tier;
+          top.appendChild(nm); top.appendChild(tier);
+          var ds = document.createElement("div"); ds.style.cssText = "font:12px system-ui;color:#8fb8d8;margin-top:4px"; ds.textContent = it.desc;
+          card.appendChild(top); card.appendChild(ds); sec.appendChild(card);
+        });
+        m.appendChild(sec);
+      });
+    }
+  }, 3000);
+})();
+
+/* ===== v252: admin route authority + cleanup sweeps ===== */
+(function () {
+  if (window.__v252) return; window.__v252 = "1";
+  function scope() { return document.querySelector("aside,nav,[class*='sidebar'],[class*='drawer']") || document; }
+  setInterval(function () {
+    if (document.hidden) return;
+    var admin = (location.hash || "").indexOf("admin") > -1;
+    var views = [].slice.call(document.querySelectorAll(".view"));
+    if (admin) {
+      var va = document.getElementById("view-admin");
+      if (va) {
+        views.forEach(function (x) { x.style.display = (x === va) ? "block" : "none"; });
+      }
+    } else {
+      views.forEach(function (x) { if (x.style.display) x.style.display = ""; });
+    }
+    /* kill the old settings admin console (ADMIN — N USERS) */
+    [].slice.call(document.querySelectorAll("div,section")).forEach(function (e) {
+      if (e.getAttribute("data-v252k")) return;
+      var t = (e.textContent || "").slice(0, 40);
+      if (/^ADMIN\s*[—-]\s*\d+\s*USERS/i.test(t) && e.textContent.length < 4000 && e.querySelector("select")) {
+        e.setAttribute("data-v252k", "1"); e.style.display = "none";
+      }
+    });
+    /* New Chat card: no logo, just the words */
+    var sc = scope();
+    [].slice.call(sc.querySelectorAll("*")).forEach(function (e) {
+      if (e.children.length || (e.textContent || "").trim() !== "New Chat") return;
+      var card = e;
+      while (card.parentElement && card !== sc && (card.parentElement.textContent || "").indexOf("Start a new conversation") === -1) card = card.parentElement;
+      if (card === sc || !card.parentElement) return;
+      if (card.getAttribute("data-v252nc")) return;
+      card.setAttribute("data-v252nc", "1");
+      [].slice.call(card.querySelectorAll("img,svg")).forEach(function (im) { im.style.display = "none"; });
+    });
+  }, 900);
+})();
+
+/* ===== v253: new-chat de-logo (correct climb) + hero trim + bubble roles ===== */
+(function () {
+  if (window.__v253) return; window.__v253 = "1";
+  function scope() { return document.querySelector("aside,nav,[class*='sidebar'],[class*='drawer']") || document; }
+  function best(el) {
+    var b = null, len = 60;
+    [].slice.call(el.children).forEach(function (c) {
+      if (c.querySelector && c.querySelector(".msg-av")) return;
+      var L = (c.t

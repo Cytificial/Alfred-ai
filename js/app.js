@@ -10279,3 +10279,16 @@ try { /* v163proc: native thinking card */
     "@keyframes v260sh{to{background-position:-200% 0}}";
   document.head.appendChild(st);
 })();
+
+/* ===== v261: explore single-painter — pre-mark so older sweeps stand down ===== */
+(function () {
+  if (window.__v261) return; window.__v261 = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var x = document.getElementById("view-explore"); if (!x || x.offsetParent === null) return;
+    [].slice.call(x.querySelectorAll("img")).forEach(function (im) {
+      if (!im.getAttribute("data-v254s")) im.setAttribute("data-v254s", "1");
+      if (!im.getAttribute("data-v259m")) im.setAttribute("data-v259m", "1");
+    });
+  }, 900);
+})();
