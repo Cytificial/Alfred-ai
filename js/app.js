@@ -10364,63 +10364,73 @@ try { /* v163proc: native thinking card */
 
 /* ===== v265d: refresh srcmap chunks (repo reading stays current) ===== */
 
-/* ===== v268: landing — aurora, glass bento, one mark, one CTA ===== */
+/* v268 landing retired in v269 */
+
+/* ===== v269: landing — cinematic editorial (city hero, Sora/DM Sans, one focal point) ===== */
 (function () {
-  if (window.__v268) return; window.__v268 = "1";
+  if (window.__v269) return; window.__v269 = "1";
+  var F = document.createElement("link"); F.rel = "stylesheet";
+  F.href = "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap";
+  document.head.appendChild(F);
   var st = document.createElement("style");
   st.textContent = [
-    "#land{position:fixed;inset:0;z-index:9988;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;background:#050b16;color:#eaf3ff;font-family:system-ui,-apple-system,sans-serif}",
-    "#land .blob{position:fixed;border-radius:50%;filter:blur(90px);opacity:.5;pointer-events:none}",
-    "#land .b1{width:420px;height:420px;background:#1450a3;top:-140px;left:-120px;animation:drift 16s ease-in-out infinite alternate}",
-    "#land .b2{width:380px;height:380px;background:#3d2f8f;bottom:-120px;right:-100px;animation:drift 20s ease-in-out infinite alternate-reverse}",
-    "@keyframes drift{to{transform:translate(60px,40px) scale(1.15)}}",
-    "@media (prefers-reduced-motion: reduce){#land .blob{animation:none}}",
-    "#land .in{position:relative;max-width:1000px;margin:0 auto;padding:0 22px}",
-    "#land nav{display:flex;align-items:center;justify-content:space-between;padding:20px 0}",
-    "#land .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:2.5px;font-size:14px}",
-    "#land .brand img{width:30px;height:30px}",
-    "#land .ghost{background:none;border:1px solid rgba(255,255,255,.22);color:#dfeaff;border-radius:99px;padding:8px 18px;font-size:13px;cursor:pointer}",
-    "#land .hero{padding:9vh 0 7vh;text-align:center}",
-    "#land .mark{width:84px;height:84px;margin:0 auto 30px;position:relative}",
-    "#land .mark img{width:100%;height:100%;position:relative;z-index:1}",
-    "#land .mark::before{content:'';position:absolute;inset:-34px;background:radial-gradient(circle,rgba(79,195,255,.35),transparent 65%);z-index:0}",
-    "#land h1{font-size:clamp(40px,9vw,68px);line-height:1.04;letter-spacing:-1.5px;margin:0 0 18px;font-weight:800}",
-    "#land h1 em{font-style:normal;background:linear-gradient(92deg,#7fd4ff 10%,#4fc3ff 45%,#ffb347 95%);-webkit-background-clip:text;background-clip:text;color:transparent}",
-    "#land .sub{font-size:17px;color:#b6cbe6;max-width:560px;margin:0 auto 34px;line-height:1.65}",
-    "#land .cta{background:linear-gradient(92deg,#1e6fd9,#4fc3ff);color:#fff;border:0;border-radius:999px;padding:16px 40px;font-size:16.5px;font-weight:700;cursor:pointer;box-shadow:0 10px 34px rgba(79,195,255,.4)}",
-    "#land .cta:active{transform:scale(.98)}",
-    "#land .cta2{display:block;margin:16px auto 0;background:none;border:0;color:#8fb8d8;font-size:13.5px;cursor:pointer;text-decoration:underline;text-underline-offset:4px}",
-    "#land .stats{display:flex;justify-content:center;gap:34px;padding:34px 0 8vh;flex-wrap:wrap}",
-    "#land .stat b{display:block;font-size:26px;font-variant-numeric:tabular-nums;background:linear-gradient(90deg,#cfe9ff,#8fd0ff);-webkit-background-clip:text;background-clip:text;color:transparent}",
-    "#land .stat span{font-size:11.5px;color:#7e97b8;letter-spacing:1.5px;text-transform:uppercase}",
-    "#land .kicker{color:#4fc3ff;font-size:11px;letter-spacing:3px;text-transform:uppercase;text-align:center;margin-bottom:10px}",
-    "#land h2{font-size:clamp(24px,5vw,34px);letter-spacing:-.5px;text-align:center;margin:0 0 40px;font-weight:800}",
-    "#land .bento{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}",
-    "#land .cell{grid-column:span 2;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:20px;padding:22px;backdrop-filter:blur(14px)}",
-    "#land .cell.wide{grid-column:span 3}",
-    "#land .cell .ic{font-size:24px;margin-bottom:12px}",
-    "#land .cell b{display:block;font-size:15.5px;margin-bottom:6px}",
-    "#land .cell span{font-size:13px;color:#9db6d4;line-height:1.6}",
-    "@media(max-width:640px){#land .cell,#land .cell.wide{grid-column:span 6}}",
-    "#land .marq{overflow:hidden;padding:30px 0 8vh;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}",
-    "#land .mtrack{display:flex;gap:10px;width:max-content;animation:slide 26s linear infinite}",
-    "#land .mchip{white-space:nowrap;font-size:13px;color:#bfe2ff;border:1px solid rgba(127,212,255,.25);border-radius:99px;padding:8px 16px;background:rgba(79,195,255,.07)}",
-    "@keyframes slide{to{transform:translateX(-50%)}}",
-    "#land .tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;padding-bottom:10vh}",
-    "#land .tier{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:22px;padding:24px;backdrop-filter:blur(14px)}",
-    "#land .tier.hot{border-color:rgba(255,179,71,.45);background:rgba(255,179,71,.05)}",
-    "#land .tier h3{margin:0;font-size:19px;display:flex;gap:10px;align-items:center}",
-    "#land .tag{font-size:9.5px;letter-spacing:1.5px;color:#ffb347;border:1px solid rgba(255,179,71,.5);border-radius:99px;padding:3px 9px}",
-    "#land .tier .d{color:#9db6d4;font-size:12.5px;margin:6px 0 14px}",
-    "#land .mind{display:inline-block;font-size:12px;color:#dff1ff;background:rgba(79,195,255,.09);border:1px solid rgba(79,195,255,.22);border-radius:99px;padding:5px 12px;margin:0 6px 8px 0}",
-    "#land .faqw{max-width:680px;margin:0 auto;padding-bottom:10vh}",
-    "#land details{border:1px solid rgba(255,255,255,.09);border-radius:16px;background:rgba(255,255,255,.04);margin-bottom:10px}",
-    "#land summary{padding:17px 20px;cursor:pointer;font-weight:600;font-size:14.5px;list-style:none}",
+    "#land{position:fixed;inset:0;z-index:9988;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;background:#080D17;color:#F4F7FC;font-family:'DM Sans',system-ui,sans-serif}",
+    "#land *{box-sizing:border-box}",
+    "#land .in{max-width:1160px;margin:0 auto;padding:0 22px}",
+    "#land nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0;position:relative;z-index:2}",
+    "#land .brand{display:flex;align-items:center;gap:10px;font-family:Sora;font-weight:600;letter-spacing:2.5px;font-size:13px}",
+    "#land .brand img{width:30px;height:30px;display:block}",
+    "#land .hero{position:relative;min-height:88vh;display:flex;flex-direction:column;justify-content:center;padding:40px 0 70px}",
+    "#land .hbg{position:absolute;inset:0 -22px;background:linear-gradient(90deg,rgba(5,9,17,.88) 0%,rgba(5,9,17,.58) 58%,rgba(5,9,17,.2) 100%),linear-gradient(0deg,#080D17 0%,rgba(8,13,23,.05) 48%,rgba(8,13,23,.35) 100%),url('/assets/cityy.jpg') center 56%/cover;animation:herozoom 24s linear forwards}",
+    "@keyframes herozoom{from{transform:scale(1)}to{transform:scale(1.035)}}",
+    "@media (prefers-reduced-motion:reduce){#land .hbg{animation:none}#land .rv{opacity:1!important;transform:none!important;transition:none!important}}",
+    "#land .hero .in{position:relative;z-index:1}",
+    "#land .kick{color:#66CCFF;font-size:11px;letter-spacing:3.5px;text-transform:uppercase;font-weight:600;margin-bottom:18px}",
+    "#land h1{font-family:Sora;font-weight:600;font-size:clamp(2.75rem,11vw,5rem);line-height:1.02;letter-spacing:-.055em;margin:0 0 20px;max-width:640px}",
+    "#land h1 em{font-style:normal;color:#66CCFF}",
+    "#land .sub{font-size:clamp(1rem,4.2vw,1.125rem);color:#AAB7C9;max-width:460px;line-height:1.65;margin:0 0 34px}",
+    "#land .cta{background:#66CCFF;color:#08131f;border:0;border-radius:14px;height:54px;padding:0 38px;font-family:'DM Sans';font-size:16px;font-weight:700;cursor:pointer;transition:transform .16s,filter .16s}",
+    "#land .cta:hover{filter:brightness(1.08)}.cta:active{transform:scale(.98)}",
+    "#land .how-link{display:inline-block;margin-left:22px;color:#AAB7C9;font-size:14px;background:none;border:0;cursor:pointer;text-decoration:underline;text-underline-offset:5px}",
+    "#land section{padding:88px 0}",
+    "#land h2{font-family:Sora;font-weight:600;font-size:clamp(1.8rem,7vw,3rem);line-height:1.1;letter-spacing:-.04em;margin:0 0 14px}",
+    "#land .lede{color:#AAB7C9;font-size:clamp(.95rem,3.8vw,1.05rem);line-height:1.65;max-width:520px;margin:0 0 44px}",
+    "#land .caps{display:grid;grid-template-columns:repeat(4,1fr);gap:34px}",
+    "@media(max-width:760px){#land .caps{grid-template-columns:1fr 1fr;gap:26px}}",
+    "#land .cap img{width:52px;height:52px;margin-bottom:14px}",
+    "#land .cap b{display:block;font-family:Sora;font-weight:600;font-size:15.5px;margin-bottom:6px}",
+    "#land .cap span{color:#AAB7C9;font-size:13px;line-height:1.6}",
+    "#land .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;margin-bottom:46px}",
+    "@media(max-width:760px){#land .steps{grid-template-columns:1fr}}",
+    "#land .step .n{font-family:Sora;font-weight:600;color:#66CCFF;font-size:13px;letter-spacing:2px;margin-bottom:10px}",
+    "#land .step b{display:block;font-family:Sora;font-size:17px;margin-bottom:6px}",
+    "#land .step span{color:#AAB7C9;font-size:13.5px;line-height:1.6}",
+    "#land .neb{width:100%;border-radius:20px;display:block;opacity:.9}",
+    "#land .tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}",
+    "@media(max-width:760px){#land .tiers{grid-template-columns:1fr}}",
+    "#land .tier{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:26px}",
+    "#land .tier h3{font-family:Sora;font-size:19px;margin:0 0 6px}",
+    "#land .tier .d{color:#AAB7C9;font-size:13px;line-height:1.6;margin-bottom:16px}",
+    "#land .mind{display:inline-block;font-size:12px;color:#E6F1FB;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:99px;padding:5px 12px;margin:0 6px 8px 0}",
+    "#land .faqw{max-width:640px}",
+    "#land details{border-bottom:1px solid rgba(255,255,255,.09)}",
+    "#land summary{padding:18px 4px;cursor:pointer;font-family:Sora;font-weight:500;font-size:15px;list-style:none;display:flex;justify-content:space-between;align-items:center}",
     "#land summary::-webkit-details-marker{display:none}",
-    "#land details p{padding:0 20px 18px;color:#9db6d4;font-size:13.5px;line-height:1.7;margin:0}",
-    "#land .inv{text-align:center;padding:8vh 22px 9vh;border-top:1px solid rgba(255,255,255,.07)}",
-    "#land .mail{display:inline-block;margin-top:22px;background:#ffb347;color:#0a1220;font-weight:700;border-radius:999px;padding:14px 30px;text-decoration:none;font-size:14.5px}",
-    "#land .foot{color:#5f7fa3;font-size:12px;text-align:center;padding:0 0 46px}"
+    "#land summary::after{content:'+';color:#66CCFF;font-size:18px;font-weight:400}",
+    "#land details[open] summary::after{content:'\\2013'}",
+    "#land details p{padding:0 4px 20px;color:#AAB7C9;font-size:14px;line-height:1.7;margin:0}",
+    "#land .inv{text-align:center;border-top:1px solid rgba(255,255,255,.08)}",
+    "#land .inv h2{margin-bottom:10px}",
+    "#land .mail{display:inline-block;margin-top:26px;background:#66CCFF;color:#08131f;font-weight:700;border-radius:12px;padding:16px 32px;text-decoration:none;font-size:15px;transition:filter .16s}",
+    "#land .mail:hover{filter:brightness(1.08)}",
+    "#land footer{border-top:1px solid rgba(255,255,255,.08);padding:34px 0 46px}",
+    "#land .frow{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px}",
+    "#land .foot-l{display:flex;align-items:center;gap:9px;font-family:Sora;font-size:12px;letter-spacing:2px}",
+    "#land .foot-l img{width:22px;height:22px}",
+    "#land .foot-r{color:#AAB7C9;font-size:12.5px}",
+    "#land .foot-r a{color:#66CCFF;text-decoration:none}",
+    "#land .rv{opacity:0;transform:translateY(10px);transition:opacity .5s cubic-bezier(.2,.7,.2,1),transform .5s cubic-bezier(.2,.7,.2,1)}",
+    "#land .rv.on{opacity:1;transform:none}"
   ].join("");
   document.head.appendChild(st);
 
@@ -10429,48 +10439,61 @@ try { /* v163proc: native thinking card */
     Pro:   ["GPT-6 Astra", "Claude Opus 5", "DeepSeek 4.1", "Dolphin", "Code Interpreter", "Web Search"],
     Ultra: ["GPT-6 Astra Ultra", "Claude Opus 5 Max", "DeepSeek 4.1 Apex", "Dolphin Ultra", "Deep-think Council"]
   };
-  function tier(k, d, hot) {
-    return '<div class="tier' + (hot ? " hot" : "") + '"><h3>' + k + (hot ? '<span class="tag">MOST POPULAR</span>' : "") +
-      '</h3><div class="d">' + d + '</div>' + M[k].map(function (x) { return '<span class="mind">' + x + '</span>'; }).join("") + '</div>';
+  function caps4() {
+    return [["reason", "Think", "Hard questions, weighed from every angle before he answers."],
+            ["image", "See", "Send a photo \u2014 he understands what is in it."],
+            ["writing", "Create", "Words, images, worlds \u2014 drafted and refined with you."],
+            ["code", "Build", "Real code, explained while it ships."]]
+      .map(function (c) {
+        return '<div class="cap rv"><img src="/assets/gen/tile-' + c[0] + '.png" alt=""><b>' + c[1] + '</b><span>' + c[2] + '</span></div>';
+      }).join("");
   }
-  var chips = ["Write anything", "Ship code", "See your photos", "Plan the week", "Explain the hard stuff", "Imagine images", "Answer together", "Remember you"];
+  function tiers() {
+    return [["Free", "Meet Alfred \u2014 crisp, quick answers every day."],
+            ["Pro", "The latest generation of minds at full speed."],
+            ["Ultra", "Maximum depth \u2014 the Deep-think Council convenes on your question."]]
+      .map(function (t) {
+        return '<div class="tier rv"><h3>' + t[0] + '</h3><div class="d">' + t[1] + '</div>' +
+               M[t[0]].map(function (x) { return '<span class="mind">' + x + '</span>'; }).join("") + '</div>';
+      }).join("");
+  }
   function build() {
     if (document.getElementById("land")) return;
     var L = document.createElement("div"); L.id = "land";
     L.innerHTML =
-      '<div class="blob b1"></div><div class="blob b2"></div><div class="in">' +
-      '<nav><div class="brand"><img src="/assets/logo-dark.svg" alt="">ALFRED AI</div>' +
-      '<button class="ghost" id="land-in">Sign in</button></nav>' +
-      '<div class="hero"><div class="mark"><img src="/assets/logo-dark.svg" alt="Alfred"></div>' +
-      '<h1>Your Mind, <em>Amplified.</em></h1>' +
-      '<p class="sub">One butler. The most powerful AI minds on Earth, answering together \u2014 sharp, fast, and yours.</p>' +
-      '<button class="cta" id="land-cta">\u2728 Chat with Alfred</button>' +
-      '<button class="cta2" id="land-how">See what he can do \u2193</button></div>' +
-      '<div class="stats"><div class="stat"><b>6+</b><span>elite minds</span></div>' +
-      '<div class="stat"><b>3</b><span>power levels</span></div>' +
-      '<div class="stat"><b>1</b><span>deep-think council</span></div>' +
-      '<div class="stat"><b>0</b><span>setup needed</span></div></div>' +
-      '<div class="kicker">Why Alfred</div><h2>Not one AI. A council of them.</h2>' +
-      '<div class="bento">' +
-      '<div class="cell wide"><div class="ic">\u{1F9E0}</div><b>Council intelligence</b><span>Hard questions get convened \u2014 multiple minds weigh in, Alfred delivers one excellent answer.</span></div>' +
-      '<div class="cell wide"><div class="ic">\u{1F30C}</div><b>Chats become worlds</b><span>Every conversation grows its own galaxy in History. Explore a sky of what people dream.</span></div>' +
-      '<div class="cell"><div class="ic">\u{1F441}\uFE0F</div><b>Vision</b><span>Send a photo. He understands it.</span></div>' +
-      '<div class="cell"><div class="ic">\u26A1</div><b>Always fresh</b><span>New elite models arrive \u2014 Alfred absorbs them. You never think about it.</span></div>' +
-      '<div class="cell"><div class="ic">\u{1F4F1}</div><b>Installs as an app</b><span>Full screen, offline shell, your Alfred in the pocket.</span></div></div>' +
-      '<div class="marq"><div class="mtrack">' + chips.concat(chips).map(function (c) { return '<span class="mchip">' + c + '</span>'; }).join("") + '</div></div>' +
-      '<div class="kicker">Power levels</div><h2>Choose how hard he thinks</h2>' +
-      '<div class="tiers">' + tier("Free", "Meet Alfred \u2014 crisp answers every day") + tier("Pro", "Latest-generation minds at full speed", true) + tier("Ultra", "The Deep-think Council \u2014 maximum depth") + '</div>' +
-      '<div class="kicker">FAQ</div><h2>Good questions</h2><div class="faqw">' +
-      '<details><summary>What exactly is Alfred?</summary><p>A personal AI butler that combines multiple state-of-the-art AI minds to give you one excellent answer \u2014 with vision, worlds, and memory.</p></details>' +
-      '<details><summary>Is it free?</summary><p>Yes. Free gets you chatting every day; Pro and Ultra unlock the deeper councils.</p></details>' +
-      '<details><summary>What can I use him for?</summary><p>Writing, coding, planning, learning, images, understanding photos \u2014 anything you would ask the world\u2019s best minds.</p></details>' +
-      '<details><summary>Are my conversations private?</summary><p>They belong to you. Sign in, talk, delete \u2014 your call.</p></details>' +
-      '<details><summary>Which devices work?</summary><p>Any modern browser \u2014 and on your phone he installs as a full-screen app.</p></details></div>' +
-      '<div class="inv"><div class="kicker">For investors & partners</div><h2 style="margin-bottom:8px">Join us at the beginning</h2>' +
-      '<p class="sub" style="font-size:15px">Alfred is the consumer face of multi-model intelligence.</p>' +
-      '<a class="mail" href="mailto:cyberartificial1@gmail.com?subject=Alfred%20AI%20%E2%80%94%20Investor%20inquiry">cyberartificial1@gmail.com</a></div>' +
-      '<div class="foot">\u00a9 Alfred AI \u2014 Your Mind, Amplified.</div></div>';
+      '<div class="hbg"></div><nav class="in"><div class="brand"><img src="/assets/logo-dark.svg" alt="">ALFRED AI</div></nav>' +
+      '<div class="hero"><div class="in"><div class="kick">Alfred AI \u00b7 Personal Intelligence</div>' +
+      '<h1>One butler.<br>A <em>world of minds.</em></h1>' +
+      '<p class="sub">Alfred brings powerful AI minds together to help you think, create, and move forward.</p>' +
+      '<button class="cta" id="land-cta">Chat with Alfred</button>' +
+      '<button class="how-link" id="land-how">See how it works</button></div></div>' +
+      '<section><div class="in"><div class="kick rv">Capabilities</div><h2 class="rv">One conversation.<br>More ways forward.</h2>' +
+      '<div class="caps">' + caps4() + '</div></div></section>' +
+      '<section style="padding-top:0"><div class="in"><div class="kick rv">How it works</div>' +
+      '<div class="steps" style="margin-top:26px">' +
+      '<div class="step rv"><div class="n">01</div><b>Ask Alfred</b><span>Anything you would ask the sharpest person you know.</span></div>' +
+      '<div class="step rv"><div class="n">02</div><b>He brings the right minds</b><span>Alfred convenes the specialists your question deserves.</span></div>' +
+      '<div class="step rv"><div class="n">03</div><b>One useful answer</b><span>Not a feed of bots \u2014 one considered reply, with a next step.</span></div></div>' +
+      '<img class="neb rv" src="/assets/gen/nebula-plate.png" alt=""></div></section>' +
+      '<section><div class="in"><div class="kick rv">Power levels</div><h2 class="rv">Choose how hard he thinks.</h2>' +
+      '<p class="lede rv">Same butler at every level \u2014 deeper councils at the higher ones.</p>' +
+      '<div class="tiers">' + tiers() + '</div></div></section>' +
+      '<section style="padding-top:0"><div class="in"><div class="kick rv">FAQ</div><div class="faqw">' +
+      '<details class="rv"><summary>What exactly is Alfred?</summary><p>A personal AI butler that combines multiple state-of-the-art AI minds to give you one excellent answer \u2014 with vision, worlds, and memory.</p></details>' +
+      '<details class="rv"><summary>Is it free?</summary><p>Yes. The Free level gets you chatting every day; Pro and Ultra convene deeper minds.</p></details>' +
+      '<details class="rv"><summary>What can I use him for?</summary><p>Writing, coding, planning, learning, images, understanding photos \u2014 anything you would ask the world\u2019s best minds.</p></details>' +
+      '<details class="rv"><summary>Are my conversations private?</summary><p>They belong to you. Sign in, talk, delete \u2014 your call.</p></details>' +
+      '<details class="rv"><summary>Which devices work?</summary><p>Any modern browser \u2014 and on your phone he installs as a full-screen app.</p></details></div></div></section>' +
+      '<section class="inv"><div class="in"><div class="kick rv">For investors & partners</div><h2 class="rv">Building a more useful kind of AI.</h2>' +
+      '<p class="lede rv" style="margin:0 auto 0;max-width:420px">Alfred is the consumer face of multi-mind intelligence. Talk to us.</p>' +
+      '<a class="mail rv" href="mailto:cyberartificial1@gmail.com?subject=Alfred%20AI%20%E2%80%94%20Investor%20inquiry">cyberartificial1@gmail.com</a></div></section>' +
+      '<footer><div class="in frow"><div class="foot-l"><img src="/assets/logo-dark.svg" alt="">ALFRED AI</div>' +
+      '<div class="foot-r">\u00a9 Alfred AI \u00b7 Your Mind, Amplified \u00b7 <a href="mailto:cyberartificial1@gmail.com">contact</a></div></div></footer>';
     document.body.appendChild(L);
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("on"); io.unobserve(e.target); } });
+    }, { threshold: .12 });
+    [].slice.call(L.querySelectorAll(".rv")).forEach(function (e) { io.observe(e); });
     function tok() { try { for (var k in localStorage) { var v = localStorage.getItem(k) || ""; if (v.length >= 24 && /^[A-Za-z0-9_\-.]+$/.test(v)) return v; } } catch (e) {} return ""; }
     function go() {
       fetch("/api/auth/me", { credentials: "include", headers: { "X-Alfred-Token": tok() } })
@@ -10482,15 +10505,13 @@ try { /* v163proc: native thinking card */
             if (c) c.click(); else location.hash = "#/chat";
           } else {
             [].slice.call(document.querySelectorAll(".view")).forEach(function (v) { v.classList.toggle("show", /login/i.test(v.id)); });
-            var s = document.querySelector('[data-view="settings"],.nav-item');
             [].slice.call(document.querySelectorAll(".nav-item")).forEach(function (r) { r.classList.remove("active"); });
           }
         }).catch(function () { L.style.display = "none"; });
     }
     document.getElementById("land-cta").addEventListener("click", go);
-    document.getElementById("land-in").addEventListener("click", go);
     document.getElementById("land-how").addEventListener("click", function () {
-      L.querySelector(".bento").scrollIntoView({ behavior: "smooth", block: "start" });
+      L.querySelectorAll("section")[0].scrollIntoView({ behavior: "smooth" });
     });
   }
   function decide() {
@@ -10503,5 +10524,4 @@ try { /* v163proc: native thinking card */
   }
   setTimeout(decide, 3600);
   window.addEventListener("hashchange", decide);
-  setInterval(function () { if (!document.hidden) decide(); }, 30000);
 })();
