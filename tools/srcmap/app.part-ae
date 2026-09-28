@@ -1386,43 +1386,6 @@ extContent || "").length;
   }, 1000);
 })();
 
-/* ===== v279: splash velocity + honest login ===== */
-(function () {
-  if (window.__v279) return; window.__v279 = "1";
-  var st = document.createElement("style");
-  st.textContent = [
-    "#login .soc, #register .soc{display:none !important}",
-    "#login .divider, #register .divider{display:none !important}",
-    "#register .head p{color:#8fb8d8 !important;font-size:13px !important}",
-    "#login .head p, #register .head p{font-family:'DM Sans',system-ui !important}",
-    "#loading .bar-wrap{max-width:280px !important;margin:0 auto !important}",
-    "#loading .status{margin-bottom:10px !important}"
-  ].join("");
-  document.head.appendChild(st);
-  /* splash: 2.2s wall-clock glide (was 6500ms), sparkier particles */
-  setTimeout(function () {
-    try {
-      if (window.__v279vel) return; window.__v279vel = 1;
-      var scr = [].slice.call(document.scripts).filter(function (s) { return (s.textContent || "").indexOf("DURATION = 6500") > -1; })[0];
-      if (!scr) return;
-      var el = document.createElement("script");
-      el.textContent = scr.textContent.replace(/DURATION = 6500/, "DURATION = 2200")
-        .replace(/for \(var i = 0; i < 16; i\+\+\)/, "for (var i = 0; i < 22; i++)")
-        .replace(/animationDelay = \(i \* 0\.9\)/, "animationDelay = (i * 0.35)")
-        .replace(/animationDuration = \(9 \+ \(i % 5\) \* 2\)/, "animationDuration = (5 + (i % 4) * 1.5)");
-      document.head.appendChild(el);
-    } catch (e) {}
-  }, 0);
-  /* login: register terms-row real consent note */
-  setInterval(function () {
-    if (document.hidden) return;
-    var r = document.getElementById("register"); if (!r || r.getAttribute("data-v279")) return;
-    r.setAttribute("data-v279", "1");
-    var t = r.querySelector(".terms .t");
-    if (t) t.innerHTML = 'I agree to Alfred\u2019s <a href="mailto:cyberartificial1@gmail.com?subject=Terms%20%26%20Privacy" class="lnk">Terms & Privacy</a> \u2014 your chats stay yours.';
-  }, 1200);
-})();
-
 /* ===== v280: void-disc mark everywhere, forced landing fixes, UX base ===== */
 (function () {
   if (window.__v280) return; window.__v280 = "1";
@@ -1490,4 +1453,90 @@ extContent || "").length;
     });
     if (done || tries > 60) clearInterval(iv);
   }, 700);
+})();
+
+/* ===== v281: one-ring logo, register owner, splash calm, section polish ===== */
+(function () {
+  if (window.__v281) return; window.__v281 = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    "#login .soc,#register .soc,#login .divider,#register .divider{display:none !important}",
+    "#loading .bar-wrap{max-width:280px !important;margin:0 auto !important}",
+    "#land .brand img,#land .foot-l img,#loading .halo img,.hero-mark{border:0 !important;outline:0 !important;box-shadow:none !important;background:transparent !important;padding:0 !important}",
+    "#land .brand,#land .foot-l,#loading .halo{border:0 !important;outline:0 !important;box-shadow:none !important;background:transparent !important}",
+    "#land .brand::before,#land .brand::after,#land .foot-l::before,#land .foot-l::after,#loading .halo::before,#loading .halo::after{display:none !important}",
+    "#land .brand img,#land .foot-l img,#loading .halo img{content:url('/assets/land-mark-320.png?v=3') !important}",
+    "#land .hero-mark{box-shadow:0 0 40px rgba(79,195,255,.25) !important}",
+    ".v281err{margin-top:10px;font:12.5px 'DM Sans',system-ui;color:#ff9db1;background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.3);border-radius:10px;padding:9px 12px;display:none}",
+    "#land .caps > *,#land .steps > *{transition:transform .18s ease,border-color .18s ease}",
+    "#land .caps > *:active,#land .steps > *:active{transform:translateY(-2px)}",
+    "#land .tiercta{width:100%}",
+    "#land section{scroll-margin-top:80px}"
+  ].join("");
+  document.head.appendChild(st);
+
+  /* hero mark: guaranteed even if v280's block never ran */
+  var tries = 0, hiv = setInterval(function () {
+    if (document.hidden) return;
+    if (++tries > 40) clearInterval(hiv);
+    var L = document.getElementById("land"); if (!L) return;
+    var hero = L.querySelector(".hero"); if (!hero) return;
+    if (!hero.querySelector(".hero-mark")) {
+      var k = hero.querySelector(".kick") || hero.querySelector("h1");
+      if (k) { var m = document.createElement("img"); m.src = "/assets/land-mark-320.png?v=3"; m.alt = "Alfred"; m.className = "hero-mark"; k.parentNode.insertBefore(m, k); }
+    }
+    clearInterval(hiv);
+  }, 600);
+
+  /* register: the one owner */
+  function ensureBox(r) {
+    var box = r.querySelector(".v281err");
+    if (!box) { box = document.createElement("div"); box.className = "v281err"; r.appendChild(box); }
+    return box;
+  }
+  function fields(r) {
+    var inp = [].slice.call(r.querySelectorAll("input"));
+    function by(t) { return inp.filter(function (x) { return (x.getAttribute("type") || "text").toLowerCase() === t; })[0]; }
+    var f = { name: by("text"), email: by("email"), pass: by("password"), check: by("checkbox") };
+    if (!f.email) f.email = inp.filter(function (x) { return /mail/i.test(x.placeholder || x.name || ""); })[0];
+    if (!f.pass)  f.pass  = inp.filter(function (x) { return /pass/i.test(x.placeholder || x.name || ""); })[0];
+    return f;
+  }
+  function doRegister(r, btn) {
+    if (btn && btn.getAttribute("data-v281busy")) return;
+    var box = ensureBox(r), f = fields(r);
+    var name = (f.name && f.name.value || "").trim();
+    var email = (f.email && f.email.value || "").trim().toLowerCase();
+    var pass = f.pass && f.pass.value || "";
+    function bad(m) { box.textContent = m; box.style.display = "block"; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return bad("Enter a valid email.");
+    if (pass.length < 6) return bad("Password needs at least 6 characters.");
+    if (f.check && !f.check.checked) return bad("Please accept the terms first.");
+    box.style.display = "none";
+    if (btn) { btn.setAttribute("data-v281busy", "1"); btn.style.opacity = ".6"; }
+    fetch("/api/auth/register", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name || email.split("@")[0], email: email, password: pass }) })
+      .then(function (x) { return x.json().catch(function () { return {}; }); })
+      .then(function (j) {
+        if (!j.ok) throw new Error(j.error || "Registration failed.");
+        return fetch("/api/auth/login", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, password: pass }) }).then(function (x) { return x.json().catch(function () { return {}; }); });
+      })
+      .then(function (j) { if (!j.ok) throw new Error(j.error || "Auto sign-in failed - please sign in."); location.reload(); })
+      .catch(function (e) { bad(e.message || "Something went wrong."); })
+      .then(function () { if (btn) { btn.removeAttribute("data-v281busy"); btn.style.opacity = ""; } });
+  }
+  document.addEventListener("submit", function (e) {
+    var f = e.target; if (!f || !f.closest) return;
+    var r = f.closest("#register"); if (!r) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    doRegister(r, f.querySelector('button[type="submit"]') || f.querySelector("button"));
+  }, true);
+  document.addEventListener("click", function (e) {
+    var b = e.target && e.target.closest ? e.target.closest("#register button") : null;
+    if (!b || b.classList.contains("soc") || b.type === "submit") return;
+    if (!/create|sign ?up|register|join|get started|start/i.test(b.textContent || "")) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    doRegister(b.closest("#register"), b);
+  }, true);
 })();
