@@ -10930,3 +10930,73 @@ try { /* v163proc: native thinking card */
   ].join("");
   document.head.appendChild(st);
 })();
+
+/* ===== v276: splash cinema + landing product moment ===== */
+(function () {
+  if (window.__v276s) return; window.__v276s = "1";
+  /* --- splash: exact selectors from index.html (#loading, #status, #fill, #pct) --- */
+  var st = document.createElement("style");
+  st.textContent = [
+    "#loading .title{font-family:Sora,'DM Sans',system-ui !important;font-weight:600 !important;letter-spacing:.32em !important;text-shadow:0 2px 30px rgba(79,195,255,.35)}",
+    "#loading .tagline{color:#9fc7e8 !important;font-family:'DM Sans',system-ui !important;letter-spacing:.08em}",
+    "#loading .fill{background:linear-gradient(90deg,#4fc3ff 55%,#ffb347) !important}",
+    "#loading .pct{font-variant-numeric:tabular-nums !important;font-family:Sora,system-ui !important;letter-spacing:.1em}",
+    "#loading .status{font-size:12px !important;letter-spacing:.14em !important;text-transform:uppercase !important;color:#b9d2ea !important}",
+    "#loading .logo-wrap{animation:breathe 3.2s ease-in-out infinite}",
+    "@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.045)}}",
+    "@media (prefers-reduced-motion:reduce){#loading .logo-wrap{animation:none}}"
+  ].join("");
+  document.head.appendChild(st);
+  var LINES = ["Waking the council", "Lighting the city", "Tuning the minds", "Reading your worlds", "Opening the gates"];
+  var li = 0;
+  setInterval(function () {
+    var s = document.getElementById("loading"), t = document.getElementById("status");
+    if (s && t && s.offsetParent !== null) { li = (li + 1) % LINES.length; t.textContent = LINES[li]; }
+  }, 780);
+  /* --- landing: product moment + fig renumber + living changelog + honest footer --- */
+  var st2 = document.createElement("style");
+  st2.textContent = [
+    "#land .pm{display:flex;justify-content:center}",
+    "#land .phone{width:290px;border-radius:38px;border:1px solid rgba(255,255,255,.14);background:#0a1220;padding:18px 14px;box-shadow:0 30px 80px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.03)}",
+    "#land .phone .notch{width:70px;height:5px;border-radius:99px;background:rgba(255,255,255,.16);margin:0 auto 16px}",
+    "#land .pb{max-width:82%;border-radius:16px;padding:10px 13px;font-size:12.5px;line-height:1.5;margin-bottom:10px}",
+    "#land .pb.u{margin-left:auto;background:rgba(255,179,71,.12);border:1px solid rgba(255,179,71,.25);color:#ffe6bd}",
+    "#land .pb.a{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#dfeaf6}",
+    "#land .pb .tag{display:inline-block;font-size:9px;letter-spacing:1.5px;color:#66CCFF;border:1px solid rgba(102,204,255,.3);border-radius:99px;padding:1px 7px;margin-bottom:6px}",
+    "#land .pmcap{text-align:center;color:#7e97b8;font-size:12px;margin-top:14px}"
+  ].join("");
+  document.head.appendChild(st2);
+  var iv = setInterval(function () {
+    if (document.hidden) return;
+    var L = document.getElementById("land");
+    if (!L || L.getAttribute("data-v276")) return;
+    if (!L.querySelector(".tiers")) return;
+    L.setAttribute("data-v276", "1"); clearInterval(iv);
+    /* renumber FIGs 01..05 across visible kickers */
+    var figs = ["FIG 01", "FIG 02", "FIG 03", "FIG 04", "FIG 05"], fi = 0;
+    [].slice.call(L.querySelectorAll(".kick")).forEach(function (k) {
+      var f = k.querySelector(".fig");
+      if (fi === 0 && k.closest(".hero")) { if (f) f.remove(); return; }
+      if (!f) { f = document.createElement("span"); f.className = "fig"; k.insertBefore(f, k.firstChild); }
+      f.textContent = figs[fi++] || "";
+    });
+    /* living changelog labels (never stale) */
+    var lbl = ["THIS WEEK", "LAST WEEK", "3 WKS AGO"];
+    [].slice.call(L.querySelectorAll(".cld")).forEach(function (d, i) { if (lbl[i]) d.textContent = lbl[i]; });
+    /* product moment: phone mock before the manifesto band */
+    if (!L.querySelector(".phone")) {
+      var sec = document.createElement("section");
+      sec.innerHTML = '<div class="in"><div class="kick rv">The product</div><h2 class="rv" style="margin-bottom:36px">One voice. Every mind behind it.</h2>' +
+        '<div class="pm rv"><div class="phone"><div class="notch"></div>' +
+        '<div class="pb u">Why did signups dip this week?</div>' +
+        '<div class="pb a"><span class="tag">COUNCIL CONVENED</span><br>Three causes stand out: onboarding friction at step two, weekend traffic dip, and one broken invite link. The link is the one costing you \u2014 fixed in a minute. Want the funnel breakdown?</div>' +
+        '</div></div><div class="pmcap">The actual conversation view \u2014 every answer, one butler.</div></div>';
+      var man = L.querySelector(".manifesto");
+      if (man && man.parentNode) man.parentNode.insertBefore(sec, man);
+      [].slice.call(sec.querySelectorAll(".rv")).forEach(function (e) { e.classList.add("on"); });
+    }
+    /* honest footer */
+    var fr = L.querySelector(".foot-r");
+    if (fr) fr.innerHTML = '\u00a9 Alfred AI \u00b7 Your Mind, Amplified \u00b7 <a href="mailto:cyberartificial1@gmail.com">contact</a> \u00b7 Privacy & Terms ship with public launch';
+  }, 1000);
+})();
