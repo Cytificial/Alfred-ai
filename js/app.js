@@ -10906,3 +10906,27 @@ try { /* v163proc: native thinking card */
   }
   setInterval(sweep, 1600);
 })();
+
+/* ===== v275: cascade repair - runtime overrides now WIN (injected after v269/v270) ===== */
+(function () {
+  if (window.__v275) return; window.__v275 = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    /* hero depth: image rises behind nav, city finally bright */
+    "#land .hbg{top:-80px !important;filter:brightness(1.16) saturate(1.07) !important;background:" +
+      "linear-gradient(90deg,rgba(5,9,17,.78) 0%,rgba(5,9,17,.42) 55%,rgba(5,9,17,.08) 100%)," +
+      "linear-gradient(180deg,rgba(5,9,17,.72) 0%,rgba(5,9,17,0) 26%)," +
+      "linear-gradient(0deg,#080D17 0%,rgba(8,13,23,.02) 40%,rgba(8,13,23,.14) 100%)," +
+      "url('/assets/cityy.jpg') center 56%/cover !important}",
+    "#land .hero{padding-top:118px !important}",
+    /* secondary CTA becomes a real ghost pill */
+    "#land .how-link{background:rgba(255,255,255,.08) !important;border:1px solid rgba(255,255,255,.16) !important;border-radius:12px !important;padding:15px 24px !important;font-size:14px !important;color:#DFEAF6 !important;text-decoration:none !important;margin-left:12px !important}",
+    "@media(max-width:380px){#land .how-link{margin:12px 0 0 !important}}",
+    /* micro-polish: CTA row breathes, moment line tucks under button */
+    "#land .cta{margin-right:0 !important}",
+    "#land .moment{margin-top:16px !important}",
+    /* nav glass: sits on the image now, needs its own scrim */
+    "#land nav{background:linear-gradient(180deg,rgba(5,9,17,.55),rgba(5,9,17,0)) !important;margin-top:-0px;padding-top:24px !important}"
+  ].join("");
+  document.head.appendChild(st);
+})();
