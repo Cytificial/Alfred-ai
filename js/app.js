@@ -12470,3 +12470,134 @@ try { /* v163proc: native thinking card */
     });
   }, 2200);
 })();
+
+/* ===== v301: MODEL LAB - refresh, test, assign; tab authority; Logs gone ===== */
+(function () {
+  if (window.__v301) return; window.__v301 = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    ".v301wrap{background:rgba(255,255,255,.04);border:1px solid rgba(159,216,255,.18);border-radius:14px;padding:12px;margin:10px 0;color:#e8f2ff;font:12px system-ui}",
+    "#vadm .v301wrap{margin:10px 14px;max-height:64vh;overflow:auto}",
+    ".v301row{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);flex-wrap:wrap}",
+    ".v301btn{background:#2e7fd6;color:#fff;border:0;border-radius:8px;padding:5px 10px;font:11px system-ui;cursor:pointer;flex-shrink:0}",
+    ".v301btn.b2{background:transparent;color:#cfe9ff;border:1px solid rgba(159,216,255,.35)}",
+    ".v301sel{background:rgba(0,0,0,.35);color:#e8f2ff;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:4px 6px;font:11px system-ui}",
+    ".v301chip{font:10px system-ui;color:#9fd8ff;border:1px solid rgba(159,216,255,.3);border-radius:99px;padding:1px 7px}",
+    ".v301ok{color:#5fe8b0}.v301bad{color:#ff6b6b}.v301mut{color:#8fb8d8}",
+    ".v301in{background:rgba(0,0,0,.3);color:#e8f2ff;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:5px 8px;font:12px system-ui;width:100%;margin:6px 0}"
+  ].join("");
+  document.head.appendChild(st);
+  function api(p, opt) { return fetch(p, Object.assign({ credentials: "include" }, opt || {})).then(function (r) { return r.json().catch(function () { return {}; }); }); }
+  var CHAINS = {};
+  function loadChains(cb) { api("/api/admin/providers").then(function (j) { CHAINS = (j && j.chains) || {}; cb && cb(); }); }
+  function setChain(t, models, note) {
+    api("/api/admin/providers/chains", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan: t, models: models }) })
+      .then(function (j) { if (note) note.textContent = j.ok ? "saved ✓" : (j.error || "failed"); if (j.ok) CHAINS[t] = models; });
+  }
+  function modelRow(m, name, stx) {
+    var r = document.createElement("div"); r.className = "v301row";
+    var nm = document.createElement("span"); nm.style.cssText = "flex:1;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+    nm.textContent = name || m; nm.title = m;
+    var tb = document.createElement("button"); tb.className = "v301btn b2"; tb.type = "button"; tb.textContent = "Test";
+    tb.onclick = function () {
+      tb.textContent = "testing…"; tb.disabled = true;
+      var old = r.querySelector(".v301res"); if (old) old.remove();
+      api("/api/admin/providers/test", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: m }) })
+        .then(function (j) {
+          tb.disabled = false; tb.textContent = "Test";
+          var el = document.createElement("span"); el.className = "v301res " + (j.alive ? "v301ok" : "v301bad");
+          el.textContent = j.alive ? ("OK " + (j.ms || "?") + "ms") : (j.error || "dead");
+          r.appendChild(el);
+        });
+    };
+    var sel = document.createElement("select"); sel.className = "v301sel";
+    ["Free", "Pro", "Ultra"].forEach(function (t) { var o = document.createElement("option"); o.value = t; o.textContent = t; sel.appendChild(o); });
+    var ad = document.createElement("button"); ad.className = "v301btn"; ad.type = "button"; ad.textContent = "Add";
+    ad.onclick = function () {
+      if ((CHAINS[sel.value] || []).indexOf(m) > -1) { stx.textContent = m + " already in " + sel.value; return; }
+      var next = (CHAINS[sel.value] || []).slice(); next.push(m);
+      setChain(sel.value, next, stx); stx.textContent = m + " → " + sel.value + " …";
+    };
+    r.appendChild(nm); r.appendChild(tb); r.appendChild(sel); r.appendChild(ad);
+    return r;
+  }
+  function mount(host, id) {
+    if (!host || document.getElementById(id)) return;
+    var w = document.createElement("div"); w.className = "v301wrap"; w.id = id;
+    w.innerHTML = '<b style="font-size:13px">⚡ Model Lab</b> <span class="v301mut">— Refresh → Test → Add to a tier. Saved instantly.</span>';
+    var bar = document.createElement("div"); bar.style.cssText = "display:flex;gap:8px;margin:8px 0;flex-wrap:wrap;align-items:center";
+    var rb = document.createElement("button"); rb.className = "v301btn"; rb.type = "button"; rb.textContent = "⟳ Refresh models";
+    var stx = document.createElement("span"); stx.className = "v301mut"; stx.style.flex = "1";
+    var list = document.createElement("div");
+    var chainsBox = document.createElement("div");
+    bar.appendChild(rb); bar.appendChild(stx);
+    w.appendChild(bar); w.appendChild(list); w.appendChild(chainsBox);
+    function renderChains() {
+      chainsBox.innerHTML = "";
+      ["Free", "Pro", "Ultra"].forEach(function (t) {
+        var line = document.createElement("div"); line.className = "v301row";
+        var lbl = document.createElement("span"); lbl.className = "v301chip"; lbl.style.flexShrink = "0"; lbl.textContent = t + " chain";
+        line.appendChild(lbl);
+        (CHAINS[t] || []).forEach(function (m) {
+          var c = document.createElement("span"); c.className = "v301chip"; c.style.cssText = "color:#e8f2ff;cursor:pointer";
+          c.textContent = m + " ×"; c.title = "remove from " + t;
+          c.onclick = function () { setChain(t, (CHAINS[t] || []).filter(function (x) { return x !== m; }), stx); renderChains(); };
+          line.appendChild(c);
+        });
+        chainsBox.appendChild(line);
+      });
+    }
+    rb.onclick = function () {
+      rb.disabled = true; stx.textContent = "scanning providers…"; list.innerHTML = "";
+      var jobs = [["google", null], ["openrouter", null], ["pollinations", [{ id: "pollinations/openai", name: "Pollinations brain (keyless, free)" }]]];
+      var done = 0;
+      jobs.forEach(function (jb) {
+        function emit(models, err) {
+          done++;
+          var head = document.createElement("div"); head.style.cssText = "margin:8px 0 2px;font-weight:600";
+          head.textContent = jb[0] + (err ? " — scan failed (" + err + ")" : " — " + models.length + " models");
+          list.appendChild(head);
+          (models || []).slice(0, 150).forEach(function (mo) { list.appendChild(modelRow(mo.id, mo.name || mo.id, stx)); });
+          if (done === jobs.length) { rb.disabled = false; stx.textContent = "done — Test then Add"; }
+        }
+        if (jb[1]) return emit(jb[1], null);
+        api("/api/admin/providers/scan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: jb[0] }) })
+          .then(function (j) { emit(j.ok ? (j.models || []) : [], j.ok ? null : (j.error || "error")); });
+      });
+    };
+    loadChains(renderChains);
+    host.appendChild(w);
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-admin");
+    if (v && v.offsetParent !== null) { mount(v, "v301lab"); }
+    var c = document.getElementById("vadm");
+    if (c && c.offsetParent !== null) { mount(c, "v301labc"); }
+    if (!v || v.offsetParent === null) return;
+    /* Logs tab retired */
+    [].slice.call(v.querySelectorAll("button,span,div,a")).forEach(function (e) {
+      if (!e.children.length && (e.textContent || "").trim() === "Logs") e.style.display = "none";
+    });
+    /* tab authority: the tapped tab is ALWAYS the highlighted one */
+    var tabs = [].slice.call(v.querySelectorAll("button")).filter(function (b) {
+      return /^(Overview|Users|Models( & Brain)?|Providers|Lab|Billing|Logs)$/i.test((b.textContent || "").trim());
+    });
+    if (tabs.length > 2 && !tabs.__v301w) {
+      var counts = {}, mark = null;
+      tabs.forEach(function (b) { (b.className || "").split(/\s+/).forEach(function (cl) { if (cl) counts[cl] = (counts[cl] || 0) + 1; }); });
+      for (var k in counts) if (counts[k] === 1 && k.length > 2) { mark = k; break; }
+      if (mark) {
+        tabs.__v301w = true;
+        tabs.forEach(function (b) {
+          b.addEventListener("click", function () {
+            setTimeout(function () {
+              tabs.forEach(function (x) { x.classList.remove(mark); });
+              b.classList.add(mark);
+            }, 80);
+          }, true);
+        });
+      }
+    }
+  }, 2000);
+})();

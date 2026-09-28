@@ -283,6 +283,36 @@ def maybe_handle(handler, method):
         except Exception as e:
             return _send(handler, 200, {"ok": False, "error": str(e)[:120]})
 
+    if method == "POST" and p == "/api/admin/providers/test":
+        import time as _t, json as _j, urllib.request as _u, urllib.parse as _up
+        m = str((_body(handler) or {}).get("model", ""))
+        try:
+            t0 = _t.time()
+            if m.startswith("pollinations/"):
+                rq = _u.Request("https://text.pollinations.ai/openai",
+                    data=_j.dumps({"model": "openai", "messages": [{"role": "user", "content": "Reply with the single word OK"}]}).encode(),
+                    headers={"Content-Type": "application/json"}, method="POST")
+                d = _j.load(_u.urlopen(rq, timeout=45))
+                ok = bool((((d.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip())
+            elif m.startswith("openrouter/"):
+                k = (_prov._keys() or {}).get("openrouter", "")
+                rq = _u.Request("https://openrouter.ai/api/v1/chat/completions",
+                    data=_j.dumps({"model": m.split("/", 1)[1], "messages": [{"role": "user", "content": "Reply OK"}], "max_tokens": 8}).encode(),
+                    headers={"Content-Type": "application/json", "Authorization": "Bearer " + k}, method="POST")
+                d = _j.load(_u.urlopen(rq, timeout=45))
+                ok = bool((((d.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip())
+            else:
+                key = ((_cfg() or {}).get("gemini_key") or "").strip()
+                u = "https://generativelanguage.googleapis.com/v1beta/models/" + _up.quote(m, safe="") + ":generateContent?key=" + _up.quote(key)
+                rq = _u.Request(u,
+                    data=_j.dumps({"contents": [{"role": "user", "parts": [{"text": "Reply with the single word OK"}]}], "generationConfig": {"maxOutputTokens": 8}}).encode(),
+                    headers={"Content-Type": "application/json"}, method="POST")
+                d = _j.load(_u.urlopen(rq, timeout=45))
+                ok = bool(((((d.get("candidates") or [{}])[0].get("content") or {}).get("parts") or [{}])[0].get("text") or "").strip())
+            return _send(handler, 200, {"ok": True, "alive": ok, "ms": int((_t.time() - t0) * 1000)})
+        except Exception as e:
+            return _send(handler, 200, {"ok": True, "alive": False, "error": str(e)[:110]})
+
     if method == "GET" and p == "/api/admin/providers":
         return _send(handler, 200, _prov.public())
 
