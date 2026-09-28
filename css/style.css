@@ -3620,3 +3620,33 @@ aside, nav, [class*="sidebar"] { background-color: rgba(8,13,24,.93) !important;
 #v248b-strip { display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 #v248b-strip > * { flex: 0 0 auto; max-width: 72vw; }
 #view-admin > * { max-width: 100%; }
+/* v271: landing + header fit all screens */
+#land .hero{min-height:88svh}
+@supports (height: 100dvh){ #land .hero{min-height:86dvh} }
+@media (max-width:380px){
+  #land h1{font-size:11.5vw}
+  #land .cta{width:100%;padding:0}
+  #land .how-link{margin:14px 0 0;display:block}
+  #land .demo{padding:13px 14px}
+  #land .stats{gap:20px}
+  #land .stat b{font-size:22px}
+  #land nav{padding:16px 0}
+}
+@media (min-width:768px) and (max-width:1100px){
+  #land .caps{grid-template-columns:repeat(2,1fr)}
+  #land .steps{grid-template-columns:repeat(3,1fr)}
+}
+@media (min-width:1101px){
+  #land .hero{padding:9vh 0 80px}
+  #land section{padding:110px 0}
+  #land .demo{max-width:560px}
+}
+@media (max-height:460px) and (orientation:landscape){
+  #land .hero{min-height:auto;padding:90px 0 50px}
+}
+/* app header: never overflow on narrow screens */
+header .model .m-tx, .model .m-tx{max-width:38vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:360px){
+  header .m-av img, .model .m-av img{width:26px;height:26px}
+  header .btn, [class*="top"] button{padding:6px}
+}
