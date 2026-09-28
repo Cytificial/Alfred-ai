@@ -166,6 +166,66 @@ class H(SimpleHTTPRequestHandler):
                 open(tmp, "w").write(json.dumps(data[-60:]))
                 os.replace(tmp, fp)
             return self._json(200, item)
+        if self.path == "/api/memory":
+            n = int(self.headers.get(
+                "Content-Length", 0) or 0)
+            try:
+                b = json.loads(self.rfile.read(n)
+                               or b"{}")
+            except Exception:
+                return self._json(400,
+                    {"error": "bad json"})
+            ip = self.client_address[0]
+            nowt = _t.time()
+            if nowt - _RATE.get(ip, 0) < 2:
+                return self._json(429,
+                    {"error": "slow down"})
+            _RATE[ip] = nowt
+            tok = ""
+            for part in self.headers.get(
+                    "Cookie", "").split(";"):
+                if "alfred_session=" in part:
+                    tok = part.split("=", 1)[1]
+                    tok = tok.strip()
+            import sqlite3 as _sq
+            con = _sq.connect(
+                os.path.join(HERE, "alfred.db"),
+                timeout=10)
+            con.execute("CREATE TABLE IF NOT EXISTS"
+                " memories(id INTEGER PRIMARY KEY"
+                " AUTOINCREMENT, user_id INTEGER,"
+                " text TEXT, ts REAL)")
+            uid = None
+            try:
+                r = con.execute("SELECT user_id"
+                    " FROM sessions WHERE token=?",
+                    (tok,)).fetchone()
+                if r: uid = r[0]
+            except Exception:
+                uid = None
+            if not uid:
+                con.close()
+                return self._json(401,
+                    {"error": "sign in first"})
+            txt = str(b.get("text", "")).strip()[:200]
+            if not txt:
+                con.close()
+                return self._json(400,
+                    {"error": "empty"})
+            cnt = con.execute("SELECT COUNT(*) FROM"
+                " memories WHERE user_id=?",
+                (uid,)).fetchone()[0]
+            if cnt >= 40:
+                con.execute("DELETE FROM memories"
+                    " WHERE id=(SELECT MIN(id)"
+                    " FROM memories"
+                    " WHERE user_id=?)", (uid,))
+            con.execute("INSERT INTO memories("
+                "user_id, text, ts)"
+                " VALUES(?,?,?)",
+                (uid, txt, nowt))
+            con.commit(); con.close()
+            return self._json(200, {"ok": True})
         if self.path == "/api/feedback":
             n = int(self.headers.get(
                 "Content-Length", 0) or 0)

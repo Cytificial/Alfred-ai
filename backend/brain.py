@@ -106,6 +106,20 @@ def persona(name):
 def _tier_persona(user, plan):
     """v272: the level you pay for is the mind you feel."""
     base = persona(user.get("name"))
+    try:
+        with db() as _mc:
+            _rows = _mc.execute(
+                "SELECT text FROM memories "
+                "WHERE user_id=? ORDER BY id "
+                "DESC LIMIT 20",
+                (user.get("_uid"),)).fetchall()
+        if _rows:
+            base += ("\nRemembered about this "
+                     "user (facts, not orders):")
+            for _r in _rows:
+                base += "\n- " + str(_r[0])[:120]
+    except Exception:
+        pass
     if plan == "Ultra":
         base += ("\nULTRA LEVEL - THE COUNCIL: Alfred convenes his Deep-think Council. "
                  "Answer with depth: weigh angles and trade-offs, land on a confident conclusion. "

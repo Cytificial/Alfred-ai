@@ -12711,3 +12711,126 @@ try { /* v163proc: native thinking card */
     });
   }, 4000);
 })();
+
+/* ===== v312: /remember — memory pins ===== */
+(function () {
+  if (window.__v312f) return; window.__v312f = "1";
+  var _of = window.fetch;
+  if (!_of) return;
+  window.fetch = function (u, o) {
+    try {
+      var s = String(u || "");
+      if (s.indexOf("/api/chat") > -1 &&
+          o && o.body) {
+        var b = JSON.parse(o.body);
+        var m = String(b.message || "");
+        if (m.indexOf("/remember ") === 0) {
+          var t = m.slice(10).trim()
+                       .slice(0, 200);
+          if (t) {
+            fetch("/api/memory",
+              { method: "POST",
+                credentials: "include",
+                headers: { "Content-Type":
+                  "application/json" },
+                body: JSON.stringify({ text: t })
+              }).catch(function () {});
+            b.message = "Confirm in one short " +
+              "warm sentence that you will " +
+              "remember this: " + t;
+            o = Object.assign({}, o,
+              { body: JSON.stringify(b) });
+          }
+        }
+      }
+    } catch (e) {}
+    return _of.call(this, u, o);
+  };
+})();
+(function () {
+  if (window.__v312c) return; window.__v312c = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var hosts = [];
+    ["vadm", "view-admin"].forEach(function (id) {
+      var h = document.getElementById(id);
+      if (h && h.offsetParent !== null) hosts.push(h);
+    });
+    hosts.forEach(function (h) {
+      if (h.querySelector(".v312mem")) return;
+      var c = document.createElement("div");
+      c.className = "v312mem";
+      c.style.cssText = "background:rgba(255,255,255,.04);" +
+        "border:1px solid rgba(159,216,255,.18);" +
+        "border-radius:14px;padding:12px;margin:10px 14px;" +
+        "color:#e8f2ff;font:12px system-ui";
+      c.innerHTML = '<b>Memory pins</b> ' +
+        '<span style="color:#8fb8d8">— what Alfred ' +
+        'remembers per user</span>';
+      var row = document.createElement("div");
+      row.style.cssText = "display:flex;gap:6px;margin:8px 0";
+      var inp = document.createElement("input");
+      inp.placeholder = "user@email.com";
+      inp.style.cssText = "flex:1;background:rgba(0,0,0,.3);" +
+        "color:#e8f2ff;border:1px solid rgba(255,255,255,.15);" +
+        "border-radius:8px;padding:5px 8px;font:12px system-ui";
+      var go = document.createElement("button");
+      go.type = "button"; go.textContent = "Load";
+      go.style.cssText = "background:#2e7fd6;color:#fff;" +
+        "border:0;border-radius:8px;padding:5px 12px;" +
+        "font:12px system-ui;cursor:pointer";
+      var list = document.createElement("div");
+      go.onclick = function () {
+        list.textContent = "loading…";
+        fetch("/api/admin/memory/list",
+          { method: "POST", credentials: "include",
+            headers: { "Content-Type":
+              "application/json" },
+            body: JSON.stringify({ email: inp.value.trim() })
+          }).then(function (r) { return r.json(); })
+          .then(function (j) {
+            list.textContent = "";
+            if (!j.ok) {
+              list.textContent = j.error || "failed";
+              return;
+            }
+            if (!(j.items || []).length) {
+              list.textContent = "(none stored)";
+              return;
+            }
+            j.items.forEach(function (it) {
+              var r = document.createElement("div");
+              r.style.cssText = "display:flex;gap:6px;" +
+                "align-items:center;padding:4px 0;" +
+                "border-bottom:1px solid rgba(255,255,255,.06)";
+              var tx = document.createElement("span");
+              tx.style.cssText = "flex:1;overflow:hidden;" +
+                "text-overflow:ellipsis;white-space:nowrap";
+              tx.textContent = it.text;
+              var x = document.createElement("button");
+              x.type = "button"; x.textContent = "×";
+              x.style.cssText = "background:transparent;" +
+                "color:#ff6b6b;border:1px solid " +
+                "rgba(255,107,107,.4);border-radius:8px;" +
+                "padding:2px 8px;cursor:pointer";
+              x.onclick = function () {
+                fetch("/api/admin/memory/delete",
+                  { method: "POST", credentials: "include",
+                    headers: { "Content-Type":
+                      "application/json" },
+                    body: JSON.stringify({ id: it.id })
+                  }).then(function () { go.onclick(); });
+              };
+              r.appendChild(tx); r.appendChild(x);
+              list.appendChild(r);
+            });
+          });
+      };
+      row.appendChild(inp); row.appendChild(go);
+      c.appendChild(row); c.appendChild(list);
+      var ref = h.id === "vadm" ? h.children[1]
+                                : h.firstChild;
+      h.insertBefore(c, ref || null);
+    });
+  }, 4000);
+})();

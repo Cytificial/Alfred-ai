@@ -313,6 +313,38 @@ def maybe_handle(handler, method):
         except Exception as e:
             return _send(handler, 200, {"ok": True, "alive": False, "error": str(e)[:110]})
 
+    if method == "POST" and p == "/api/admin/memory/list":
+        import sqlite3 as _s
+        em = str((_body(handler) or {})
+                 .get("email", ""))
+        con = _s.connect(DBP, timeout=10)
+        r = con.execute("SELECT id FROM users"
+            " WHERE email=?", (em,)).fetchone()
+        if not r:
+            con.close()
+            return _send(handler, 404,
+                {"ok": False,
+                 "error": "no such user"})
+        rows = [dict(zip(("id", "text"), x))
+                for x in con.execute(
+                "SELECT id,text FROM memories"
+                " WHERE user_id=? ORDER BY id DESC",
+                (r[0],))]
+        con.close()
+        return _send(handler, 200,
+            {"ok": True, "items": rows})
+
+    if method == "POST" and p == "/api/admin/memory/delete":
+        import sqlite3 as _s
+        i = (_body(handler) or {}).get("id")
+        con = _s.connect(DBP, timeout=10)
+        n = con.execute("DELETE FROM memories"
+            " WHERE id=?",
+            (i,)).rowcount
+        con.commit(); con.close()
+        return _send(handler, 200,
+            {"ok": True, "deleted": n})
+
     if method == "GET" and p == "/api/admin/feedback":
         import sqlite3 as _s
         try:
