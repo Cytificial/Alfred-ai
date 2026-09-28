@@ -11136,3 +11136,122 @@ try { /* v163proc: native thinking card */
     });
   }, 1600);
 })();
+
+/* ===== v278: splash exit, mark backing, tier CTAs, interactive demo, trust ===== */
+(function () {
+  if (window.__v278) return; window.__v278 = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    /* splash exit: hold at 100% then lift+crossfade */
+    "#loading.exit{animation:v278out .56s cubic-bezier(.4,0,.2,1) forwards !important}",
+    "#loading.exit .content{animation:v278lift .56s cubic-bezier(.4,0,.2,1) forwards}",
+    "#loading.exit .loader{opacity:0;transition:opacity .3s}",
+    "@keyframes v278out{to{opacity:0}}",
+    "@keyframes v278lift{to{transform:translateY(-14px) scale(1.04);opacity:0}}",
+    "@media (prefers-reduced-motion:reduce){#loading.exit,#loading.exit .content{animation-duration:.01s !important}}",
+    /* mark backing: deep navy disc, consistent everywhere */
+    "#land .hero-mark{border-radius:50%;background:radial-gradient(circle,rgba(8,16,30,.92) 0%,rgba(8,16,30,.72) 58%,rgba(8,16,30,0) 74%)}",
+    "#land .brand img,#land .foot-l img{background:rgba(8,16,30,.55);border-radius:50%;padding:3px;box-sizing:content-box}",
+    /* tier CTAs */
+    "#land .tiercta{display:inline-block;margin-top:16px;background:#66CCFF;color:#08131f;font:700 13px 'DM Sans',system-ui;border:0;border-radius:12px;padding:12px 22px;cursor:pointer;transition:filter .16s}",
+    "#land .tiercta:hover{filter:brightness(1.08)}",
+    "#land .tiercta.ghost{background:transparent;color:#bfe2ff;border:1px solid rgba(255,255,255,.18)}",
+    /* demo chips */
+    "#land .dchips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}",
+    "#land .dchip{font:12px 'DM Sans',system-ui;color:#bfe2ff;background:rgba(79,195,255,.08);border:1px solid rgba(102,204,255,.25);border-radius:99px;padding:6px 12px;cursor:pointer}",
+    "#land .dchip.on{background:rgba(102,204,255,.2);color:#eaf6ff}"
+  ].join("");
+  document.head.appendChild(st);
+
+  /* splash exit watcher */
+  var exit = setInterval(function () {
+    if (!window.__v207barFin) return;
+    clearInterval(exit);
+    setTimeout(function () {
+      var s = document.getElementById("loading");
+      if (s && s.offsetParent !== null) {
+        s.classList.add("exit");
+        setTimeout(function () {
+          if (s && [].slice.call(document.querySelectorAll(".screen.show")).length) s.classList.remove("show");
+        }, 600);
+      }
+    }, 180);
+  }, 200);
+
+  var QA = [
+    ["Help me plan a product launch for Friday.", "Convened three angles: audience, message, risk. Verdict: launch to your waitlist first, keep the press for week two \u2014 momentum beats reach. Want the day-by-day plan?"],
+    ["I have 4 hours and a messy pitch deck.", "Council's call: fix the story first \u2014 one sentence per slide, one ask at the end. I'll draft the narrative now; design polish is a 30-minute pass after. Deck or notes to start?"],
+    ["Is my data safe here?", "Your conversations belong to you \u2014 they live in Alfred's own database, sessions sign out with one tap, and account deletion is yours on request. No ads, no resale."],
+    ["What makes Ultra different?", "Depth. Ultra convenes the Deep-think Council \u2014 answers weigh multiple angles before landing. Free is crisp, Pro is full-speed, Ultra thinks hardest."]
+  ];
+  var iv = setInterval(function () {
+    if (document.hidden) return;
+    var L = document.getElementById("land");
+    if (!L || !L.querySelector(".tiers")) return;
+    clearInterval(iv);
+    /* tier CTAs */
+    [].slice.call(L.querySelectorAll(".tier")).forEach(function (t) {
+      if (t.querySelector(".tiercta")) return;
+      var name = (t.querySelector("h3") || {}).textContent || "";
+      var b = document.createElement("button");
+      b.className = "tiercta" + (name === "Pro" ? "" : " ghost");
+      b.textContent = name === "Free" ? "Start free" : name === "Pro" ? "Go Pro" : "Go Ultra";
+      b.addEventListener("click", function () {
+        L.style.display = "none";
+        var pv = [].slice.call(document.querySelectorAll(".view")).filter(function (v) { return /plan|pay/i.test(v.id); })[0];
+        if (pv) {
+          [].slice.call(document.querySelectorAll(".view")).forEach(function (v) { v.classList.remove("show"); });
+          pv.classList.add("show");
+          [].slice.call(document.querySelectorAll(".nav-item")).forEach(function (r) {
+            r.classList.toggle("active", /plan/i.test(r.getAttribute("data-view") || ""));
+          });
+        } else {
+          [].slice.call(document.querySelectorAll(".view")).forEach(function (v) { v.classList.toggle("show", /login/i.test(v.id)); });
+        }
+      });
+      t.appendChild(b);
+    });
+    /* interactive demo chips */
+    var demo = L.querySelector(".demo");
+    if (demo && !demo.querySelector(".dchips")) {
+      var tx = demo.querySelector(".txt"), da = demo.querySelector(".da"), tag = demo.querySelector(".da .tag");
+      var chips = document.createElement("div"); chips.className = "dchips";
+      QA.forEach(function (qa, i) {
+        var c = document.createElement("button"); c.type = "button"; c.className = "dchip" + (i === 0 ? " on" : "");
+        c.textContent = qa[0].length > 34 ? qa[0].slice(0, 32) + "\u2026" : qa[0];
+        c.addEventListener("click", function () {
+          [].slice.call(chips.children).forEach(function (x) { x.classList.remove("on"); });
+          c.classList.add("on");
+          if (tx) tx.textContent = qa[0];
+          if (da) { da.style.display = "block"; var tg = da.querySelector(".tag"); if (tg) tg.after(document.createTextNode(qa[1])); da.dataset.q = qa[1]; }
+        });
+        chips.appendChild(c);
+      });
+      demo.appendChild(chips);
+      /* wire answer text properly: rebuild answer node per chip */
+      var an = document.createElement("span"); an.className = "ans";
+      if (da) { an.textContent = " " + QA[0][1]; var tg2 = da.querySelector(".tag"); da.innerHTML = ""; if (tg2) da.appendChild(tg2); da.appendChild(document.createElement("br")); da.appendChild(an); }
+      [].slice.call(chips.children).forEach(function (c, i) {
+        c.addEventListener("click", function () {
+          [].slice.call(chips.children).forEach(function (x) { x.classList.remove("on"); });
+          c.classList.add("on");
+          if (tx) tx.textContent = QA[i][0];
+          if (an) an.textContent = " " + QA[i][1];
+        });
+      });
+    }
+    /* trust section before footer */
+    if (!L.querySelector(".trustsec")) {
+      var s = document.createElement("section"); s.className = "trustsec"; s.style.paddingTop = "0";
+      s.innerHTML = '<div class="in"><div class="kick rv">Trust</div><h2 class="rv" style="font-size:clamp(1.4rem,5vw,2rem)">Straight answers, about Alfred too.</h2>' +
+        '<div class="tiers" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-top:26px">' +
+        '<div class="tier rv"><h3>Your words, your data</h3><div class="d">Conversations live in Alfred\u2019s own database \u2014 never sold, never fed to ads. Ask, and your data is deleted.</div></div>' +
+        '<div class="tier rv"><h3>You control access</h3><div class="d">Sign out anywhere, from Settings. Admins can revoke any session instantly. No silent device lists.</div></div>' +
+        '<div class="tier rv"><h3>Honest by design</h3><div class="d">Alfred says when he\u2019s unsure, never invents sources, and won\u2019t pretend to be human. Full privacy & terms ship at public launch.</div></div>' +
+        '</div></div>';
+      var f = L.querySelector("footer");
+      if (f && f.parentNode) f.parentNode.insertBefore(s, f);
+      [].slice.call(s.querySelectorAll(".rv")).forEach(function (e) { e.classList.add("on"); });
+    }
+  }, 1000);
+})();
