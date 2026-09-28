@@ -11292,3 +11292,72 @@ try { /* v163proc: native thinking card */
     if (t) t.innerHTML = 'I agree to Alfred\u2019s <a href="mailto:cyberartificial1@gmail.com?subject=Terms%20%26%20Privacy" class="lnk">Terms & Privacy</a> \u2014 your chats stay yours.';
   }, 1200);
 })();
+
+/* ===== v280: void-disc mark everywhere, forced landing fixes, UX base ===== */
+(function () {
+  if (window.__v280) return; window.__v280 = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    "#land .hero-mark{width:96px;height:96px;border-radius:50%;background:none !important;box-shadow:0 0 44px rgba(79,195,255,.28),0 14px 34px rgba(0,0,0,.5);margin-bottom:18px}",
+    "#land .brand img,#land .foot-l img{background:transparent !important;padding:0 !important;box-shadow:none}",
+    "#land .how-link{background:rgba(255,255,255,.08) !important;border:1px solid rgba(255,255,255,.16) !important;border-radius:12px !important;padding:14px 22px !important;color:#DFEAF6 !important;text-decoration:none !important;display:inline-block !important}",
+    ":root{color-scheme:dark}",
+    "*{-webkit-tap-highlight-color:transparent}",
+    "html{scroll-behavior:smooth}",
+    ":focus-visible{outline:2px solid #66CCFF;outline-offset:2px;border-radius:4px}",
+    "::selection{background:rgba(102,204,255,.35)}",
+    "img{max-width:100%}",
+    "@media (pointer:coarse){button:not(.c-ic){min-height:42px}}",
+    "@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}}"
+  ].join("");
+  document.head.appendChild(st);
+  var tries = 0;
+  var iv = setInterval(function () {
+    if (document.hidden) return;
+    tries++;
+    var L = document.getElementById("land");
+    if (!L) { if (tries > 60) clearInterval(iv); return; }
+    var hero = L.querySelector(".hero"), done = false;
+    if (hero && !hero.querySelector(".hero-mark")) {
+      var k = hero.querySelector(".kick") || hero.querySelector("h1");
+      if (k) {
+        var m = document.createElement("img");
+        m.src = "/assets/land-mark-320.png?v=2"; m.alt = "Alfred"; m.className = "hero-mark";
+        k.parentNode.insertBefore(m, k);
+      }
+    }
+    done = !!(hero && hero.querySelector(".hero-mark"));
+    [].slice.call(L.querySelectorAll(".brand img,.foot-l img")).forEach(function (im) {
+      if (im.getAttribute("data-v280")) return;
+      im.setAttribute("data-v280", "1"); im.src = "/assets/land-mark-320.png?v=2";
+    });
+    var halo = document.querySelector("#loading .halo img");
+    if (halo && halo.getAttribute("data-v280") != "1") { halo.setAttribute("data-v280","1"); halo.src = "/assets/land-mark-320.png?v=2"; }
+    [].slice.call(L.querySelectorAll("a,button,span,div")).forEach(function (e) {
+      if (e.children.length || e.getAttribute("data-v280h")) return;
+      if (/see how it works/i.test(e.textContent || "")) {
+        e.setAttribute("data-v280h", "1");
+        e.style.cssText += ";background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:14px 22px;color:#DFEAF6;text-decoration:none;display:inline-block";
+      }
+    });
+    [].slice.call(L.querySelectorAll("a,button")).forEach(function (e) {
+      if (e.getAttribute("data-v280i")) return;
+      if (/cyberartificial1@gmail\.com/i.test(e.textContent || "")) {
+        e.setAttribute("data-v280i", "1");
+        e.style.cssText += ";max-width:340px;margin-left:auto;margin-right:auto;font-size:14px;padding:14px 22px;display:block;text-align:center";
+      }
+    });
+    var labels = ["THIS WEEK", "LAST WEEK", "EARLIER", "EARLIER"];
+    [].slice.call(L.querySelectorAll(".cld")).forEach(function (e, i) {
+      if (labels[i] && e.textContent !== labels[i]) e.textContent = labels[i];
+    });
+    [].slice.call(L.querySelectorAll(".demo")).forEach(function (dm) {
+      if (dm.getAttribute("data-v280d")) return; dm.setAttribute("data-v280d", "1");
+      var lab = document.createElement("div");
+      lab.style.cssText = "font:10px 'DM Sans',system-ui;letter-spacing:2px;color:#5F7FA3;text-transform:uppercase;margin-bottom:10px";
+      lab.textContent = "Illustrative demo";
+      dm.insertBefore(lab, dm.firstChild);
+    });
+    if (done || tries > 60) clearInterval(iv);
+  }, 700);
+})();
