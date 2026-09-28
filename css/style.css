@@ -3567,3 +3567,9 @@ button, .adm-btn, .set-row, .faq-q { max-width: 100%; overflow-wrap: anywhere; }
 #view-admin [style*="display:flex"] { flex-wrap: wrap; row-gap: 6px; }
 #adm-body { overflow-x: hidden; }
 #adm-body .adm-card { max-width: 100%; }
+/* v245.4: mark legibility on bright backdrops + sidebar polish */
+img[src*="brand-192"], img[src*="brand-512"] {
+  opacity: 1;
+  filter: drop-shadow(0 0 10px rgba(6,12,22,.9)) drop-shadow(0 0 28px rgba(6,12,22,.7));
+}
+aside::-webkit-scrollbar, nav::-webkit-scrollbar { width: 0; height: 0; }
