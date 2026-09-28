@@ -10813,3 +10813,22 @@ try { /* v163proc: native thinking card */
     if (L && L.style.display !== "none") { patch(L); clearInterval(iv); }
   }, 900);
 })();
+
+/* ===== v273b: landing nav sign-in ===== */
+(function () {
+  if (window.__v273b) return; window.__v273b = "1";
+  var iv = setInterval(function () {
+    if (document.hidden) return;
+    var L = document.getElementById("land");
+    if (!L || L.getAttribute("data-v273b")) { if (L) clearInterval(iv); return; }
+    var nav = L.querySelector("nav"); if (!nav) return;
+    L.setAttribute("data-v273b", "1"); clearInterval(iv);
+    var b = document.createElement("button"); b.className = "navin"; b.textContent = "Sign in";
+    b.addEventListener("click", function () {
+      L.style.display = "none";
+      [].slice.call(document.querySelectorAll(".view")).forEach(function (v) { v.classList.toggle("show", /login/i.test(v.id)); });
+      [].slice.call(document.querySelectorAll(".nav-item")).forEach(function (r) { r.classList.remove("active"); });
+    });
+    nav.appendChild(b);
+  }, 800);
+})();

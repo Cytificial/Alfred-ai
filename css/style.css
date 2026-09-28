@@ -3654,3 +3654,15 @@ header .model .m-tx, .model .m-tx{max-width:38vw;overflow:hidden;text-overflow:e
 #land .brand img, #land .foot-l img { content: url('/assets/logo-512.png'); }
 #land .hero .kick .fig { display: none; }
 #land .demo { margin-top: 30px; }
+/* v273b: hero depth - image behind nav, brighter city, pill secondary */
+#land .hbg{top:-80px;filter:brightness(1.14) saturate(1.06);
+  background:
+    linear-gradient(90deg,rgba(5,9,17,.78) 0%,rgba(5,9,17,.44) 55%,rgba(5,9,17,.10) 100%),
+    linear-gradient(180deg,rgba(5,9,17,.72) 0%,rgba(5,9,17,0) 24%),
+    linear-gradient(0deg,#080D17 0%,rgba(8,13,23,.03) 40%,rgba(8,13,23,.16) 100%),
+    url('/assets/cityy.jpg') center 56%/cover;}
+#land .hero{padding-top:120px}
+#land .how-link{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:15px 24px;font-size:14px;color:#DFEAF6;text-decoration:none;margin-left:12px;transition:background .16s}
+#land .how-link:hover{background:rgba(255,255,255,.12)}
+@media(max-width:380px){#land .how-link{margin:12px 0 0}}
+#land .navin{background:transparent;border:1px solid rgba(255,255,255,.22);color:#DFEAF6;border-radius:99px;padding:9px 20px;font-family:'DM Sans';font-size:13px;font-weight:600;cursor:pointer}
