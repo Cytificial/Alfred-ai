@@ -10168,3 +10168,64 @@ try { /* v163proc: native thinking card */
   }
   syncPlan(); setInterval(function () { if (!document.hidden) syncPlan(); }, 20000);
 })();
+
+/* ===== v259: source-truth fixes (nav = .nav-item/.active/data-view, views = .show) ===== */
+(function () {
+  if (window.__v259) return; window.__v259 = "1";
+  var adminRow = null;
+  function findRow() {
+    var rows = [].slice.call(document.querySelectorAll("#nav .nav-item, nav .nav-item, a.nav-item"));
+    adminRow = rows.filter(function (r) { return (r.textContent || "").trim() === "Admin"; })[0] || adminRow;
+    return adminRow;
+  }
+  function showView(name) {
+    [].slice.call(document.querySelectorAll(".view")).forEach(function (v) {
+      v.classList.toggle("show", v.id === "view-" + name);
+      if (v.id !== "view-" + name && v.style.display) v.style.display = "";
+    });
+  }
+  function light(name) {
+    [].slice.call(document.querySelectorAll(".nav-item")).forEach(function (r) {
+      r.classList.toggle("active", (r.textContent || "").trim().toLowerCase() === name);
+    });
+  }
+  function wire() {
+    var r = findRow(); if (!r || r.getAttribute("data-v259w")) return;
+    r.setAttribute("data-view", "admin"); r.setAttribute("data-v259w", "1");
+    r.addEventListener("click", function (e) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      light("admin"); showView("admin");
+      if ((location.hash || "") !== "#/admin") location.hash = "#/admin";
+    }, true);
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    wire();
+    if ((location.hash || "").indexOf("admin") > -1) { light("admin"); showView("admin"); }
+  }, 900);
+  window.addEventListener("hashchange", function () {
+    setTimeout(function () {
+      if ((location.hash || "").indexOf("admin") > -1) { light("admin"); showView("admin"); }
+    }, 80);
+  });
+  /* explore: image regenerated FROM its own caption — match guaranteed */
+  setInterval(function () {
+    if (document.hidden) return;
+    var x = document.getElementById("view-explore"); if (!x || x.offsetParent === null) return;
+    [].slice.call(x.querySelectorAll("img")).forEach(function (im) {
+      if (im.getAttribute("data-v259m")) return;
+      var p = im.parentElement, cap = "";
+      for (var up = 0; up < 4 && p; up++) {
+        var t = (p.innerText || "").trim();
+        if (t.length > cap.length) cap = t;
+        if (t.length > 30) break;
+        p = p.parentElement;
+      }
+      cap = cap.split("\n").filter(function (l) { return l.trim().length > 12; })[0] || "";
+      if (!cap) return;
+      im.setAttribute("data-v259m", "1"); im.setAttribute("data-v254s", "1");
+      im.src = "https://image.pollinations.ai/prompt/" + encodeURIComponent(cap.slice(0, 140)) +
+               "?width=768&height=1024&nologo=true&seed=" + Math.floor(Math.random() * 999999);
+    });
+  }, 3000);
+})();
