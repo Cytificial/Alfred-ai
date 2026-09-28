@@ -3590,3 +3590,10 @@ img[src*="lambda-192"] { width: 100%; height: 100%; object-fit: contain; display
 .v249row { position: relative; }
 .v249row > .v249cp { top: -2px; right: 0; opacity: .55; }
 .v249row:hover > .v249cp { opacity: 1; }
+/* v251: transitions + admin fit */
+.v251in { animation: v251in .34s ease both; }
+@keyframes v251in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .v251in { animation: none; } }
+#view-admin { overflow: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+.v251scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+.v251scroll .adm-t { min-width: 620px; }

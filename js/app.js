@@ -9586,14 +9586,12 @@ try { /* v163proc: native thinking card */
     if (ev) { ev.preventDefault(); ev.stopImmediatePropagation(); }
     try { location.hash = "#/admin"; } catch (e) {}
     setTimeout(function () {
-      var v = document.getElementById("view-admin");
-      if (!v || v.offsetParent === null) {
-        [].slice.call(document.querySelectorAll(".view")).forEach(function (x) { x.style.display = "none"; });
-        if (v) v.style.display = "block";
-      }
-    }, 260);
+      var any = [].slice.call(document.querySelectorAll(".view")).some(function (x) { return x.offsetParent !== null; });
+      if (!any) { var v = document.getElementById("view-admin"); if (v) v.style.display = "block"; }
+    }, 420);
   }
   setInterval(function () {
+    if (document.hidden) return;
     var sc = scope(), keep = document.getElementById("v2451-admin-row"), leaves = [];
     [].slice.call(sc.querySelectorAll("*")).forEach(function (e) {
       if (!e.children.length && (e.textContent || "").trim() === "Admin") leaves.push(e);
@@ -9630,7 +9628,7 @@ try { /* v163proc: native thinking card */
     var imgs = document.querySelectorAll('.msg-av img[src*="brand-"], .msg-av img[src*="lambda-"]');
     for (var i = 0; i < imgs.length; i++) imgs[i].src = SPARK;
   }
-  setInterval(sweep, 1500);
+  setInterval(function () { if (!document.hidden) sweep(); }, 1500);
   document.addEventListener("DOMContentLoaded", sweep);
 })();
 
@@ -9682,7 +9680,7 @@ try { /* v163proc: native thinking card */
       row.appendChild(b);
     }
   }
-  setInterval(function () { try { sweepCode(); sweepMsgs(); } catch (e) {} }, 1500);
+  setInterval(function () { if (document.hidden) return; try { sweepCode(); sweepMsgs(); } catch (e) {} }, 1500);
   document.addEventListener("DOMContentLoaded", function () { sweepCode(); sweepMsgs(); });
 })();
 
@@ -9705,6 +9703,7 @@ try { /* v163proc: native thinking card */
     }).catch(function () {});
   }
   setInterval(function () {
+    if (document.hidden) return;
     var v = document.getElementById("view-admin");
     if (!v || v.offsetParent === null) return;
     var strip = document.getElementById("v248b-strip");
@@ -9718,4 +9717,107 @@ try { /* v163proc: native thinking card */
     }
     if (++tick >= 15) { tick = 0; load(strip); }
   }, 2000);
+})();
+
+/* ===== v251: router reconciler + splash watchdog + admin table scroll ===== */
+(function () {
+  if (window.__v251) return; window.__v251 = "1";
+  window.addEventListener("hashchange", function () {
+    setTimeout(function () {
+      var views = [].slice.call(document.querySelectorAll(".view"));
+      var vis = views.filter(function (x) { return x.offsetParent !== null; });
+      if (!vis.length) return;                       /* router handled nothing -> fallback may act */
+      views.forEach(function (x) { if (x.style.display) x.style.display = ""; });
+      var h = (location.hash || "").replace("#/", "").split(/[?#]/)[0];
+      var t = document.getElementById("view-" + h);
+      if (t && t.offsetParent !== null) {
+        t.classList.remove("v251in"); void t.offsetWidth; t.classList.add("v251in");
+        setTimeout(function () { t.classList.remove("v251in"); }, 480);
+      }
+    }, 60);
+  });
+  setInterval(function () {
+    if (document.hidden) return;
+    [].slice.call(document.querySelectorAll("#view-admin table")).forEach(function (t) {
+      if (t.parentNode && t.parentNode.classList && t.parentNode.classList.contains("v251scroll")) return;
+      var w = document.createElement("div"); w.className = "v251scroll";
+      t.parentNode.insertBefore(w, t); w.appendChild(t);
+    });
+  }, 2500);
+  setTimeout(function () {
+    [].slice.call(document.querySelectorAll('[id*="splash"],[class*="splash"]')).forEach(function (e) {
+      var cs = getComputedStyle(e);
+      if (cs.position === "fixed" || cs.position === "absolute") e.style.display = "none";
+    });
+  }, 3500);
+})();
+
+/* ===== v251b: showcase — dashboard editor + modules render (display-only) ===== */
+(function () {
+  if (window.__v251b) return; window.__v251b = "1";
+  function api(p, opt) { return fetch(p, Object.assign({ credentials: "include" }, opt || {})).then(function (r) { return r.json().catch(function () { return {}; }); }); }
+  function editorCard(v) {
+    var c = document.createElement("div");
+    c.id = "v251b-editor";
+    c.style.cssText = "background:rgba(255,255,255,.05);border:1px solid rgba(159,216,255,.18);border-radius:14px;padding:14px;margin:10px 0";
+    c.innerHTML = '<div style="font:600 13px system-ui;color:#e8f2ff;margin-bottom:8px">Modules Showcase <span style="font-weight:400;color:#8fb8d8">(what visitors see — one item per line: Name | Description | Tier)</span></div>';
+    var ta = document.createElement("textarea");
+    ta.style.cssText = "width:100%;min-height:90px;background:rgba(0,0,0,.3);color:#e8f2ff;border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px;font:12px system-ui";
+    ta.placeholder = "Nano Vision | Sees and reasons about your images | Pro\\nDeep Thought | Multi-step reasoning for hard problems | Ultra";
+    var row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px;margin-top:8px";
+    var save = document.createElement("button"); save.type = "button"; save.textContent = "Publish";
+    save.style.cssText = "background:#2e7fd6;color:#fff;border:0;border-radius:10px;padding:7px 16px;font:12px system-ui;cursor:pointer";
+    var st = document.createElement("span"); st.style.cssText = "font:12px system-ui;color:#8fb8d8;align-self:center";
+    save.onclick = function () {
+      var items = ta.value.split("\\n").map(function (l) {
+        var p = l.split("|"); if (!p[0] || !p[0].trim()) return null;
+        return { name: (p[0] || "").trim(), desc: (p[1] || "").trim(), tier: (p[2] || "Pro").trim() };
+      }).filter(Boolean);
+      api("/api/admin/showcase", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: items }) })
+        .then(function (j) { st.textContent = j.ok ? "Published ✓ (" + j.count + " items)" : (j.error || "failed"); setTimeout(function(){ st.textContent = ""; }, 2500); });
+    };
+    var load = document.createElement("button"); load.type = "button"; load.textContent = "Load current";
+    load.style.cssText = "background:transparent;color:#cfe9ff;border:1px solid rgba(159,216,255,.3);border-radius:10px;padding:7px 12px;font:12px system-ui;cursor:pointer";
+    load.onclick = function () {
+      fetch("/showcase.json").then(function (r) { return r.ok ? r.json() : { items: [] }; }).then(function (j) {
+        ta.value = (j.items || []).map(function (i) { return i.name + " | " + i.desc + " | " + i.tier; }).join("\\n");
+        st.textContent = (j.items || []).length + " loaded";
+        setTimeout(function(){ st.textContent = ""; }, 2000);
+      });
+    };
+    row.appendChild(save); row.appendChild(load); row.appendChild(st);
+    c.appendChild(ta); c.appendChild(row);
+    var strip = document.getElementById("v248b-strip");
+    if (strip && strip.parentNode === v) v.insertBefore(c, strip.nextSibling); else v.insertBefore(c, v.firstChild);
+    load.click();
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-admin");
+    if (v && v.offsetParent !== null && !document.getElementById("v251b-editor")) editorCard(v);
+    var m = document.getElementById("view-modules");
+    if (m && m.offsetParent !== null && !m.getAttribute("data-v251sc")) {
+      m.setAttribute("data-v251sc", "1");
+      fetch("/showcase.json").then(function (r) { return r.ok ? r.json() : { items: [] }; }).catch(function(){ return {items:[]}; }).then(function (j) {
+        var items = (j && j.items) || []; if (!items.length) return;
+        var sec = document.createElement("div");
+        sec.style.cssText = "margin:18px 0 8px";
+        var h = document.createElement("div");
+        h.style.cssText = "font:600 15px system-ui;color:#e8f2ff;margin-bottom:10px";
+        h.textContent = "Alfred's Arsenal — always growing";
+        sec.appendChild(h);
+        items.forEach(function (it) {
+          var card = document.createElement("div");
+          card.style.cssText = "background:rgba(255,255,255,.05);border:1px solid rgba(159,216,255,.18);border-radius:14px;padding:12px 14px;margin-bottom:8px";
+          var top = document.createElement("div"); top.style.cssText = "display:flex;align-items:center;gap:8px";
+          var nm = document.createElement("span"); nm.style.cssText = "font:600 13px system-ui;color:#e8f2ff"; nm.textContent = it.name;
+          var tier = document.createElement("span"); tier.style.cssText = "font:10px system-ui;color:#9fd8ff;border:1px solid rgba(159,216,255,.35);border-radius:99px;padding:1px 8px"; tier.textContent = it.tier;
+          top.appendChild(nm); top.appendChild(tier);
+          var ds = document.createElement("div"); ds.style.cssText = "font:12px system-ui;color:#8fb8d8;margin-top:4px"; ds.textContent = it.desc;
+          card.appendChild(top); card.appendChild(ds); sec.appendChild(card);
+        });
+        m.appendChild(sec);
+      });
+    }
+  }, 3000);
 })();

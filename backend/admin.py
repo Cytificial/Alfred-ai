@@ -214,6 +214,20 @@ def maybe_handle(handler, method):
         db.close()
         return _send(handler, 200, {"ok": True, "metrics": out})
 
+    if method == "POST" and p == "/api/admin/showcase":
+        import json as _j, os as _os
+        b = _body(handler)
+        items = []
+        for it in (b.get("items") or [])[:24]:
+            if not isinstance(it, dict): continue
+            name = str(it.get("name", ""))[:40].strip()
+            if not name: continue
+            items.append({"name": name, "desc": str(it.get("desc", ""))[:120].strip(),
+                          "tier": str(it.get("tier", "Free")).capitalize() if str(it.get("tier", "")).lower() in ("free", "pro", "ultra") else "Pro"})
+        _p = _os.path.normpath(_os.path.join(_os.path.dirname(DBP), "..", "showcase.json"))
+        _t = _p + ".tmp"; open(_t, "w").write(_j.dumps({"ok": True, "items": items})); _os.replace(_t, _p)
+        return _send(handler, 200, {"ok": True, "count": len(items)})
+
     if method == "GET" and p == "/api/admin/providers":
         return _send(handler, 200, _prov.public())
 
