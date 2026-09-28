@@ -209,6 +209,8 @@ def maybe_handle(handler, method):
         if tk and uts:
             out["tokens_24h"] = db.execute("SELECT COALESCE(SUM(%s),0) FROM usage WHERE %s > ?" % (tk, uts), (now - 86400,)).fetchone()[0]
         out["chats_total"] = db.execute("SELECT COUNT(*) FROM chats").fetchone()[0]
+        try: out["failed_24h"] = db.execute("SELECT COUNT(*) FROM auth_log WHERE ok=0 AND ts > ?", (now - 86400,)).fetchone()[0]
+        except Exception: out["failed_24h"] = None
         if "expires" in cols("sessions"):
             out["active_sessions"] = db.execute("SELECT COUNT(*) FROM sessions WHERE expires > ?", (now,)).fetchone()[0]
         db.close()

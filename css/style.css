@@ -3603,3 +3603,7 @@ img[src*="lambda-192"] { width: 100%; height: 100%; object-fit: contain; display
 aside, nav, [class*="sidebar"] { background-color: rgba(8,13,24,.93) !important; }
 .v253-ai-b { background: rgba(255,255,255,.055) !important; border: 1px solid rgba(255,255,255,.12) !important; }
 .v253-user-b { background: rgba(46,127,214,.30) !important; border: 1px solid rgba(120,180,255,.55) !important; }
+/* v254: admin tabs scroll + explore placeholders */
+.v254tabs { overflow-x: auto !important; flex-wrap: nowrap !important; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.v254tabs::-webkit-scrollbar { display: none; }
+.v254tabs > * { flex: 0 0 auto; }

@@ -9699,7 +9699,7 @@ try { /* v163proc: native thinking card */
       if (!j || !j.ok) { strip.innerHTML = '<div style="font:12px system-ui;color:#ff8f8f">metrics: ' + ((j && j.error) || "unavailable") + '</div>'; return; }
       var m = j.metrics || {}, mix = (m.model_mix && m.model_mix[0]) ? m.model_mix[0].model + " · " + m.model_mix[0].n : "—";
       strip.innerHTML = card("Messages 24h", fmt(m.msgs_24h)) + card("Tokens 24h", fmt(m.tokens_24h)) +
-        card("Chats total", fmt(m.chats_total)) + card("Live sessions", fmt(m.active_sessions)) + card("Top model", mix);
+        card("Chats total", fmt(m.chats_total)) + card("Live sessions", fmt(m.active_sessions)) + card("Top model", mix) + card("Failed logins 24h", fmt(m.failed_24h));
     }).catch(function () {});
   }
   setInterval(function () {
@@ -9902,4 +9902,85 @@ try { /* v163proc: native thinking card */
       bubble.classList.add(row.querySelector(".msg-av") ? "v253-ai-b" : "v253-user-b");
     });
   }, 1400);
+})();
+
+/* ===== v254: admin tab scroll, chat hero kill, tier titles, explore variety ===== */
+(function () {
+  if (window.__v254) return; window.__v254 = "1";
+  /* A) admin tab bar -> horizontal scroll lane */
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-admin"); if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll("*")).some(function (e) {
+      var kids = [].slice.call(e.children);
+      var t = kids.map(function (k) { return (k.textContent || "").trim(); }).join("|");
+      if (kids.length >= 3 && t.indexOf("Users") > -1 && t.indexOf("Billing") > -1) {
+        if (!e.classList.contains("v254tabs")) e.classList.add("v254tabs");
+        return true;
+      }
+      return false;
+    });
+  }, 2000);
+  /* B) chat: kill background-image hero + big/broken imgs (header untouched - it's outside #view-chat) */
+  setInterval(function () {
+    if (document.hidden) return;
+    var c = document.getElementById("view-chat"); if (!c || c.offsetParent === null) return;
+    [].slice.call(c.querySelectorAll("*")).forEach(function (e) {
+      if (e.getAttribute("data-v254bg")) return;
+      var bi = (getComputedStyle(e).backgroundImage || "");
+      if ((bi.indexOf("brand-") > -1 || bi.indexOf("lambda-") > -1 || bi.indexOf("logo") > -1) && e.offsetHeight >= 140) {
+        e.style.backgroundImage = "none"; e.setAttribute("data-v254bg", "1");
+      }
+    });
+    [].slice.call(c.querySelectorAll("img")).forEach(function (im) {
+      var src = im.getAttribute("src") || "";
+      if ((src.indexOf("brand-") > -1 || src.indexOf("lambda-") > -1) && (im.offsetWidth >= 120 || im.offsetHeight >= 120)) { im.style.display = "none"; return; }
+      if (im.complete && im.naturalWidth === 0 && src && src.indexOf("data:") !== 0) im.style.display = "none";
+    });
+  }, 1500);
+  /* C) modules: tier titles from subtitle keywords (Free/Pro/Ultra where they belong) */
+  var MAP = [["standard minds", "Free"], ["latest-generation", "Pro"], ["apex minds", "Ultra"]];
+  setInterval(function () {
+    if (document.hidden) return;
+    var m = document.getElementById("view-modules"); if (!m || m.offsetParent === null) return;
+    MAP.forEach(function (pair) {
+      [].slice.call(m.querySelectorAll("*")).forEach(function (e) {
+        var t = e.textContent || "";
+        if (t.indexOf(pair[0]) === -1 || t.length > 260) return;
+        var root = e.parentElement; if (!root) return;
+        if (root.getAttribute("data-v254t") === pair[1]) return;
+        root.setAttribute("data-v254t", pair[1]);
+        [].slice.call(root.querySelectorAll("*")).every(function (x) {
+          if (x.children.length) return true;
+          var xt = (x.textContent || "").trim();
+          if (xt === "Free" || xt === "Pro" || xt === "Ultra") { x.textContent = pair[1]; return false; }
+          return true;
+        });
+      });
+    });
+  }, 1600);
+  /* D) explore: unique seed per image per visit, self-heal on error */
+  setInterval(function () {
+    if (document.hidden) return;
+    var x = document.getElementById("view-explore"); if (!x || x.offsetParent === null) return;
+    [].slice.call(x.querySelectorAll("img")).forEach(function (im) {
+      var src = im.getAttribute("src") || "";
+      if (!src || src.indexOf("data:") === 0) return;
+      var poll = src.indexOf("pollinations") > -1;
+      if (!poll && src.indexOf("unsplash") === -1 && src.indexOf("/image") === -1) return;
+      if (im.getAttribute("data-v254s")) return;
+      im.setAttribute("data-v254s", "1");
+      var base = src.split("&seed=")[0].split("?seed=")[0];
+      function url(s) { return base + (base.indexOf("?") > -1 ? "&" : "?") + "seed=" + s + (poll ? "&nologo=true" : ""); }
+      im.src = url(String(Date.now() % 1000000) + String(Math.floor(Math.random() * 9999)));
+      im.addEventListener("error", function h() {
+        im.removeEventListener("error", h);
+        im.src = url(String(Math.floor(Math.random() * 9999999)));
+        im.addEventListener("error", function () {
+          im.style.display = "none";
+          var p = im.parentElement; if (p) p.style.background = "linear-gradient(135deg,#1b2a44,#0e1830)";
+        });
+      });
+    });
+  }, 2500);
 })();
