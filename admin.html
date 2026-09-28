@@ -32,8 +32,9 @@ textarea{width:100%;min-height:84px;resize:vertical}
 </style></head><body>
 <div id=login class=card style="overflow:visible">
  <div style="font-size:30px">◈</div><h3 style="margin:6px 0 2px">Alfred Console</h3>
- <p class=mut>Private — admins only</p>
- <input id=pw type=password placeholder="Console password" onkeydown="if(event.key=='Enter')go()">
+ <p class=mut>Owner access · creds live in backend/keys.env</p>
+ <input id=em type=email placeholder="Owner email" autocomplete=username onkeydown="if(event.key=='Enter')go()">
+ <input id=pw type=password placeholder="Password" onkeydown="if(event.key=='Enter')go()">
  <button class=act style="width:100%" onclick="go()">Unlock</button>
  <p class=mut id=lmsg></p>
 </div>
@@ -50,11 +51,14 @@ function api(p,o){o=o||{};o.headers=Object.assign({"X-Alfred-Token":TOK,"Content
  return fetch(p,o).then(function(r){return r.json().catch(function(){return{}})})}
 function el(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e}
 function go(){
- var p=document.getElementById("pw").value;
- api("/api/admin/login",{method:"POST",body:{password:p}}).then(function(j){
-  if(j.ok){TOK=j.token;try{sessionStorage.setItem("ac_tok",TOK)}catch(e){}boot()}
-  else document.getElementById("lmsg").textContent=j.error||"wrong password";
- })}
+ var em=document.getElementById("em").value.trim(), p=document.getElementById("pw").value;
+ api("/api/auth/login",{method:"POST",body:{email:em,password:p}}).then(function(j){
+  if(!j.ok||!j.token){document.getElementById("lmsg").textContent=j.error||"wrong email or password";return}
+  TOK=j.token;
+  api("/api/admin/metrics").then(function(m){
+   if(m.ok){try{sessionStorage.setItem("ac_tok",TOK)}catch(e){}boot()}
+   else document.getElementById("lmsg").textContent="this account is not an admin";
+  })})})}
 function boot(){
  document.getElementById("login").classList.add("hide");
  document.getElementById("app").classList.remove("hide");
@@ -155,4 +159,5 @@ function vShow(m){
  var ld=document.createElement("button");ld.className="ghost";ld.textContent="Load current";
  ld.onclick=function(){fetch("/showcase.json").then(function(x){return x.ok?x.json():{items:[]}}).then(function(j){ta.value=(j.items||[]).map(function(i){return i.name+" | "+i.desc+" | "+i.tier}).join("\n")})};
  r.appendChild(pb);r.appendChild(ld);c.appendChild(r);m.appendChild(c)}
+if(TOK){api("/api/admin/metrics").then(function(m){if(m.ok)boot();else{try{sessionStorage.removeItem("ac_tok")}catch(e){}TOK=""}})}
 </script></body></html>

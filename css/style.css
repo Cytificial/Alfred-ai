@@ -3666,3 +3666,7 @@ header .model .m-tx, .model .m-tx{max-width:38vw;overflow:hidden;text-overflow:e
 #land .how-link:hover{background:rgba(255,255,255,.12)}
 @media(max-width:380px){#land .how-link{margin:12px 0 0}}
 #land .navin{background:transparent;border:1px solid rgba(255,255,255,.22);color:#DFEAF6;border-radius:99px;padding:9px 20px;font-family:'DM Sans';font-size:13px;font-weight:600;cursor:pointer}
+/* v315: chat calm + arrow backstop */
+#view-chat,#chat-scroll,#hero{background:#0a0f16!important;background-image:none!important}
+#chat-scroll{overflow-x:hidden!important}
+#v2451-admin-row{display:none!important}

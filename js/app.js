@@ -12602,38 +12602,6 @@ try { /* v163proc: native thinking card */
   }, 2000);
 })();
 
-/* ===== v302: share Alfred's answers — organic growth loop ===== */
-(function () {
-  if (window.__v302) return; window.__v302 = "1";
-  setInterval(function () {
-    if (document.hidden) return;
-    var v = document.getElementById("view-chat");
-    if (!v || v.offsetParent === null) return;
-    [].slice.call(v.querySelectorAll(".msg")).forEach(function (row) {
-      var bar = row.querySelector(".v274row");
-      if (!bar || row.querySelector(".v302sh")) return;
-      var b = document.createElement("button");
-      b.type = "button"; b.textContent = "↗";
-      b.title = "Share this answer";
-      b.style.cssText = "background:transparent;color:#9fd8ff;" +
-        "border:1px solid rgba(159,216,255,.35);border-radius:8px;" +
-        "padding:3px 10px;font:11px system-ui;cursor:pointer";
-      b.onclick = function () {
-        var t = (row.textContent || "").replace("↗", "").trim();
-        t = t.slice(0, 400);
-        if (navigator.share) {
-          navigator.share({ title: "Alfred AI", text: t })
-            .catch(function () {});
-        } else if (navigator.clipboard) {
-          navigator.clipboard.writeText(t);
-          if (window.toast) toast("Copied ✓");
-        }
-      };
-      bar.appendChild(b);
-    });
-  }, 1800);
-})();
-
 /* ===== v311: feedback loop — votes land in the database ===== */
 (function () {
   if (window.__v311) return; window.__v311 = "1";
@@ -12833,4 +12801,44 @@ try { /* v163proc: native thinking card */
       h.insertBefore(c, ref || null);
     });
   }, 4000);
+})();
+
+/* ===== v315: calm sweep + arrow backstop + admin nav removal ===== */
+(function () {
+  if (window.__v315) return; window.__v315 = "1";
+  var GLYPHS = ["\u2197", "\u2934", "\u2935", "\u2191", "\u2B06", "\u2B07", "\u2196", "\u2198"];
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    ["view-chat", "chat-scroll", "hero"].forEach(function (id) {
+      var e = document.getElementById(id);
+      if (e && e.style && e.style.backgroundImage) e.style.backgroundImage = "none";
+    });
+    [].slice.call(v.querySelectorAll("button,span,svg")).forEach(function (b) {
+      var t = (b.textContent || b.getAttribute("aria-label") || "").trim();
+      if (GLYPHS.indexOf(t) > -1 || (t.length < 3 && /[\u2190-\u21FF\u2B00-\u2BFF]/.test(t) && !b.closest(".composer"))) {
+        b.style.display = "none";
+      }
+    });
+    [].slice.call(v.querySelectorAll(".msg")).forEach(function (m) {
+      if (m.getAttribute("data-v315")) return;
+      m.setAttribute("data-v315", "1");
+      [].slice.call(m.children).forEach(function (ch) {
+        var t = (ch.textContent || "");
+        if (/[\u{1F44D}\u{1F44E}]|copy|share/i.test(t) && t.length < 40 && !ch.querySelector(".msg-bubble")) m.appendChild(ch);
+      });
+    });
+    [].slice.call(v.querySelectorAll("#chat-scroll *")).forEach(function (e) {
+      var r = e.getBoundingClientRect();
+      if (r.width > window.innerWidth + 4) { e.style.maxWidth = "92vw"; e.style.overflowX = "auto"; }
+    });
+  }, 1500);
+  setInterval(function () {
+    if (document.hidden) return;
+    [].slice.call(document.querySelectorAll("body *")).forEach(function (e) {
+      if (e.children.length || e.closest("#view-admin") || e.closest("#view-chat")) return;
+      if ((e.textContent || "").trim() === "Admin" && e.offsetWidth > 0 && e.closest("header,nav,.nav,.topbar,.burger,#burger")) e.style.display = "none";
+    });
+  }, 3000);
 })();
