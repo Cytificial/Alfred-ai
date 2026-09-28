@@ -9479,50 +9479,81 @@ try { /* v163proc: native thinking card */
 
 /* retired in v243 */
 
-/* ===== v243: admin row guaranteed + settings admin card retired ===== */
+/* v243 row block retired in v244 */
+
+/* ===== v244: Admin row — shield icon, tight persistence ===== */
 (function () {
-  if (window.__v243) return; window.__v243 = "1";
-  var isAdmin = null;
+  if (window.__v244) return; window.__v244 = "1";
+  var SHIELD = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#9fd8ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-2.9 8.2-7 10-4.1-1.8-7-5.6-7-10V6l7-3z"/></svg>';
   function pf(p) { return fetch(p, { credentials: "include",
     headers: { "X-Alfred-Token": localStorage.getItem("alfred_token") || "" } }).then(function (r) { return r.json(); }); }
-  pf("/api/admin/overview").then(function (j) { isAdmin = !!(j && j.ok); }).catch(function () {});
+  var isAdmin = null;
+  pf("/api/admin/overview").then(function (j) { isAdmin = !!(j && j.ok); }).catch(function () { isAdmin = false; });
   function vis(e) { return e.offsetParent !== null; }
-  function rows() { return Array.prototype.slice.call(document.querySelectorAll("body *")).filter(function (e) {
-    return e.children.length <= 2 && (e.textContent || "").trim() === "Admin" && vis(e); }); }
+  function txt(e) { return (e.textContent || "").trim(); }
+  function buildFrom(set) {
+    var row = set.cloneNode(true);
+    Array.prototype.forEach.call(row.querySelectorAll("svg"), function (s) { s.remove(); });
+    Array.prototype.forEach.call(row.querySelectorAll("*"), function (x) {
+      if (!x.children.length && /Settings/i.test(x.textContent || "")) x.textContent = "Admin"; });
+    if (!row.children.length) row.textContent = "Admin";
+    var ic = row.querySelector("span, i, b, div") || row;
+    var wrap = document.createElement("span");
+    wrap.style.cssText = "display:inline-flex;align-items:center;margin-right:4px";
+    wrap.innerHTML = SHIELD;
+    ic.insertBefore(wrap, ic.firstChild);
+    row.style.display = ""; row.onclick = function () { location.hash = "#/admin"; };
+    set.parentNode.insertBefore(row, set.nextSibling);
+    return row;
+  }
   function tick() {
-    if (isAdmin === false) rows().forEach(function (e) { e.style.display = "none"; });
-    else if (isAdmin) {
-      var rs = rows();
-      if (rs.length > 1) rs.slice(0, -1).forEach(function (e) { e.style.display = "none"; });
-      var k = rs[rs.length - 1];
-      if (k) { k.style.display = ""; k.onclick = function () { location.hash = "#/admin"; }; }
+    try {
+      var mine = Array.prototype.slice.call(document.querySelectorAll("body *")).filter(function (e) {
+        return e.children.length <= 3 && txt(e) === "Admin" && vis(e); });
+      if (isAdmin === false) mine.forEach(function (e) { e.style.display = "none"; });
       else {
-        var set = Array.prototype.slice.call(document.querySelectorAll("body *")).filter(function (e) {
-          return vis(e) && e.children.length <= 2 && (e.textContent || "").trim() === "Settings"; })[0];
-        if (set) {
-          var row = set.cloneNode(true);
-          Array.prototype.forEach.call(row.querySelectorAll("*"), function (x) {
-            if (!x.children.length && /Settings/i.test(x.textContent || "")) x.textContent = "Admin"; });
-          if (!row.children.length) row.textContent = "Admin";
-          row.onclick = function () { location.hash = "#/admin"; };
-          set.parentNode.insertBefore(row, set.nextSibling);
+        mine.slice(0, -1).forEach(function (e) { e.style.display = "none"; });
+        var k = mine[mine.length - 1];
+        if (k) { k.style.display = ""; k.onclick = function () { location.hash = "#/admin"; }; }
+        else {
+          var set = Array.prototype.slice.call(document.querySelectorAll("body *")).filter(function (e) {
+            return vis(e) && e.children.length <= 3 && txt(e) === "Settings"; })[0];
+          if (set) buildFrom(set);
         }
       }
-    }
-    killCard();
-    setTimeout(tick, 3000);
+      killCard();
+    } catch (e) {}
+    setTimeout(tick, 1200);
   }
   function killCard() {
     var vs = document.getElementById("view-settings"); if (!vs) return;
-    Array.prototype.slice.call(vs.querySelectorAll("*")).forEach(function (e) {
-      if (/ADMIN\s*[—-]/i.test(e.textContent || "") && e.querySelectorAll("select").length >= 2) {
-        var top = e;
-        while (top.parentElement && top.parentElement !== vs &&
-               /ADMIN\s*[—-]/i.test(top.parentElement.textContent || "") &&
-               top.parentElement.querySelectorAll("select").length >= 2) top = top.parentElement;
-        top.remove();
-      }
-    });
+    function depth(e) { var d = 0; while (e && e !== vs) { d++; e = e.parentElement; } return d; }
+    var cand = Array.prototype.slice.call(vs.querySelectorAll("*")).filter(function (e) {
+      return e.querySelectorAll("select").length >= 2 && /ADMIN\s*[—-]/i.test(e.textContent || "");
+    }).sort(function (a, b) { return depth(a) - depth(b); });
+    if (cand.length) cand[0].remove();
   }
-  setTimeout(tick, 1200);
+  setTimeout(tick, 1000);
+})();
+
+/* ===== v244: modules — first render behaves like a real tier tap ===== */
+(function () {
+  if (window.__v244mod) return; window.__v244mod = "1";
+  var plan = null;
+  fetch("/api/auth/me", { credentials: "include" }).then(function (r) { return r.json(); })
+    .then(function (j) { if (j && j.ok && j.user) plan = j.user.plan || "Free"; }).catch(function () {});
+  function kick() {
+    var v = document.getElementById("view-modules");
+    if (!v || v.offsetParent === null) return;
+    var chips = Array.prototype.slice.call(v.querySelectorAll("button, [role=button], .chip, span"))
+      .filter(function (e) { return /^(Free|Pro|Ultra)$/i.test((e.textContent || "").trim()) && e.offsetParent !== null; });
+    if (!chips.length) return;
+    var target = chips.filter(function (e) { return (e.textContent || "").trim().toLowerCase() === (plan || "").toLowerCase(); })[0] || chips[0];
+    target.click();
+  }
+  var t = null;
+  addEventListener("hashchange", function () {
+    if ((location.hash || "").indexOf("modules") > -1) { clearTimeout(t); t = setTimeout(kick, 450); }
+  });
+  setTimeout(kick, 1600);
 })();
