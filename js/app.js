@@ -9695,7 +9695,7 @@ try { /* v163proc: native thinking card */
       '<div style="font:600 20px system-ui;color:#e8f2ff;margin-top:4px">' + val + '</div></div>';
   }
   function load(strip) {
-    fetch("/api/admin/metrics", { credentials: "include" }).then(function (r) { return r.json(); }).then(function (j) {
+    fetch("/api/admin/metrics", { credentials: "include", headers: { "X-Alfred-Token": localStorage.getItem("alfred_token") || "" } }).then(function (r) { return r.json(); }).then(function (j) {
       if (!j || !j.ok) { strip.innerHTML = '<div style="font:12px system-ui;color:#ff8f8f">metrics: ' + ((j && j.error) || "unavailable") + '</div>'; return; }
       var m = j.metrics || {}, mix = (m.model_mix && m.model_mix[0]) ? m.model_mix[0].model + " · " + m.model_mix[0].n : "—";
       strip.innerHTML = card("Messages 24h", fmt(m.msgs_24h)) + card("Tokens 24h", fmt(m.tokens_24h)) +
@@ -9756,7 +9756,7 @@ try { /* v163proc: native thinking card */
 /* ===== v251b: showcase — dashboard editor + modules render (display-only) ===== */
 (function () {
   if (window.__v251b) return; window.__v251b = "1";
-  function api(p, opt) { return fetch(p, Object.assign({ credentials: "include" }, opt || {})).then(function (r) { return r.json().catch(function () { return {}; }); }); }
+  function api(p, opt) { return fetch(p, Object.assign({ credentials: "include", headers: { "X-Alfred-Token": localStorage.getItem("alfred_token") || "" } }, opt || {})).then(function (r) { return r.json().catch(function () { return {}; }); }); }
   function editorCard(v) {
     var c = document.createElement("div");
     c.id = "v251b-editor";
@@ -9764,13 +9764,13 @@ try { /* v163proc: native thinking card */
     c.innerHTML = '<div style="font:600 13px system-ui;color:#e8f2ff;margin-bottom:8px">Modules Showcase <span style="font-weight:400;color:#8fb8d8">(what visitors see — one item per line: Name | Description | Tier)</span></div>';
     var ta = document.createElement("textarea");
     ta.style.cssText = "width:100%;min-height:90px;background:rgba(0,0,0,.3);color:#e8f2ff;border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px;font:12px system-ui";
-    ta.placeholder = "Nano Vision | Sees and reasons about your images | Pro\\nDeep Thought | Multi-step reasoning for hard problems | Ultra";
+    ta.placeholder = "Nano Vision | Sees and reasons about your images | Pro\nDeep Thought | Multi-step reasoning for hard problems | Ultra";
     var row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px;margin-top:8px";
     var save = document.createElement("button"); save.type = "button"; save.textContent = "Publish";
     save.style.cssText = "background:#2e7fd6;color:#fff;border:0;border-radius:10px;padding:7px 16px;font:12px system-ui;cursor:pointer";
     var st = document.createElement("span"); st.style.cssText = "font:12px system-ui;color:#8fb8d8;align-self:center";
     save.onclick = function () {
-      var items = ta.value.split("\\n").map(function (l) {
+      var items = ta.value.split("\n").map(function (l) {
         var p = l.split("|"); if (!p[0] || !p[0].trim()) return null;
         return { name: (p[0] || "").trim(), desc: (p[1] || "").trim(), tier: (p[2] || "Pro").trim() };
       }).filter(Boolean);
@@ -9780,8 +9780,8 @@ try { /* v163proc: native thinking card */
     var load = document.createElement("button"); load.type = "button"; load.textContent = "Load current";
     load.style.cssText = "background:transparent;color:#cfe9ff;border:1px solid rgba(159,216,255,.3);border-radius:10px;padding:7px 12px;font:12px system-ui;cursor:pointer";
     load.onclick = function () {
-      fetch("/showcase.json").then(function (r) { return r.ok ? r.json() : { items: [] }; }).then(function (j) {
-        ta.value = (j.items || []).map(function (i) { return i.name + " | " + i.desc + " | " + i.tier; }).join("\\n");
+      api("/api/admin/showcase").then(function (j) {
+        ta.value = (j.items || []).map(function (i) { return i.name + " | " + i.desc + " | " + i.tier; }).join("\n");
         st.textContent = (j.items || []).length + " loaded";
         setTimeout(function(){ st.textContent = ""; }, 2000);
       });
@@ -9858,4 +9858,48 @@ try { /* v163proc: native thinking card */
       [].slice.call(card.querySelectorAll("img,svg")).forEach(function (im) { im.style.display = "none"; });
     });
   }, 900);
+})();
+
+/* ===== v253: new-chat de-logo (correct climb) + hero trim + bubble roles ===== */
+(function () {
+  if (window.__v253) return; window.__v253 = "1";
+  function scope() { return document.querySelector("aside,nav,[class*='sidebar'],[class*='drawer']") || document; }
+  function best(el) {
+    var b = null, len = 60;
+    [].slice.call(el.children).forEach(function (c) {
+      if (c.querySelector && c.querySelector(".msg-av")) return;
+      var L = (c.textContent || "").length;
+      if (L > len && !c.querySelector("button")) { len = L; b = c; }
+    });
+    return b;
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    /* 1) New Chat card: climb UP until the card contains its subtitle */
+    var sc = scope();
+    [].slice.call(sc.querySelectorAll("*")).forEach(function (e) {
+      if (e.children.length || (e.textContent || "").trim() !== "New Chat") return;
+      var card = e;
+      while (card && card !== sc && (card.textContent || "").indexOf("Start a new conversation") === -1) card = card.parentElement;
+      if (!card || card === sc || card.getAttribute("data-v253nc")) return;
+      card.setAttribute("data-v253nc", "1");
+      [].slice.call(card.querySelectorAll("img,svg")).forEach(function (im) { im.style.display = "none"; });
+    });
+    /* 2) big welcome hero inside chat only (>=140px brand/lambda imgs) */
+    [].slice.call(document.querySelectorAll("#view-chat img")).forEach(function (im) {
+      var src = im.getAttribute("src") || "";
+      if ((src.indexOf("brand-") > -1 || src.indexOf("lambda-") > -1) && im.offsetWidth >= 140) im.style.display = "none";
+    });
+    /* 3) bubble roles: rows with .msg-av = Alfred, without = user */
+    var av = document.querySelector("#view-chat .msg-av");
+    if (!av) return;
+    var cont = av.parentElement && av.parentElement.parentElement ? av.parentElement.parentElement : null;
+    if (!cont) return;
+    [].slice.call(cont.children).forEach(function (row) {
+      if (row.getAttribute("data-v253r")) return;
+      var bubble = best(row); if (!bubble) return;
+      row.setAttribute("data-v253r", "1");
+      bubble.classList.add(row.querySelector(".msg-av") ? "v253-ai-b" : "v253-user-b");
+    });
+  }, 1400);
 })();

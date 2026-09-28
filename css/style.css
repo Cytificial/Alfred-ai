@@ -3599,3 +3599,7 @@ img[src*="lambda-192"] { width: 100%; height: 100%; object-fit: contain; display
 .v251scroll .adm-t { min-width: 620px; }
 /* v252: GPT-style chat - no avatars in the stream (header mark stays) */
 #view-chat .msg-av, #view-chat [class*="msg-av"] { display: none !important; }
+/* v253: readability + GPT-style chat */
+aside, nav, [class*="sidebar"] { background-color: rgba(8,13,24,.93) !important; }
+.v253-ai-b { background: rgba(255,255,255,.055) !important; border: 1px solid rgba(255,255,255,.12) !important; }
+.v253-user-b { background: rgba(46,127,214,.30) !important; border: 1px solid rgba(120,180,255,.55) !important; }

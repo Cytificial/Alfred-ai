@@ -214,6 +214,13 @@ def maybe_handle(handler, method):
         db.close()
         return _send(handler, 200, {"ok": True, "metrics": out})
 
+    if method == "GET" and p == "/api/admin/showcase":
+        import json as _j, os as _os
+        _p = _os.path.normpath(_os.path.join(_os.path.dirname(DBP), "..", "showcase.json"))
+        try: _d = _j.load(open(_p))
+        except Exception: _d = {}
+        return _send(handler, 200, {"ok": True, "items": _d.get("items", [])})
+
     if method == "POST" and p == "/api/admin/showcase":
         import json as _j, os as _os
         b = _body(handler)
