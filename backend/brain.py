@@ -130,6 +130,51 @@ def api_key(cfg):
 
 # v298: universal openai-compatible routing for prefixed models (groq/, cerebras/, ...)
 import providers as _pv
+def _direct(model, key, system, turns):
+    if "/" in model and not model.startswith("models/"):
+        pid, m2 = model.split("/", 1)
+        if pid == "openrouter":
+            k = (_pv._keys() or {}).get("openrouter", "")
+            if not k: raise RuntimeError("openrouter key")
+            hh = {"Content-Type": "application/json",
+                  "Authorization": "Bearer " + k}
+            ms = [{"role": "system", "content": system}]
+            ms += [{"role": x, "content": y}
+                   for x, y in turns]
+            body = json.dumps({"model": m2, "messages": ms,
+                               "max_tokens": 1200}).encode()
+            rq = urllib.request.Request(
+                "https://openrouter.ai/api/v1" +
+                "/chat/completions", data=body,
+                headers=hh, method="POST")
+            with _open_retry(rq, timeout=90) as rr:
+                d2 = json.loads(rr.read().decode("utf-8"))
+            mm = ((d2.get("choices") or [{}])[0]
+                  .get("message") or {})
+            return mm.get("content") or None
+        r = _prov_route(model, system, turns)
+        if r: return r
+        raise RuntimeError("no route for " + model)
+    u = "https://generativelanguage.googleapis.com/v1beta"
+    u += "/models/" + urllib.parse.quote(model, safe="")
+    u += ":generateContent?key=" + urllib.parse.quote(key or "")
+    cs = [{"role": ("user" if x == "user" else "model"),
+           "parts": [{"text": t}]} for x, t in turns]
+    pl = {"systemInstruction": {"parts": [{"text": system}]},
+          "contents": cs,
+          "generationConfig": {"temperature": 0.8,
+                                "maxOutputTokens": 1024}}
+    rq = urllib.request.Request(u, data=json.dumps(pl).encode(
+         "utf-8"), headers={"Content-Type":
+         "application/json"}, method="POST")
+    with _open_retry(rq, timeout=90) as rr:
+        d2 = json.loads(rr.read().decode("utf-8"))
+    cand = (d2.get("candidates") or [{}])[0]
+    ps = ((cand.get("content") or {}).get("parts")) or []
+    txt = "".join(p.get("text", "") for p in ps
+                  if p.get("text") and not p.get("thought"))
+    return txt.strip() or None
+
 def _prov_route(model, system, turns):
     if "/" not in model: return None
     if model.startswith("models/"): return None
@@ -430,7 +475,7 @@ class Handler(BaseHTTPRequestHandler):
             answer, used_model = None, None
             for model in chain:
                 try:
-                    answer = _route(model, key, _tier_persona(user, plan), turns, _g=gemini)
+                    answer = _direct(model, key, _tier_persona(user, plan), turns)
                     used_model = model
                     if plan == "Ultra" and answer:
                         try:
@@ -447,8 +492,16 @@ class Handler(BaseHTTPRequestHandler):
                     break
                 except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, ValueError) as e:
                     print("model %s failed: %s" % (model, str(e)[:180]), flush=True)
+                    if isinstance(e, RecursionError):
+                        import traceback as _tbe
+                        print(_tbe.format_exc(limit=8)[-900:],
+                              flush=True)
                 except Exception as e:
                     print("model %s failed: %s" % (model, str(e)[:180]), flush=True)
+                    if isinstance(e, RecursionError):
+                        import traceback as _tbe
+                        print(_tbe.format_exc(limit=8)[-900:],
+                              flush=True)
             if answer is None:
                 self.json_out(502, {"ok": False,
                     "error": "My engines are catching their breath - try again in a moment."})
