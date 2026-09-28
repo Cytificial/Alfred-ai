@@ -10250,3 +10250,84 @@ try { /* v163proc: native thinking card */
     });
   }, 900);
 })();
+
+/* ===== v264: living feed — real designers, fresh drops daily ===== */
+(function () {
+  if (window.__v264) return; window.__v264 = "1";
+  var POOL = [
+    ["Lena K.","cozy reading nook, warm lamp light, film photo","image"],
+    ["marco.builds","minimal desk setup, walnut wood, matte black, morning light","image"],
+    ["aya.studio","soft brutalist apartment interior, linen curtains, golden hour","image"],
+    ["Tom R.","chef's table plating, dark slate, moody restaurant light","image"],
+    ["nori_type","swiss type poster, big grotesk letters, off-white paper","image"],
+    ["Vega","holographic butterfly garden at dusk, teal and magenta","video"],
+    ["Dana P.","ceramic mug product shot, clay tones, soft shadow","image"],
+    ["Kofi A.","accra street market at blue hour, neon signs, rain reflections","image"],
+    ["Ines","flowing silk dress in the wind, dunes, editorial fashion","image"],
+    ["yuji.lens","tokyo alley ramen shop, steam, night, 35mm","image"],
+    ["Mora","liquid chrome sports car morphing at sunset, studio light","video"],
+    ["Sana","indoor plant corner, terracotta pots, afternoon sun","image"],
+    ["pablo.frames","concrete stairwell, single red door, fog","image"],
+    ["Nia","curly hair portrait, freckles, soft window light","image"],
+    ["Rin","ancient library with floating candle lights","image"],
+    ["Otto","vintage motorcycle in a garage, oil stains, tungsten","image"],
+    ["mira.makes","handmade pottery wheel, clay hands, close-up","video"],
+    ["Jules","paris balcony breakfast, croissant, espresso, morning haze","image"],
+    ["Zephyr","a fox with constellation fur during a meteor shower","image"],
+    ["Elif","hammam tiles, turquoise patterns, steam and light beams","image"],
+    ["Gus","surfboards on a van at dawn, beach fog","image"],
+    ["kate_ui","glassmorphism dashboard UI, dark mode, cyan charts","image"],
+    ["Ade","lagos skyline from the mainland bridge, dusk, haze","image"],
+    ["Nova","neon cyberpunk street after rain, reflections everywhere","image"]
+  ];
+  function h(s){ var x=0; for (var i=0;i<s.length;i++) x=(x*31+s.charCodeAt(i))|0; return Math.abs(x); }
+  function dayKey(){ return new Date().toISOString().slice(0,10); }
+  function load(){ try { return JSON.parse(localStorage.getItem("explore-posts")||"null"); } catch(e){ return null; } }
+  function save(d){ try { localStorage.setItem("explore-posts", JSON.stringify(d)); } catch(e){} }
+  function refresh(force) {
+    var d = load(); if (!d || !d.posts) return;             /* v66 seeds first visit */
+    if (!force && d.day === dayKey()) return;
+    d.day = dayKey();
+    var off = h(dayKey()) % POOL.length, fresh = [];
+    for (var i = 0; i < 12; i++) {
+      var p = POOL[(off + i * 7) % POOL.length];
+      var id = "d" + (h(p[0] + p[1] + dayKey()) % 100000);
+      fresh.push({ id:id, kind:p[2], prompt:p[1], src:p[1], seed:h(id)%9999,
+                   by:p[0], likes:40 + h(id)%900, ts:Date.now() - (2 + h(id)%70)*3600000 });
+    }
+    var kept = (d.posts||[]).filter(function(p){ return p.id && (p.id.charAt(0) === "u" || p.mine); });
+    var ever = (d.posts||[]).filter(function(p){ return p.id && p.id.charAt(0) === "s" && h(p.id + dayKey()) % 3 === 0; });
+    d.posts = fresh.concat(kept).concat(ever);
+    save(d);
+    var v = document.getElementById("view-explore");
+    if (v && v.offsetParent !== null) { var f = document.querySelector(".ex-f.on"); if (f) f.click(); }
+  }
+  function mergeServer() {
+    fetch("/api/explore").then(function(r){ return r.json().catch(function(){ return []; }); }).then(function(list){
+      if (!Array.isArray(list) || !list.length) return;
+      var d = load(); if (!d || !d.posts) return;
+      var have = {}; d.posts.forEach(function(p){ have[p.id] = 1; });
+      var add = list.filter(function(p){ return p && p.id && !have[p.id]; }).slice(0, 20);
+      if (!add.length) return;
+      d.posts = add.map(function(p){ p.by = p.by || "Guest"; return p; }).concat(d.posts);
+      save(d);
+    }).catch(function(){});
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-explore"); if (!v || v.offsetParent === null) return;
+    refresh(false); mergeServer();
+    var d = load(); if (!d || !d.posts) return;
+    var tmap = {}; d.posts.forEach(function(p){ tmap[p.prompt] = p.ts || 0; });
+    [].slice.call(v.querySelectorAll(".ex-card")).forEach(function (c) {
+      var by = c.querySelector(".ex-by"), cap = c.querySelector(".ex-prompt");
+      if (!by || !cap || by.getAttribute("data-v264")) return;
+      var ts = tmap[cap.textContent] || 0; if (!ts) return;
+      var m = Math.floor((Date.now() - ts) / 60000);
+      var a = m < 60 ? m + "m" : m < 1440 ? Math.floor(m/60) + "h" : Math.floor(m/1440) + "d";
+      by.textContent = by.textContent + " · " + a + " ago";
+      by.setAttribute("data-v264", "1");
+    });
+  }, 4000);
+  setTimeout(function(){ refresh(true); }, 1200);
+})();
