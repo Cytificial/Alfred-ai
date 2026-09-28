@@ -9600,3 +9600,26 @@ try { /* v163proc: native thinking card */
     src.parentNode.insertBefore(row, src.nextSibling);
   }, 1200);
 })();
+
+/* ===== v245.6: no double circles around the brand mark ===== */
+(function () {
+  if (window.__v2456) return; window.__v2456 = "1";
+  function isRound(el) {
+    try {
+      var r = parseFloat(getComputedStyle(el).borderRadius) || 0;
+      var b = Math.min(el.offsetWidth, el.offsetHeight) || 1;
+      return r >= b * 0.45;                 /* circular badge? */
+    } catch (e) { return false; }
+  }
+  function sweep() {
+    var imgs = document.querySelectorAll('img[src*="brand-"]');
+    for (var i = 0; i < imgs.length; i++) {
+      var p = imgs[i].parentElement;
+      if (p && p !== document.body && isRound(p)) {
+        p.style.border = "0"; p.style.boxShadow = "none"; p.style.outline = "0";
+      }
+    }
+  }
+  setInterval(sweep, 1500);
+  document.addEventListener("DOMContentLoaded", sweep);
+})();

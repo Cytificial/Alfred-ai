@@ -3573,3 +3573,10 @@ img[src*="brand-192"], img[src*="brand-512"] {
   filter: drop-shadow(0 0 10px rgba(6,12,22,.9)) drop-shadow(0 0 28px rgba(6,12,22,.7));
 }
 aside::-webkit-scrollbar, nav::-webkit-scrollbar { width: 0; height: 0; }
+/* v245.6: brand mark carries its own ring - wrappers must not add a second one */
+img[src*="brand-"] {
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  background: transparent !important;
+}
