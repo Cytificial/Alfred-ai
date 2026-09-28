@@ -9633,3 +9633,55 @@ try { /* v163proc: native thinking card */
   setInterval(sweep, 1500);
   document.addEventListener("DOMContentLoaded", sweep);
 })();
+
+/* ===== v249: copy buttons — code blocks + message bubbles ===== */
+(function () {
+  if (window.__v249) return; window.__v249 = "1";
+  function cp(txt, btn) {
+    function done() { var o = btn.textContent; btn.textContent = "✓";
+      setTimeout(function () { btn.textContent = "⧉"; }, 1200); }
+    function fb() { var ta = document.createElement("textarea"); ta.value = txt;
+      ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta);
+      ta.select(); try { document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta); done(); }
+    if (navigator.clipboard && navigator.clipboard.writeText)
+      navigator.clipboard.writeText(txt).then(done, fb); else fb();
+  }
+  function mk() {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "v249cp"; b.textContent = "⧉";
+    return b;
+  }
+  function sweepCode() {
+    var pres = document.querySelectorAll("#view-chat pre");
+    for (var i = 0; i < pres.length; i++) {
+      var p = pres[i];
+      if (p.getAttribute("data-v249")) continue;
+      p.setAttribute("data-v249", "1");
+      var b = mk(); b.addEventListener("click", function (e) {
+        e.stopPropagation(); cp(this.parentNode.innerText.replace(/⧉|✓/g, ""), this);
+      });
+      p.appendChild(b);
+    }
+  }
+  function sweepMsgs() {
+    var avs = document.querySelectorAll("#view-chat .msg-av");
+    for (var i = 0; i < avs.length; i++) {
+      var row = avs[i].parentElement; if (!row || row.classList.contains("v249row")) continue;
+      var best = null, len = 60;
+      [].slice.call(row.children).forEach(function (c) {
+        if (c === avs[i] || c.querySelector && c.querySelector(".msg-av")) return;
+        var L = (c.textContent || "").length;
+        if (L > len) { len = L; best = c; }
+      });
+      if (!best) continue;
+      row.classList.add("v249row");
+      var b = mk(); b.addEventListener("click", function (e) {
+        e.stopPropagation(); cp(this.parentNode.innerText.replace(/⧉|✓/g, ""), this);
+      });
+      row.appendChild(b);
+    }
+  }
+  setInterval(function () { try { sweepCode(); sweepMsgs(); } catch (e) {} }, 1500);
+  document.addEventListener("DOMContentLoaded", function () { sweepCode(); sweepMsgs(); });
+})();
