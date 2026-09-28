@@ -166,6 +166,58 @@ class H(SimpleHTTPRequestHandler):
                 open(tmp, "w").write(json.dumps(data[-60:]))
                 os.replace(tmp, fp)
             return self._json(200, item)
+        if self.path == "/api/feedback":
+            n = int(self.headers.get(
+                "Content-Length", 0) or 0)
+            try:
+                b = json.loads(self.rfile.read(n)
+                               or b"{}")
+            except Exception:
+                return self._json(400,
+                    {"error": "bad json"})
+            v = b.get("vote")
+            if v not in ("up", "down"):
+                return self._json(400,
+                    {"error": "vote?"})
+            nowt = _t.time()
+            ip = self.client_address[0]
+            if nowt - _RATE.get(ip, 0) < 2:
+                return self._json(429,
+                    {"error": "slow down"})
+            _RATE[ip] = nowt
+            import sqlite3 as _sq
+            con = _sq.connect(
+                os.path.join(HERE, "alfred.db"),
+                timeout=10)
+            con.execute("CREATE TABLE IF NOT EXISTS"
+                " feedback(id INTEGER PRIMARY KEY"
+                " AUTOINCREMENT, user_id INTEGER,"
+                " chat_id INTEGER, vote TEXT,"
+                " snippet TEXT, ts REAL)")
+            uid = None
+            try:
+                tok = ""
+                for part in self.headers.get(
+                        "Cookie", "").split(";"):
+                    if "alfred_session=" in part:
+                        tok = part.split("=", 1)[1]
+                cols = [r[1] for r in con.execute(
+                    "PRAGMA table_info(sessions)")]
+                if tok and "token" in cols:
+                    r = con.execute("SELECT user_id"
+                        " FROM sessions WHERE token=?",
+                        (tok.strip(),)).fetchone()
+                    if r: uid = r[0]
+            except Exception:
+                uid = None
+            con.execute("INSERT INTO feedback(user_id,"
+                "chat_id,vote,snippet,ts)"
+                " VALUES(?,?,?,?,?)",
+                (uid, b.get("chat_id"), v,
+                 str(b.get("snippet", ""))[:300],
+                 nowt))
+            con.commit(); con.close()
+            return self._json(200, {"ok": True})
         if self.path == "/api/chat-v217b-retired":  # v217b: dead duplicate — frontend uses :8082 only                     # the brain (Gemini)
             n = int(self.headers.get("Content-Length", 0) or 0)
             body = json.loads(self.rfile.read(n) or b"{}")

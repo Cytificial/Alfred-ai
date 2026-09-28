@@ -822,3 +822,81 @@
     });
   }, 1800);
 })();
+
+/* ===== v311: feedback loop — votes land in the database ===== */
+(function () {
+  if (window.__v311) return; window.__v311 = "1";
+  var UP = "\uD83D\uDC4D", DN = "\uD83D\uDC4E";
+  function send(vote, snippet) {
+    return fetch("/api/feedback", {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vote: vote,
+        snippet: (snippet || "").slice(0, 300),
+        chat_id: window.__v129chat || null })
+    }).catch(function () {});
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll(".v274row"))
+      .forEach(function (bar) {
+        [].slice.call(bar.querySelectorAll("button"))
+          .forEach(function (bt) {
+            if (bt.dataset.v311) return;
+            var t = (bt.textContent || "").trim();
+            if (t !== UP && t !== DN) return;
+            bt.dataset.v311 = "1";
+            bt.addEventListener("click", function () {
+              var row = bar.closest(".msg");
+              send(t === UP ? "up" : "down",
+                   row ? row.textContent : "");
+              bt.style.outline = "2px solid #5fe8b0";
+              setTimeout(function () {
+                bt.style.outline = "";
+              }, 1200);
+            });
+          });
+      });
+  }, 1800);
+  setInterval(function () {
+    if (document.hidden) return;
+    var hosts = [];
+    ["vadm", "view-admin"].forEach(function (id) {
+      var h = document.getElementById(id);
+      if (h && h.offsetParent !== null) hosts.push(h);
+    });
+    hosts.forEach(function (h) {
+      if (h.querySelector(".v311fb")) return;
+      fetch("/api/admin/feedback",
+            { credentials: "include" })
+        .then(function (r) { return r.json(); })
+        .catch(function () { return {}; })
+        .then(function (j) {
+          if (!j || !j.ok) return;
+          if (h.querySelector(".v311fb")) return;
+          var c = document.createElement("div");
+          c.className = "v311fb";
+          c.style.cssText = "background:rgba(255,255,255,.04);" +
+            "border:1px solid rgba(159,216,255,.18);" +
+            "border-radius:14px;padding:12px;margin:10px 14px;" +
+            "color:#e8f2ff;font:12px system-ui";
+          c.textContent = UP + " " + (j.up || 0) +
+            "   " + DN + " " + (j.down || 0) + "  (all time)";
+          (j.recent || []).slice(0, 4).forEach(function (r) {
+            var p = document.createElement("div");
+            p.style.cssText = "color:#8fb8d8;margin-top:4px;" +
+              "overflow:hidden;text-overflow:ellipsis;" +
+              "white-space:nowrap";
+            p.textContent = (r.vote === "up" ? UP : DN) +
+              " " + (r.snippet || "");
+            c.appendChild(p);
+          });
+          var ref = h.id === "vadm" ? h.children[1]
+                                    : h.firstChild;
+          h.insertBefore(c, ref || null);
+        });
+    });
+  }, 4000);
+})();

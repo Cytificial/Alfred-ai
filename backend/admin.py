@@ -313,6 +313,28 @@ def maybe_handle(handler, method):
         except Exception as e:
             return _send(handler, 200, {"ok": True, "alive": False, "error": str(e)[:110]})
 
+    if method == "GET" and p == "/api/admin/feedback":
+        import sqlite3 as _s
+        try:
+            con = _s.connect(DBP, timeout=10)
+            r0 = con.execute("SELECT "
+                "SUM(CASE WHEN vote='up' THEN 1 "
+                "ELSE 0 END), SUM(CASE WHEN "
+                "vote='down' THEN 1 ELSE 0 END)"
+                " FROM feedback").fetchone()
+            up = int(r0[0] or 0)
+            dn = int(r0[1] or 0)
+            recent = [dict(zip(("vote", "snippet"),
+                      r)) for r in con.execute(
+                "SELECT vote,snippet FROM feedback"
+                " ORDER BY id DESC LIMIT 8")]
+            con.close()
+        except Exception:
+            up, dn, recent = 0, 0, []
+        return _send(handler, 200,
+            {"ok": True, "up": up, "down": dn,
+             "recent": recent})
+
     if method == "GET" and p == "/api/admin/providers":
         return _send(handler, 200, _prov.public())
 

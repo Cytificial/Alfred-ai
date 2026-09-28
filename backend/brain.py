@@ -482,8 +482,8 @@ class Handler(BaseHTTPRequestHandler):
                             _crit = ("You are the second mind in Alfred's council. Review the draft answer above "
                                      "in context. Fix anything wrong, sharpen the reasoning, keep the warm butler voice. "
                                      "Reply with ONLY the improved final answer.")
-                            _r2 = _route(model, key, _tier_persona(user, plan),
-                                         list(turns) + [("assistant", answer), ("user", _crit)], _g=gemini)
+                            _r2 = _direct(model, key, _tier_persona(user, plan),
+                                         list(turns) + [("assistant", answer), ("user", _crit)])
                             if _r2 and len(str(_r2)) > 40:
                                 answer = _r2
                                 print("council: Ultra answer refined", flush=True)
