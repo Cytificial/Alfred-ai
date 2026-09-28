@@ -1,4 +1,6 @@
-ttribute("data-v252nc")) return;
+xtContent || "").indexOf("Start a new conversation") === -1) card = card.parentElement;
+      if (card === sc || !card.parentElement) return;
+      if (card.getAttribute("data-v252nc")) return;
       card.setAttribute("data-v252nc", "1");
       [].slice.call(card.querySelectorAll("img,svg")).forEach(function (im) { im.style.display = "none"; });
     });
@@ -355,7 +357,7 @@ ttribute("data-v252nc")) return;
     im.setAttribute("data-v260m", "1");
     im.style.opacity = ".2";
     var base = "https://image.pollinations.ai/prompt/" + encodeURIComponent(cap.slice(0, 160)) +
-               "?width=768&height=1024&nologo=true&";
+               "?width=768&height=1024&nologo=true&model=flux&nofeed=true&";
     function load(seed) {
       im.onload = function () { im.style.opacity = "1"; im.setAttribute("data-v260done", "1"); };
       im.onerror = function () {
@@ -1939,6 +1941,4 @@ ttribute("data-v252nc")) return;
   var st = document.createElement("style");
   st.textContent = [
     "#loading.exit{animation:none !important;opacity:0 !important;transition:opacity .32s ease !important}",
-    "#land{font-family:'DM Sans',system-ui;color:#DFEAF6;background:#080D17;min-height:100svh}",
-    "#land a{text-decoration:none;color:inherit}",
-    "#land .vnav{position:sticky;top:0;z-index:9;display:flex;align-
+    "#land{font-family:'DM Sans'

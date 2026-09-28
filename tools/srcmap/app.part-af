@@ -1,4 +1,6 @@
-items:center;gap:14px;padding:14px 22px;background:rgba(8,13,23,.72);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.06)}",
+,system-ui;color:#DFEAF6;background:#080D17;min-height:100svh}",
+    "#land a{text-decoration:none;color:inherit}",
+    "#land .vnav{position:sticky;top:0;z-index:9;display:flex;align-items:center;gap:14px;padding:14px 22px;background:rgba(8,13,23,.72);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.06)}",
     "#land .vnav img{width:30px;height:30px;border-radius:50%}",
     "#land .vnav b{font:700 14px 'DM Sans';letter-spacing:2.5px;color:#EAF3FF}",
     "#land .vnav .lk{font-size:13px;color:#9db8d8;margin-left:6px}",
@@ -402,4 +404,25 @@ items:center;gap:14px;padding:14px 22px;background:rgba(8,13,23,.72);backdrop-fi
     card(v);
     if (items === null) api("/api/admin/lab").then(function (j) { items = (j && j.items) || []; render(); });
   }, 1500);
+})();
+
+/* ===== v294: action bars corrected — never on user rows, never duplicated ===== */
+(function () {
+  if (window.__v294b) return; window.__v294b = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat"); if (!v || v.offsetParent === null) return;
+    if (window.streaming) return;
+    [].slice.call(v.querySelectorAll(".msg")).forEach(function (row) {
+      var bars = row.querySelectorAll(".v274row");
+      if (!bars.length) return;
+      var isAlfred = !!row.querySelector(".msg-av") && !row.classList.contains("fx-user");
+      if (!isAlfred) {
+        [].slice.call(bars).forEach(function (b) { b.remove(); });
+        row.removeAttribute("data-v274");
+        return;
+      }
+      for (var i = 0; i < bars.length - 1; i++) bars[i].remove();
+    });
+  }, 1600);
 })();

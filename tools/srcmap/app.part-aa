@@ -1649,7 +1649,7 @@ window.__v152 = "1"; /* v154 retires v152 */
     for (var i=0;i<CATS.length;i++) if (new RegExp(CATS[i][0]).test(t)) { p = CATS[i][1]; break; }
     return { prompt: p + BASE, seed: hash(title||"world") % 9999 };
   }
-  function url(w){ return "https://image.pollinations.ai/prompt/" + encodeURIComponent(w.prompt) + "?width=768&height=1024&nologo=true&seed=" + w.seed; }
+  function url(w){ return "https://image.pollinations.ai/prompt/" + encodeURIComponent(w.prompt) + "?width=768&height=1024&nologo=true&model=flux&nofeed=true&seed=" + w.seed; }
 
   var pill = document.createElement("span");
   pill.className = "world-pill"; pill.setAttribute("aria-hidden","true");
@@ -1712,7 +1712,7 @@ window.__v152 = "1"; /* v154 retires v152 */
     var t=(title||"").toLowerCase(), p="vast dark nebula, deep blue and violet gas clouds, scattered stars";
     for (var i=0;i<CATS.length;i++) if (new RegExp(CATS[i][0]).test(t)) { p=CATS[i][1]; break; }
     return "https://image.pollinations.ai/prompt/" + encodeURIComponent(p+BASE)
-         + "?width=512&height=512&nologo=true&seed=" + (hash(title||"w") % 9999);
+         + "?width=512&height=512&nologo=true&model=flux&nofeed=true&seed=" + (hash(title||"w") % 9999);
   }
 
   var globes = [];
@@ -2520,4 +2520,4 @@ window.__v152 = "1"; /* v154 retires v152 */
       var rx = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
       var cxy = src.x.toFixed(2) + " " + src.y.toFixed(2);
       out += '<ellipse cx="' + src.x.toFixed(2) + '" cy="' + src.y.toFixed(2) + '" rx="' + rx.toFixed(2)
-        + '" ry="' + (rx * .4).toFixed(2) + '" transform=
+        + '

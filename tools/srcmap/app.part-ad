@@ -1,4 +1,7 @@
-g.ai .bubble");
+ (res) {
+      res.clone().json().then(function (j) {
+        if (j && j.ok === false && j.error) {
+          var b = null, list = document.querySelectorAll(".msg.ai .bubble");
           for (var i = list.length - 1; i >= 0; i--)
             if (!(list[i].textContent || "").trim()) { b = list[i]; break; }
           if (b) { b.textContent = "⚠ " + j.error; b.style.color = "#ffd9a8";
@@ -2475,6 +2478,4 @@ g.ai .bubble");
     [].slice.call(sc.querySelectorAll("*")).forEach(function (e) {
       if (e.children.length || (e.textContent || "").trim() !== "New Chat") return;
       var card = e;
-      while (card.parentElement && card !== sc && (card.parentElement.textContent || "").indexOf("Start a new conversation") === -1) card = card.parentElement;
-      if (card === sc || !card.parentElement) return;
-      if (card.getA
+      while (card.parentElement && card !== sc && (card.parentElement.te

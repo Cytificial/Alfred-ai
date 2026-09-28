@@ -1649,7 +1649,7 @@ window.__v152 = "1"; /* v154 retires v152 */
     for (var i=0;i<CATS.length;i++) if (new RegExp(CATS[i][0]).test(t)) { p = CATS[i][1]; break; }
     return { prompt: p + BASE, seed: hash(title||"world") % 9999 };
   }
-  function url(w){ return "https://image.pollinations.ai/prompt/" + encodeURIComponent(w.prompt) + "?width=768&height=1024&nologo=true&seed=" + w.seed; }
+  function url(w){ return "https://image.pollinations.ai/prompt/" + encodeURIComponent(w.prompt) + "?width=768&height=1024&nologo=true&model=flux&nofeed=true&seed=" + w.seed; }
 
   var pill = document.createElement("span");
   pill.className = "world-pill"; pill.setAttribute("aria-hidden","true");
@@ -1712,7 +1712,7 @@ window.__v152 = "1"; /* v154 retires v152 */
     var t=(title||"").toLowerCase(), p="vast dark nebula, deep blue and violet gas clouds, scattered stars";
     for (var i=0;i<CATS.length;i++) if (new RegExp(CATS[i][0]).test(t)) { p=CATS[i][1]; break; }
     return "https://image.pollinations.ai/prompt/" + encodeURIComponent(p+BASE)
-         + "?width=512&height=512&nologo=true&seed=" + (hash(title||"w") % 9999);
+         + "?width=512&height=512&nologo=true&model=flux&nofeed=true&seed=" + (hash(title||"w") % 9999);
   }
 
   var globes = [];
@@ -2690,7 +2690,7 @@ window.__v152 = "1"; /* v154 retires v152 */
     var p = encodeURIComponent(THEMES[ti]+", seen from space, realistic, cinematic light, no text");
     var seed = (h+ti*17)%9999;
     var proxy = "/api/image?prompt="+p+"&seed="+seed;
-    var direct = "https://image.pollinations.ai/prompt/"+p+"?width=768&height=768&nologo=true&seed="+seed;
+    var direct = "https://image.pollinations.ai/prompt/"+p+"?width=768&height=768&nologo=true&model=flux&nofeed=true&seed="+seed;
     function adopt(u){ c=cache(); c[k]=u+"#theme="+ti;
       try{ localStorage.setItem("alfred_world_skins_v2", JSON.stringify(c)); }catch(e){}
       if (g.isConnected){ g.style.backgroundImage="url('"+u+"')"; g.style.filter="none"; }
@@ -2723,7 +2723,7 @@ window.__v152 = "1"; /* v154 retires v152 */
       try { localStorage.setItem("alfred_scene", u); } catch (e) {} apply(u); };
     i.onerror = fb; i.src = u; }
   tryUrl("/api/image?prompt=" + p + "&seed=42", function () {
-    tryUrl("https://image.pollinations.ai/prompt/" + p + "?width=1024&height=1536&nologo=true&seed=42", function () {});
+    tryUrl("https://image.pollinations.ai/prompt/" + p + "?width=1024&height=1536&nologo=true&model=flux&nofeed=true&seed=42", function () {});
   });
 })();
 
@@ -2849,8 +2849,8 @@ window.__v152 = "1"; /* v154 retires v152 */
       busy = false; window.dispatchEvent(new Event("resize")); }
     function tryLoad(u, next){ var im = new Image(); im.onload = function(){ adopt(u); }; im.onerror = next; im.src = u; }
     tryLoad("/api/image?prompt=" + q + "&seed=" + seed, function () {
-      tryLoad("https://image.pollinations.ai/prompt/" + q + "?width=768&height=768&nologo=true&seed=" + seed, function () {
-        tryLoad("https://image.pollinations.ai/prompt/" + q + "?width=768&height=768&nologo=true&seed=" + ((seed+377)%9999),
+      tryLoad("https://image.pollinations.ai/prompt/" + q + "?width=768&height=768&nologo=true&model=flux&nofeed=true&seed=" + seed, function () {
+        tryLoad("https://image.pollinations.ai/prompt/" + q + "?width=768&height=768&nologo=true&model=flux&nofeed=true&seed=" + ((seed+377)%9999),
           function(){ busy = false; });
       });
     });
@@ -2949,7 +2949,7 @@ window.__v152 = "1"; /* v154 retires v152 */
       if (s.indexOf("/api/image") === 0) {
         var q = new URLSearchParams(s.split("?")[1] || "");
         s = "https://image.pollinations.ai/prompt/" + encodeURIComponent(q.get("prompt") || "galaxy")
-          + "?width=768&height=1024&nologo=true&seed=" + (q.get("seed") || 7);
+          + "?width=768&height=1024&nologo=true&model=flux&nofeed=true&seed=" + (q.get("seed") || 7);
       }
       im.onerror = function () { im.onerror = null; im.src = s.replace(/seed=\d+/, "seed=" + Math.floor(Math.random() * 9999)); };
       im.src = s;
@@ -10225,7 +10225,7 @@ try { /* v163proc: native thinking card */
     im.setAttribute("data-v260m", "1");
     im.style.opacity = ".2";
     var base = "https://image.pollinations.ai/prompt/" + encodeURIComponent(cap.slice(0, 160)) +
-               "?width=768&height=1024&nologo=true&";
+               "?width=768&height=1024&nologo=true&model=flux&nofeed=true&";
     function load(seed) {
       im.onload = function () { im.style.opacity = "1"; im.setAttribute("data-v260done", "1"); };
       im.onerror = function () {
@@ -12215,4 +12215,25 @@ try { /* v163proc: native thinking card */
     card(v);
     if (items === null) api("/api/admin/lab").then(function (j) { items = (j && j.items) || []; render(); });
   }, 1500);
+})();
+
+/* ===== v294: action bars corrected — never on user rows, never duplicated ===== */
+(function () {
+  if (window.__v294b) return; window.__v294b = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat"); if (!v || v.offsetParent === null) return;
+    if (window.streaming) return;
+    [].slice.call(v.querySelectorAll(".msg")).forEach(function (row) {
+      var bars = row.querySelectorAll(".v274row");
+      if (!bars.length) return;
+      var isAlfred = !!row.querySelector(".msg-av") && !row.classList.contains("fx-user");
+      if (!isAlfred) {
+        [].slice.call(bars).forEach(function (b) { b.remove(); });
+        row.removeAttribute("data-v274");
+        return;
+      }
+      for (var i = 0; i < bars.length - 1; i++) bars[i].remove();
+    });
+  }, 1600);
 })();

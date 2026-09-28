@@ -1,4 +1,6 @@
-ne"/>'
+ffeab2" opacity=".5"/>';
+    function leg(d){
+      return '<path d="'+d+'" stroke="url(#'+id+')" stroke-width="7.6" stroke-linecap="round" opacity=".2" fill="none"/>'
            + '<path d="'+d+'" stroke="url(#'+id+')" stroke-width="4.5" stroke-linecap="round" fill="none"/>'
            + '<path d="'+d+'" stroke="'+c.core+'" stroke-width="1.1" stroke-linecap="round" opacity=".45" fill="none"/>';
     }
@@ -2597,7 +2599,4 @@ try { /* v163proc: native thinking card */
       obs.observe(bub, { childList: true, characterData: true, subtree: true });
     }
     fail = setTimeout(hide, 45000);
-    return of.apply(this, arguments).then(function (res) {
-      res.clone().json().then(function (j) {
-        if (j && j.ok === false && j.error) {
-          var b = null, list = document.querySelectorAll(".ms
+    return of.apply(this, arguments).then(function
