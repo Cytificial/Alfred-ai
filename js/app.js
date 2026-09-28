@@ -9477,16 +9477,52 @@ try { /* v163proc: native thinking card */
 
 /* v241 row block retired in v242 */
 
-/* ===== v242: single Admin row (keep LAST visible) + always re-check ===== */
+/* retired in v243 */
+
+/* ===== v243: admin row guaranteed + settings admin card retired ===== */
 (function () {
-  if (window.__v242row) return; window.__v242row = "1";
-  function fix() {
-    var els = Array.prototype.slice.call(document.querySelectorAll("body *")).filter(function (e) {
-      return e.children.length <= 2 && (e.textContent || "").trim() === "Admin" && e.offsetParent !== null; });
-    if (els.length < 2) return;
-    els[els.length - 1].onclick = function () { location.hash = "#/admin"; };
-    els.slice(0, -1).forEach(function (e) { e.style.display = "none"; });
+  if (window.__v243) return; window.__v243 = "1";
+  var isAdmin = null;
+  function pf(p) { return fetch(p, { credentials: "include",
+    headers: { "X-Alfred-Token": localStorage.getItem("alfred_token") || "" } }).then(function (r) { return r.json(); }); }
+  pf("/api/admin/overview").then(function (j) { isAdmin = !!(j && j.ok); }).catch(function () {});
+  function vis(e) { return e.offsetParent !== null; }
+  function rows() { return Array.prototype.slice.call(document.querySelectorAll("body *")).filter(function (e) {
+    return e.children.length <= 2 && (e.textContent || "").trim() === "Admin" && vis(e); }); }
+  function tick() {
+    if (isAdmin === false) rows().forEach(function (e) { e.style.display = "none"; });
+    else if (isAdmin) {
+      var rs = rows();
+      if (rs.length > 1) rs.slice(0, -1).forEach(function (e) { e.style.display = "none"; });
+      var k = rs[rs.length - 1];
+      if (k) { k.style.display = ""; k.onclick = function () { location.hash = "#/admin"; }; }
+      else {
+        var set = Array.prototype.slice.call(document.querySelectorAll("body *")).filter(function (e) {
+          return vis(e) && e.children.length <= 2 && (e.textContent || "").trim() === "Settings"; })[0];
+        if (set) {
+          var row = set.cloneNode(true);
+          Array.prototype.forEach.call(row.querySelectorAll("*"), function (x) {
+            if (!x.children.length && /Settings/i.test(x.textContent || "")) x.textContent = "Admin"; });
+          if (!row.children.length) row.textContent = "Admin";
+          row.onclick = function () { location.hash = "#/admin"; };
+          set.parentNode.insertBefore(row, set.nextSibling);
+        }
+      }
+    }
+    killCard();
+    setTimeout(tick, 3000);
   }
-  setInterval(fix, 3000); setTimeout(fix, 1200);
-  addEventListener("hashchange", function () { setTimeout(fix, 700); });
+  function killCard() {
+    var vs = document.getElementById("view-settings"); if (!vs) return;
+    Array.prototype.slice.call(vs.querySelectorAll("*")).forEach(function (e) {
+      if (/ADMIN\s*[—-]/i.test(e.textContent || "") && e.querySelectorAll("select").length >= 2) {
+        var top = e;
+        while (top.parentElement && top.parentElement !== vs &&
+               /ADMIN\s*[—-]/i.test(top.parentElement.textContent || "") &&
+               top.parentElement.querySelectorAll("select").length >= 2) top = top.parentElement;
+        top.remove();
+      }
+    });
+  }
+  setTimeout(tick, 1200);
 })();
