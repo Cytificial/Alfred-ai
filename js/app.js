@@ -11688,12 +11688,12 @@ try { /* v163proc: native thinking card */
     var d = document.createElement("div"); d.className = "v287splash";
     d.innerHTML = '<img src="/assets/brand-192.png?v=6" alt="" style="width:88px;height:88px;border-radius:50%;box-shadow:0 0 50px rgba(79,195,255,.3)">'
       + '<div style="font:600 13px Sora,system-ui;letter-spacing:.34em;color:#EAF3FF;margin:20px 0 26px">ALFRED&nbsp;AI</div>'
-      + '<div id="v287st" style="font:11px system-ui;letter-spacing:.14em;text-transform:uppercase;color:#8fb3d4;height:16px;margin-bottom:14px">Preparing your mind</div>'
+      + '<div id="v287st" style="font:11px system-ui;letter-spacing:.14em;text-transform:uppercase;color:#8fb3d4;height:16px;margin-bottom:14px">Reaching the future</div>'
       + '<div style="width:220px;height:3px;background:rgba(255,255,255,.12);border-radius:99px;overflow:hidden">'
       + '<div id="v287bar" style="height:100%;width:0;background:linear-gradient(90deg,#4fc3ff,#66CCFF);border-radius:99px"></div></div>'
       + '<div style="position:absolute;bottom:14px;left:0;right:0;text-align:center;font:10px system-ui;color:rgba(255,255,255,.3);letter-spacing:.2em">ALFRED \u00b7 V1</div>';
     lo.appendChild(d);
-    var t0 = Date.now(), DUR = 1900, LINES = ["Waking the council", "Lighting the city", "Tuning the minds", "Opening the gates"], li = -1;
+    var t0 = Date.now(), DUR = 1900, LINES = ["Reaching the future", "Waking the council", "Sharpening the minds", "Welcome to tomorrow"], li = -1;
     (function f() {
       var b = document.getElementById("v287bar"); if (!b) return;
       var p = Math.min(1, (Date.now() - t0) / DUR);
@@ -12111,4 +12111,16 @@ try { /* v163proc: native thinking card */
     if (L && L.offsetParent !== null && !L.getAttribute("data-v289")) build();
     [].slice.call(document.querySelectorAll("#land .navin")).forEach(function (b) { if (b.parentNode) b.parentNode.removeChild(b); });
   }, 1400);
+})();
+
+/* ===== v290r: socials kept visible, auth badge = landing mark, future splash lines ===== */
+(function () {
+  if (window.__v290r) return; window.__v290r = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    "#login .socials,#register .socials,#login .divider,#register .divider{display:flex !important}",
+    "#login .badge,#register .badge{border:0 !important;outline:0 !important;background:transparent !important;box-shadow:none !important;padding:0 !important;border-radius:50% !important}",
+    "#login .badge img,#register .badge img{content:url('/assets/land-mark-320.png?v=6') !important;width:46px !important;height:46px !important;border-radius:50% !important;display:block !important;filter:drop-shadow(0 0 10px rgba(79,195,255,.35))}"
+  ].join("");
+  document.head.appendChild(st);
 })();

@@ -1,4 +1,4 @@
-nter;gap:14px;padding:14px 22px;background:rgba(8,13,23,.72);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.06)}",
+items:center;gap:14px;padding:14px 22px;background:rgba(8,13,23,.72);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.06)}",
     "#land .vnav img{width:30px;height:30px;border-radius:50%}",
     "#land .vnav b{font:700 14px 'DM Sans';letter-spacing:2.5px;color:#EAF3FF}",
     "#land .vnav .lk{font-size:13px;color:#9db8d8;margin-left:6px}",
@@ -298,4 +298,16 @@ nter;gap:14px;padding:14px 22px;background:rgba(8,13,23,.72);backdrop-filter:blu
     if (L && L.offsetParent !== null && !L.getAttribute("data-v289")) build();
     [].slice.call(document.querySelectorAll("#land .navin")).forEach(function (b) { if (b.parentNode) b.parentNode.removeChild(b); });
   }, 1400);
+})();
+
+/* ===== v290r: socials kept visible, auth badge = landing mark, future splash lines ===== */
+(function () {
+  if (window.__v290r) return; window.__v290r = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    "#login .socials,#register .socials,#login .divider,#register .divider{display:flex !important}",
+    "#login .badge,#register .badge{border:0 !important;outline:0 !important;background:transparent !important;box-shadow:none !important;padding:0 !important;border-radius:50% !important}",
+    "#login .badge img,#register .badge img{content:url('/assets/land-mark-320.png?v=6') !important;width:46px !important;height:46px !important;border-radius:50% !important;display:block !important;filter:drop-shadow(0 0 10px rgba(79,195,255,.35))}"
+  ].join("");
+  document.head.appendChild(st);
 })();

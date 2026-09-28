@@ -1818,12 +1818,12 @@ ttribute("data-v252nc")) return;
     var d = document.createElement("div"); d.className = "v287splash";
     d.innerHTML = '<img src="/assets/brand-192.png?v=6" alt="" style="width:88px;height:88px;border-radius:50%;box-shadow:0 0 50px rgba(79,195,255,.3)">'
       + '<div style="font:600 13px Sora,system-ui;letter-spacing:.34em;color:#EAF3FF;margin:20px 0 26px">ALFRED&nbsp;AI</div>'
-      + '<div id="v287st" style="font:11px system-ui;letter-spacing:.14em;text-transform:uppercase;color:#8fb3d4;height:16px;margin-bottom:14px">Preparing your mind</div>'
+      + '<div id="v287st" style="font:11px system-ui;letter-spacing:.14em;text-transform:uppercase;color:#8fb3d4;height:16px;margin-bottom:14px">Reaching the future</div>'
       + '<div style="width:220px;height:3px;background:rgba(255,255,255,.12);border-radius:99px;overflow:hidden">'
       + '<div id="v287bar" style="height:100%;width:0;background:linear-gradient(90deg,#4fc3ff,#66CCFF);border-radius:99px"></div></div>'
       + '<div style="position:absolute;bottom:14px;left:0;right:0;text-align:center;font:10px system-ui;color:rgba(255,255,255,.3);letter-spacing:.2em">ALFRED \u00b7 V1</div>';
     lo.appendChild(d);
-    var t0 = Date.now(), DUR = 1900, LINES = ["Waking the council", "Lighting the city", "Tuning the minds", "Opening the gates"], li = -1;
+    var t0 = Date.now(), DUR = 1900, LINES = ["Reaching the future", "Waking the council", "Sharpening the minds", "Welcome to tomorrow"], li = -1;
     (function f() {
       var b = document.getElementById("v287bar"); if (!b) return;
       var p = Math.min(1, (Date.now() - t0) / DUR);
@@ -1941,4 +1941,4 @@ ttribute("data-v252nc")) return;
     "#loading.exit{animation:none !important;opacity:0 !important;transition:opacity .32s ease !important}",
     "#land{font-family:'DM Sans',system-ui;color:#DFEAF6;background:#080D17;min-height:100svh}",
     "#land a{text-decoration:none;color:inherit}",
-    "#land .vnav{position:sticky;top:0;z-index:9;display:flex;align-items:ce
+    "#land .vnav{position:sticky;top:0;z-index:9;display:flex;align-
