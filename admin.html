@@ -1,14 +1,22 @@
 <!doctype html><html lang=en><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
-<title>Alfred Console</title>
+<title>Alfred · Console</title>
 <style>
 :root{color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:#0b0f14;color:#e8eef5;font:14px/1.5 system-ui,-apple-system,sans-serif}
-#login{max-width:340px;margin:14vh auto;text-align:center;padding:22px}
-#login input{width:100%;margin:12px 0 8px;padding:11px;font-size:14px}
+#login{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 50% -8%,#11253e 0%,#070b11 58%) #070b11;z-index:50}
+.lg-mark{width:86px;height:86px;border-radius:50%;border:2px solid rgba(127,196,255,.4);display:flex;align-items:center;justify-content:center;font-size:34px;color:#7fc4ff;box-shadow:0 0 44px rgba(46,127,214,.28),inset 0 0 26px rgba(46,127,214,.14)}
+.lg-kick{letter-spacing:.34em;font-size:10px;color:#6f8aa3;margin-top:20px}
+.lg-card{width:min(360px,88vw);margin-top:20px;background:rgba(13,20,29,.92);border:1px solid #1d2a38;border-radius:16px;padding:22px}
+.lg-card h3{margin:0 0 2px;font-size:16px;letter-spacing:.06em}
+.lg-card p{margin:0 0 14px;font-size:11px;color:#7d93a8}
+.lg-card input{width:100%;margin:0 0 10px;padding:12px 13px;font-size:14px;background:#0a0f16;border:1px solid #24313f;border-radius:10px;color:#e8eef5}
+.lg-card button{width:100%;padding:12px;font:600 12px system-ui;letter-spacing:.14em;background:#2e7fd6;color:#fff;border:0;border-radius:10px;cursor:pointer}
+.lg-foot{font-size:10px;color:#4f6478;margin-top:14px;text-align:center;line-height:1.6}
 .hdr{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #1c2733;position:sticky;top:0;background:#0b0f14;z-index:5}
-.hdr b{letter-spacing:.12em;font-size:13px}
+.hdr b{letter-spacing:.14em;font-size:13px}
+.v1{font:10px system-ui;color:#8fb8d8;border:1px solid rgba(159,216,255,.35);border-radius:99px;padding:1px 8px}
 .tabs{display:flex;gap:6px;padding:10px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .tabs button{flex:0 0 auto;background:transparent;border:1px solid #24313f;color:#9fb4c8;border-radius:99px;padding:7px 14px;font:12px system-ui;cursor:pointer}
 .tabs button.on{background:#2e7fd6;border-color:#2e7fd6;color:#fff}
@@ -30,41 +38,48 @@ textarea{width:100%;min-height:84px;resize:vertical}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
 .hide{display:none!important}
 </style></head><body>
-<div id=login class=card style="overflow:visible">
- <div style="font-size:30px">◈</div><h3 style="margin:6px 0 2px">Alfred Console</h3>
- <p class=mut>Owner access · creds live in backend/keys.env</p>
- <input id=em type=email placeholder="Owner email" autocomplete=username onkeydown="if(event.key=='Enter')go()">
- <input id=pw type=password placeholder="Password" onkeydown="if(event.key=='Enter')go()">
- <button class=act style="width:100%" onclick="go()">Unlock</button>
- <p class=mut id=lmsg></p>
+<div id=login>
+ <div class=lg-mark>◈</div>
+ <div class=lg-kick>ALFRED</div>
+ <div class=lg-card>
+  <h3>Owner Console</h3>
+  <p>Private control surface — authorized access only</p>
+  <input id=em type=email placeholder="Owner email" autocomplete=username>
+  <input id=pw type=password placeholder="Password" autocomplete=current-password onkeydown="if(event.key=='Enter')go()">
+  <button onclick="go()">UNLOCK CONSOLE</button>
+  <p class=mut id=lmsg style="margin-top:10px"></p>
+ </div>
+ <div class=lg-foot>Credentials live in <code>backend/keys.env</code> on the host.<br>Rotate anytime — rerun the key section or edit the file.</div>
 </div>
 <div id=app class=hide>
- <div class=hdr><b>ALFRED CONSOLE</b>
-  <button class=ghost style="margin-left:auto" onclick="sessionStorage.removeItem('ac_tok');location.reload()">Lock</button></div>
+ <div class=hdr><b>ALFRED CONSOLE</b><span class=v1>V1</span>
+  <button class=ghost style="margin-left:auto" onclick="try{sessionStorage.removeItem('ac_tok')}catch(e){};location.reload()">Lock</button></div>
  <div class=tabs id=tabs></div>
  <main id=main></main>
 </div>
 <script>
-var TOK=sessionStorage.getItem("ac_tok")||"";
+var TOK="";
+try{TOK=sessionStorage.getItem("ac_tok")||""}catch(e){}
 function api(p,o){o=o||{};o.headers=Object.assign({"X-Alfred-Token":TOK,"Content-Type":"application/json"},o.headers||{});
  if(o.body&&typeof o.body!="string")o.body=JSON.stringify(o.body);
  return fetch(p,o).then(function(r){return r.json().catch(function(){return{}})})}
 function el(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e}
 function go(){
  var em=document.getElementById("em").value.trim(), p=document.getElementById("pw").value;
+ var lm=document.getElementById("lmsg"); lm.textContent="";
  api("/api/auth/login",{method:"POST",body:{email:em,password:p}}).then(function(j){
-  if(!j.ok||!j.token){document.getElementById("lmsg").textContent=j.error||"wrong email or password";return}
+  if(!j.ok||!j.token){lm.textContent=j.error||"wrong email or password";return}
   TOK=j.token;
   api("/api/admin/metrics").then(function(m){
    if(m.ok){try{sessionStorage.setItem("ac_tok",TOK)}catch(e){}boot()}
-   else document.getElementById("lmsg").textContent="this account is not an admin";
-  })})})}
+   else{lm.textContent="this account is not the owner";TOK=""}
+  })})}
 function boot(){
  document.getElementById("login").classList.add("hide");
  document.getElementById("app").classList.remove("hide");
  nav(0);
- api("/api/admin/metrics").then(function(j){if(!j.ok)location.reload()})}
-var TABS=[["Overview",vOver],["Users",vUsers],["Brain",vBrain],["Providers",vProv],["Memory",vMem],["Showcase",vShow]];
+ api("/api/admin/metrics").then(function(j){if(!j.ok){try{sessionStorage.removeItem("ac_tok")}catch(e){}location.reload()}})}
+var TABS=[["Overview",vOver],["Users",vUsers],["Credits",vCred],["Brain",vBrain],["Providers",vProv],["Memory",vMem],["Showcase",vShow]];
 function nav(i){
  var t=document.getElementById("tabs");t.innerHTML="";
  TABS.forEach(function(x,k){var b=el("button","",x[0]);if(k==i)b.className="on";b.onclick=function(){nav(k)};t.appendChild(b)});
@@ -91,29 +106,51 @@ function vUsers(m){
    b.onclick=function(){api("/api/admin/users/plan",{method:"POST",body:{email:u.email,plan:s.value}}).then(function(r){b.textContent=r.ok?"✓":"✗";setTimeout(function(){b.textContent="Apply"},1500)})};
    d3.appendChild(b);tr.appendChild(d1);tr.appendChild(d2);tr.appendChild(d3);tb.appendChild(tr)});
   c.appendChild(tb);m.appendChild(c)})}
-function vBrain(m){
+function vCred(m){
+ api("/api/admin/metrics").then(function(j){var x=j.metrics||{};
+  m.appendChild(el("div","kpis",kpi(x.msgs_24h,"Messages today")+kpi(x.chats_total,"Total chats")+kpi(x.failed_24h,"Failed today")+kpi(x.active_sessions,"Sessions")))});
  api("/api/admin/brain").then(function(j){
   if(!j.ok){m.appendChild(el("div","card","Brain API: "+(j.error||"?")));return}
   var c=j.config||{},caps=c.daily_caps||{};
-  var card=el("div","card","<h4>Engine</h4><p class=mut>key: "+(c.gemini_key||"—")+" · minute limit: "+(c.minute_limit!=null?c.minute_limit:"—")+" · context msgs: "+(c.context_messages!=null?c.context_messages:"—")+"</p>");
-  card.appendChild(el("div","","<h4>Model chain (first = best, one per line)</h4>"));
-  var ta=document.createElement("textarea");ta.value=(c.chain||[]).join("\n");card.appendChild(ta);
+  var card=el("div","card","<h4>Plan caps — messages per user per day</h4>");
   var row=el("div","row");
   ["Free","Pro","Ultra"].forEach(function(p){
-   var i=document.createElement("input");i.placeholder=p+" cap/day";i.style.width="110px";i.value=caps[p]!=null?caps[p]:"";i.id="cap-"+p;row.appendChild(i)});
-  var sv=document.createElement("button");sv.className="act";sv.textContent="Save";
-  sv.onclick=function(){var caps2={};["Free","Pro","Ultra"].forEach(function(p){var e=document.getElementById("cap-"+p);if(e&&e.value!=="")caps2[p]=parseInt(e.value,10)||1});
-   api("/api/admin/brain",{method:"POST",body:{chain:ta.value.split("\n").map(function(x){return x.trim()}).filter(Boolean),caps:caps2,daily_caps:caps2}}).then(function(r){sv.textContent=r.ok?"Saved ✓":"failed";setTimeout(function(){sv.textContent="Save"},1500)})};
-  row.appendChild(sv);card.appendChild(row);m.appendChild(card);
+   var i=document.createElement("input");i.placeholder=p+" cap";i.style.width="110px";i.value=caps[p]!=null?caps[p]:"";i.id="cr-"+p;row.appendChild(i)});
+  var m2=document.createElement("input");m2.placeholder="per-minute limit";m2.style.width="130px";m2.value=c.minute_limit!=null?c.minute_limit:"";m2.id="cr-min";row.appendChild(m2);
+  var sv=document.createElement("button");sv.className="act";sv.textContent="Save caps";
+  sv.onclick=function(){var nc={};["Free","Pro","Ultra"].forEach(function(p){var e=document.getElementById("cr-"+p);if(e&&e.value!=="")nc[p]=parseInt(e.value,10)||1});
+   var ml=document.getElementById("cr-min").value;
+   var body={daily_caps:nc,caps:nc};if(ml!=="")body.minute_limit=parseInt(ml,10)||1;
+   api("/api/admin/brain",{method:"POST",body:body}).then(function(r){sv.textContent=r.ok?"Saved ✓":(r.error||"failed");setTimeout(function(){sv.textContent="Save caps"},1800)})};
+  row.appendChild(sv);card.appendChild(row);
+  card.appendChild(el("div","mut","Caps reset at midnight UTC. Free users see the upgrade prompt when they hit the wall."));
+  m.appendChild(card)})}
+function vBrain(m){
+ api("/api/admin/brain").then(function(j){
+  if(!j.ok){m.appendChild(el("div","card","Brain API: "+(j.error||"?")));return}
+  var c=j.config||{};
+  var card=el("div","card","<h4>Engine</h4><p class=mut>key: "+(c.gemini_key||"—")+" · context msgs: "+(c.context_messages!=null?c.context_messages:"—")+"</p>");
+  card.appendChild(el("div","","<h4>Default model chain (first = best, one per line)</h4>"));
+  var ta=document.createElement("textarea");ta.value=(c.chain||[]).join("\n");card.appendChild(ta);
+  var sv=document.createElement("button");sv.className="act";sv.textContent="Save chain";
+  sv.onclick=function(){api("/api/admin/brain",{method:"POST",body:{chain:ta.value.split("\n").map(function(x){return x.trim()}).filter(Boolean)}}).then(function(r){sv.textContent=r.ok?"Saved ✓":"failed";setTimeout(function(){sv.textContent="Save chain"},1500)})};
+  card.appendChild(sv);m.appendChild(card);
   m.appendChild(el("div","card mut","After saving, restart the brain in Termux:<br><code>pkill -f backend/brain.py; nohup python3 backend/brain.py &amp;</code>"))})}
 function vProv(m){
  api("/api/admin/providers").then(function(j){
   if(!j.ok){m.appendChild(el("div","card","Providers API: "+(j.error||"?")));return}
   var ps=j.providers||j.list||[];
   var c=el("div","card","<h4>Registered providers</h4>");
-  c.appendChild(el("div","mut",ps.length?ps.map(function(p){return (p.id||p.name||"?")+" · "+(p.base_url||p.base||"")}).join("<br>"):"—"));
-  var ch=j.chains||{},cl="";for(var k in ch)cl+="<b>"+k+"</b>: "+(ch[k]||[]).join(" → ")+"<br>";
-  c.appendChild(el("div","mut",cl||""));m.appendChild(c);
+  var html="";
+  ps.forEach(function(p){
+    var k=p.api_key||p.key||"";
+    var mask=k?(k.slice(0,6)+"••••••••"):"—";
+    html+="<b>"+(p.id||p.name||"?")+"</b> · "+(p.base_url||p.base||"")+" · key: "+mask+"<br>"});
+  c.appendChild(el("div","mut",ps.length?html:"—"));
+  var ch=j.chains||{},cl="";for(var k2 in ch)cl+="<b>"+k2+"</b>: "+(ch[k2]||[]).join(" → ")+"<br>";
+  c.appendChild(el("div","mut",cl||""));
+  c.appendChild(el("div","mut","Catalog scan + per-model assign lands in the next console round."));
+  m.appendChild(c);
   var t=el("div","card","<h4>Test a model live</h4>");
   var r1=el("div","row");var mi=document.createElement("input");mi.placeholder="model id (e.g. pollinations/openai)";mi.style.flex="1";r1.appendChild(mi);
   var tb=document.createElement("button");tb.className="act";tb.textContent="Test";
@@ -123,17 +160,17 @@ function vProv(m){
   var r2=el("div","row");
   var ii=document.createElement("input");ii.placeholder="id (groq)";ii.style.width="90px";
   var bi=document.createElement("input");bi.placeholder="base_url";bi.style.flex="1";
-  var ki=document.createElement("input");ki.placeholder="api_key";ki.style.flex="1";ki.type="password";
+  var ki=document.createElement("input");ki.placeholder="api_key (stored server-side, masked here)";ki.style.flex="1";ki.type="password";
   var ab=document.createElement("button");ab.className="act";ab.textContent="Add";
   ab.onclick=function(){api("/api/admin/providers/add",{method:"POST",body:{id:ii.value,type:"openai",base_url:bi.value,api_key:ki.value}}).then(function(r){ab.textContent=r.ok?"✓ added":(r.error||"failed");setTimeout(function(){ab.textContent="Add"},2000)})};
   r2.appendChild(ii);r2.appendChild(bi);r2.appendChild(ki);r2.appendChild(ab);a.appendChild(r2);m.appendChild(a);
   var sc=el("div","card","<h4>Level chains (one model per line)</h4>");
   ["Free","Pro","Ultra"].forEach(function(p){
    sc.appendChild(el("div","","<b>"+p+"</b>"));
-   var ta=document.createElement("textarea");ta.value=(ch[p]||[]).join("\n");ta.style.minHeight="54px";sc.appendChild(ta);
-   var sv=document.createElement("button");sv.className="act";sv.textContent="Set "+p;
-   sv.onclick=function(){api("/api/admin/providers/chains",{method:"POST",body:{plan:p,models:ta.value.split("\n").map(function(x){return x.trim()}).filter(Boolean)}}).then(function(r){sv.textContent=r.ok?"✓":"failed";setTimeout(function(){sv.textContent="Set "+p},1500)})};
-   sc.appendChild(sv)});
+   var ta2=document.createElement("textarea");ta2.value=(ch[p]||[]).join("\n");ta2.style.minHeight="54px";sc.appendChild(ta2);
+   var sv2=document.createElement("button");sv2.className="act";sv2.textContent="Set "+p;
+   sv2.onclick=function(){api("/api/admin/providers/chains",{method:"POST",body:{plan:p,models:ta2.value.split("\n").map(function(x){return x.trim()}).filter(Boolean)}}).then(function(r){sv2.textContent=r.ok?"✓":"failed";setTimeout(function(){sv2.textContent="Set "+p},1500)})};
+   sc.appendChild(sv2)});
   m.appendChild(sc)})}
 function vMem(m){
  var c=el("div","card","<h4>Memory pins</h4>");
