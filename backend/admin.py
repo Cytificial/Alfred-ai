@@ -549,20 +549,25 @@ def maybe_handle(handler, method):
 
     if method == "GET" and p == "/api/admin/brain/prompt":
         import os as _o1
-        fp = _o1.path.join(_o1.path.dirname(DBP), "prompt_override.md")
-        txt = ""
-        try: txt = open(fp, encoding="utf-8", errors="replace").read()
-        except Exception: pass
-        return _send(handler, 200, {"ok": True, "prompt": txt[:6000]})
+        _dir = _o1.path.dirname(DBP)
+        out = {}
+        for _pl in ("Free", "Pro", "Ultra"):
+            fp = _o1.path.join(_dir, "prompt_override_" + _pl.lower() + ".md")
+            try: out[_pl] = open(fp, encoding="utf-8", errors="replace").read()[:6000]
+            except Exception: out[_pl] = ""
+        return _send(handler, 200, {"ok": True, "prompts": out})
 
     if method == "POST" and p == "/api/admin/brain/prompt":
         import os as _o2
         b = _body(handler)
+        plan = str(b.get("plan", "")).capitalize()
+        if plan not in ("Free", "Pro", "Ultra"):
+            return _send(handler, 400, {"ok": False, "error": "plan must be Free/Pro/Ultra"})
         txt = str(b.get("prompt", ""))[:6000]
-        fp = _o2.path.join(_o2.path.dirname(DBP), "prompt_override.md")
+        fp = _o2.path.join(_o2.path.dirname(DBP), "prompt_override_" + plan.lower() + ".md")
         tmp = fp + ".tmp"
         open(tmp, "w", encoding="utf-8").write(txt); _o2.replace(tmp, fp)
-        return _send(handler, 200, {"ok": True, "chars": len(txt)})
+        return _send(handler, 200, {"ok": True, "plan": plan, "chars": len(txt)})
 
     if method == "GET" and p == "/api/admin/providers":
         return _send(handler, 200, _prov.public())

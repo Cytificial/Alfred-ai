@@ -848,12 +848,6 @@ def _v157_usage_install():
     print("brain v157: /api/usage armed")
 _v157_usage_install()
 
-if __name__ == "__main__":
-    init_db()
-    print("brain up - port 8082", flush=True)
-    ThreadingHTTPServer(("127.0.0.1", 8082), Handler).serve_forever()
-
-
 # ===== v330brain: maker prompt override + bonus credits (append-only) =====
 def _v330_install():
     try:
@@ -867,7 +861,7 @@ def _v330_install():
         def _tp_v330(user, plan, *_a, **_k):
             base = _orig_tp(user, plan, *_a, **_k)
             try:
-                _p = os.path.join(HERE, "prompt_override.md")
+                _p = os.path.join(HERE, "prompt_override_" + str(plan).lower() + ".md")
                 if os.path.exists(_p):
                     _txt = open(_p, encoding="utf-8", errors="replace").read().strip()
                     if _txt:
@@ -900,3 +894,9 @@ def _v330_install():
         print("v330: plan_info wrap failed", str(_e)[:80], flush=True)
 
 _v330_install()
+
+
+if __name__ == "__main__":
+    init_db()
+    print("brain up - port 8082", flush=True)
+    ThreadingHTTPServer(("127.0.0.1", 8082), Handler).serve_forever()

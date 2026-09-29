@@ -303,4 +303,73 @@ function credRows(m){
   btn("\u{1F9E0} Brain", 96, function () { bp.style.display = bp.style.display === "none" ? "block" : "none"; if (bp.style.display === "block") load(); });
   btn("\u{1F4B0} Credits", 14, function () { cp.style.display = cp.style.display === "none" ? "block" : "none"; if (cp.style.display === "block") load(); });
 })();
+</script><script id="v331panel">
+(function () {
+  function tok() {
+    try { var v = localStorage.getItem("alfred_admin_token") || localStorage.getItem("alfred_token") || ""; if (v) return v; } catch (e) {}
+    var m = document.cookie.match(/(?:^|;\s*)(?:alfred_token|token)=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : "";
+  }
+  function api(m, p, b) {
+    return fetch(p, { method: m, headers: { "Content-Type": "application/json", "X-Alfred-Token": tok() },
+      body: b ? JSON.stringify(b) : undefined }).then(function (r) { return r.json(); });
+  }
+  var oldP = document.getElementById("v330-brain"); if (oldP) oldP.remove();
+  [].slice.call(document.querySelectorAll("button")).forEach(function (b) {
+    if ((b.textContent || "").trim() === "\uD83E\uDDE0 Brain") b.remove();
+  });
+  var cur = "Free", prompts = { Free: "", Pro: "", Ultra: "" };
+  var d = document.createElement("div"); d.id = "v331-brain";
+  d.style.cssText = "display:none;position:fixed;right:14px;bottom:76px;width:min(440px,92vw);max-height:74vh;overflow:auto;z-index:9999;background:#0b1220;color:#e8eefc;border:1px solid #24314f;border-radius:14px;padding:14px;font:14px/1.5 system-ui,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.5)";
+  var h = document.createElement("div"); h.textContent = "\uD83E\uDDE0 Alfred Brain Instructions - one per level";
+  h.style.cssText = "font-weight:700;margin-bottom:10px;color:#7fb2ff"; d.appendChild(h);
+  function inp(ph) {
+    var w = document.createElement("input"); w.placeholder = ph;
+    w.style.cssText = "width:100%;box-sizing:border-box;background:#0e1730;color:#e8eefc;border:1px solid #2b3f68;border-radius:8px;padding:8px;margin-bottom:8px";
+    return w;
+  }
+  var tw = inp("paste admin token here (if panels say auth needed)");
+  tw.value = tok(); tw.onchange = function () { try { localStorage.setItem("alfred_admin_token", tw.value.trim()); } catch (e) {} };
+  d.appendChild(tw);
+  var tabs = document.createElement("div"); tabs.style.cssText = "display:flex;gap:6px;margin-bottom:8px";
+  var tabBtns = {};
+  ["Free", "Pro", "Ultra"].forEach(function (pl) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = pl;
+    b.style.cssText = "flex:1;background:#14243f;color:#cfe2ff;border:1px solid #2b3f68;border-radius:8px;padding:7px;cursor:pointer;font:600 13px system-ui";
+    b.onclick = function () { prompts[cur] = ta.value; cur = pl; ta.value = prompts[pl]; paint(); };
+    tabBtns[pl] = b; tabs.appendChild(b);
+  });
+  d.appendChild(tabs);
+  var ta = document.createElement("textarea");
+  ta.placeholder = "Standing instructions for THIS level only. Highest priority, applied to every chat at this level.";
+  ta.style.cssText = "width:100%;box-sizing:border-box;min-height:150px;background:#0e1730;color:#e8eefc;border:1px solid #2b3f68;border-radius:8px;padding:8px;resize:vertical";
+  d.appendChild(ta);
+  var r1 = document.createElement("div"); r1.style.cssText = "display:flex;gap:8px;margin-top:8px;align-items:center";
+  var save = document.createElement("button"); save.type = "button"; save.textContent = "Save " + cur;
+  save.style.cssText = "flex:1;background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:9px;cursor:pointer";
+  save.onclick = function () { prompts[cur] = ta.value; api("POST", "/api/admin/brain/prompt", { plan: cur, prompt: ta.value }).then(function (j) { st.textContent = j.ok ? "Saved " + cur + " \u2713 (" + j.chars + " chars)" : (j.error || "fail"); }); };
+  var clr = document.createElement("button"); clr.type = "button"; clr.textContent = "Clear";
+  clr.style.cssText = "background:#24314f;color:#cfe2ff;border:0;border-radius:8px;padding:9px;cursor:pointer";
+  clr.onclick = function () { ta.value = ""; prompts[cur] = ""; api("POST", "/api/admin/brain/prompt", { plan: cur, prompt: "" }); st.textContent = "Cleared " + cur; };
+  var st = document.createElement("span"); st.style.cssText = "font-size:12px;color:#8fa8d8";
+  r1.appendChild(save); r1.appendChild(clr); d.appendChild(r1); d.appendChild(st);
+  function paint() {
+    ["Free", "Pro", "Ultra"].forEach(function (pl) {
+      var on = pl === cur;
+      tabBtns[pl].style.background = on ? "#1d4ed8" : "#14243f";
+      tabBtns[pl].style.color = on ? "#fff" : "#cfe2ff";
+    });
+    save.textContent = "Save " + cur;
+  }
+  var bt = document.createElement("button"); bt.type = "button"; bt.textContent = "\uD83E\uDDE0 Brain x3";
+  bt.style.cssText = "position:fixed;right:14px;bottom:16px;z-index:9999;background:#14243f;color:#cfe2ff;border:1px solid #2b3f68;border-radius:999px;padding:10px 14px;font:600 13px system-ui;cursor:pointer";
+  bt.onclick = function () {
+    d.style.display = d.style.display === "none" ? "block" : "none";
+    if (d.style.display === "block") api("GET", "/api/admin/brain/prompt").then(function (j) {
+      if (j.ok) { prompts = j.prompts; ta.value = prompts[cur]; paint(); }
+      else st.textContent = j.error || "auth needed - paste token above";
+    });
+  };
+  document.body.appendChild(d); document.body.appendChild(bt);
+})();
 </script></body></html>
