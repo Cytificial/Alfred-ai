@@ -686,6 +686,15 @@ def _v130_install():
 
         full, broken = [], False
         for model in chain:
+            if "/" in model and not model.startswith("models/"):
+                try:
+                    _ans = _direct(model, key, _tier_persona(user, plan), turns)
+                    if _ans:
+                        _sse_out(handler, {"t": _ans})
+                        full.append(_ans)
+                        continue
+                except Exception as _e:
+                    print("stream %s failed: %s" % (model, str(_e)[:120]), flush=True)
             try:
                 url = ("https://generativelanguage.googleapis.com/v1beta/models/" +
                        urllib.parse.quote(model, safe="") +

@@ -6190,7 +6190,7 @@ try { /* v163proc: native thinking card */
 
     var started = Date.now();
 
-    fetch("http://" + location.hostname + ":8082/api/chat", {
+    fetch("http://" + location.hostname + ":8082/api/chat/stream", {
       method: "POST", credentials: "include",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({chat_id: window.__v129chat || null, message: text})
