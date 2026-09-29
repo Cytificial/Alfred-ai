@@ -8,13 +8,13 @@
  "description": "Alfred \u2014 an AI that turns chats into worlds",
  "icons": [
   {
-   "src": "/icons/alfred-icon-1790689666-192.png",
+   "src": "/icons/alfred-icon-1790691549-192.png",
    "sizes": "192x192",
    "type": "image/png",
    "purpose": "any"
   },
   {
-   "src": "/icons/alfred-icon-1790689666-512.png",
+   "src": "/icons/alfred-icon-1790691549-512.png",
    "sizes": "512x512",
    "type": "image/png",
    "purpose": "any"

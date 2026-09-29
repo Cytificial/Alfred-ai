@@ -13149,3 +13149,49 @@ try { /* v163proc: native thinking card */
     });
   }, 2200);
 })();
+
+
+/* ===== v339: feedback bars removed at the node; stray glyph hidden ===== */
+(function () {
+  if (window.__v339bars) return; window.__v339bars = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll(".v274row")).forEach(function (b) { b.remove(); });
+    [].slice.call(v.querySelectorAll("*")).forEach(function (e) {
+      if (e.closest(".msg") || e.children.length) return;
+      var t = (e.textContent || "").trim();
+      if (t === "\u29C9" || t === "\u2197" || t === "\u2398") e.style.display = "none";
+    });
+  }, 1600);
+})();
+
+
+/* ===== v339: module levels are admin-set, users can only look ===== */
+(function () {
+  if (window.__v339lock) return; window.__v339lock = "1";
+  function plan() {
+    try {
+      var p = (JSON.parse(localStorage.getItem("alfred_plan") || "{}").id || "").toLowerCase();
+      return p ? p.charAt(0).toUpperCase() + p.slice(1) : "";
+    } catch (e) { return ""; }
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-modules") || document.getElementById("modules");
+    if (!v || v.offsetParent === null) return;
+    var p = plan(); if (!p) return;
+    [].slice.call(v.querySelectorAll("select")).forEach(function (s) {
+      var lv = [].slice.call(s.options).some(function (o) { return /^(Free|Pro|Ultra)$/.test((o.value || o.textContent).trim()); });
+      if (lv) { s.disabled = true; s.style.pointerEvents = "none"; if ((s.value || "").toLowerCase() !== p.toLowerCase()) s.value = p; }
+    });
+    [].slice.call(v.querySelectorAll("button,.chip,[role=button]")).forEach(function (b) {
+      var t = (b.textContent || "").trim();
+      if (/^(Free|Pro|Ultra)$/.test(t)) {
+        b.setAttribute("disabled", "disabled"); b.style.pointerEvents = "none"; b.style.cursor = "not-allowed";
+        b.style.opacity = t === p ? "1" : ".55";
+      }
+    });
+  }, 1800);
+})();
