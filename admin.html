@@ -372,4 +372,67 @@ function credRows(m){
   };
   document.body.appendChild(d); document.body.appendChild(bt);
 })();
+</script><script id="v332models">
+(function () {
+  var CAT = "/api/admin/models/catalog", ASR = "/api/admin/models/assign";
+  function tok() {
+    try { var v = localStorage.getItem("alfred_admin_token") || localStorage.getItem("alfred_token") || ""; if (v) return v; } catch (e) {}
+    var m = document.cookie.match(/(?:^|;\s*)(?:alfred_token|token)=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : "";
+  }
+  var d = document.createElement("div"); d.id = "v332-mod";
+  d.style.cssText = "display:none;position:fixed;right:14px;bottom:136px;width:min(460px,92vw);max-height:64vh;overflow:auto;z-index:9999;background:#0b1220;color:#e8eefc;border:1px solid #24314f;border-radius:14px;padding:14px;font:14px/1.5 system-ui,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.5)";
+  var h = document.createElement("div"); h.textContent = "\uD83D\uDEE1 Models - refresh, pick, assign to a level";
+  h.style.cssText = "font-weight:700;margin-bottom:10px;color:#7fb2ff"; d.appendChild(h);
+  var rf = document.createElement("button"); rf.type = "button"; rf.textContent = "\u21BB Refresh";
+  rf.style.cssText = "width:100%;background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:9px;cursor:pointer;margin-bottom:10px";
+  d.appendChild(rf);
+  var list = document.createElement("div"); d.appendChild(list);
+  function row(pid, mid) {
+    var r = document.createElement("div");
+    r.style.cssText = "display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #1b2745";
+    var n = document.createElement("span"); n.textContent = mid; n.style.cssText = "flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+    r.appendChild(n);
+    ["Free", "Pro", "Ultra"].forEach(function (pl) {
+      var b = document.createElement("button"); b.type = "button"; b.textContent = pl[0];
+      b.title = "Assign to " + pl;
+      b.style.cssText = "width:30px;height:26px;border-radius:6px;border:1px solid #2b3f68;background:#14243f;color:#cfe2ff;cursor:pointer;font:600 11px system-ui";
+      b.onclick = function () {
+        if (!ASR) { b.textContent = "!"; return; }
+        fetch(ASR, { method: "POST", headers: { "Content-Type": "application/json", "X-Alfred-Token": tok() },
+          body: JSON.stringify({ plan: pl, models: [mid], provider: pid }) })
+          .then(function (x) { return x.json(); })
+          .then(function (j) { b.textContent = j.ok ? "\u2713" : "!"; setTimeout(function () { b.textContent = pl[0]; }, 1500); })
+          .catch(function () { b.textContent = "!"; });
+      };
+      r.appendChild(b);
+    });
+    return r;
+  }
+  function load() {
+    list.textContent = "";
+    if (!CAT) { var w = document.createElement("div"); w.textContent = "No catalog route found - use Model Lab in the app admin."; list.appendChild(w); return; }
+    fetch(CAT, { headers: { "X-Alfred-Token": tok() } }).then(function (x) { return x.json(); }).then(function (j) {
+      if (!j.ok) { var e = document.createElement("div"); e.textContent = j.error || "auth needed"; e.style.color = "#ff9d9d"; list.appendChild(e); return; }
+      var pv = j.providers || {};
+      Object.keys(pv).forEach(function (pid) {
+        var head = document.createElement("div"); head.textContent = pid + " (" + (pv[pid].count || (pv[pid].models || []).length) + ")";
+        head.style.cssText = "color:#7fb2ff;font-weight:700;margin-top:8px";
+        list.appendChild(head);
+        var ms = pv[pid].models || [];
+        if (!ms.length) {
+          var t = document.createElement("div"); t.textContent = "model list hidden by provider - open Model Lab to scan"; t.style.cssText = "font-size:12px;color:#8fa8d8";
+          list.appendChild(t);
+        } else {
+          ms.slice(0, 40).forEach(function (mm) { list.appendChild(row(pid, (pid === "google" ? "" : pid + "/") + mm)); });
+        }
+      });
+    }).catch(function () { list.textContent = "fetch failed"; });
+  }
+  rf.onclick = load;
+  var bt = document.createElement("button"); bt.type = "button"; bt.textContent = "\uD83D\uDEE1 Models";
+  bt.style.cssText = "position:fixed;right:96px;bottom:76px;z-index:9999;background:#14243f;color:#cfe2ff;border:1px solid #2b3f68;border-radius:999px;padding:10px 14px;font:600 13px system-ui;cursor:pointer";
+  bt.onclick = function () { d.style.display = d.style.display === "none" ? "block" : "none"; if (d.style.display === "block") load(); };
+  document.body.appendChild(d); document.body.appendChild(bt);
+})();
 </script></body></html>

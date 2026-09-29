@@ -12912,6 +12912,14 @@ try { /* v163proc: native thinking card */
 (function () {
   if (window.__v328) return; window.__v328 = "1";
   function lockPlan() {
+    try {
+      var _sp = JSON.parse(localStorage.getItem("alfred_plan") || "{}");
+      var _sid = ("" + (_sp.id || "")).toLowerCase();
+      if (localStorage.getItem("alfred_plan_server") && (_sid === "free" || _sid === "pro" || _sid === "ultra")) {
+        window.__planLock = _sid.charAt(0).toUpperCase() + _sid.slice(1);
+        return window.__planLock;
+      }
+    } catch (e) {}
     if (window.__planLock) return window.__planLock;
     var c = [].slice.call(document.querySelectorAll("body *")).filter(function (e) {
       if (e.children.length) return false;
@@ -12970,4 +12978,42 @@ try { /* v163proc: native thinking card */
       if (bar && bubble && bubble.nextElementSibling !== bar) bubble.after(bar);
     });
   }, 2000);
+})();
+
+
+/* ===== v332: role tags, header plan authority, level theming ===== */
+(function () {
+  if (window.__v332roles) return; window.__v332roles = "1";
+  function serverPlan() {
+    try {
+      if (!localStorage.getItem("alfred_plan_server")) return "";
+      var id = ("" + ((JSON.parse(localStorage.getItem("alfred_plan") || "{}") || {}).id || "")).toLowerCase();
+      return (id === "free" || id === "pro" || id === "ultra") ? id.charAt(0).toUpperCase() + id.slice(1) : "";
+    } catch (e) { return ""; }
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (v) {
+      var p = serverPlan(); if (p) v.setAttribute("data-lvl", p);
+      [].slice.call(v.querySelectorAll(".msg")).forEach(function (m) {
+        var r = m.getBoundingClientRect();
+        var isUser = m.classList.contains("fx-user") || r.left > window.innerWidth * 0.45;
+        var role = isUser ? "user" : "assistant";
+        if (m.getAttribute("data-role") !== role) m.setAttribute("data-role", role);
+      });
+    }
+    var hd = document.querySelector("header") || document.querySelector(".topbar") || document.querySelector("nav");
+    if (!hd) return;
+    var p2 = serverPlan(); if (!p2) return;
+    hd.setAttribute("data-lvl", p2);
+    [].slice.call(hd.querySelectorAll("*")).forEach(function (e) {
+      if (e.children.length) return;
+      var t = (e.textContent || "").trim();
+      if ((t === "Free" || t === "Pro" || t === "Ultra") && t !== p2) {
+        e.textContent = p2;
+      }
+      if ((e.textContent || "").trim() === p2) e.classList.add("lvl-chip");
+    });
+  }, 1200);
 })();
