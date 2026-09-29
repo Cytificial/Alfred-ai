@@ -687,8 +687,10 @@ def _v130_install():
         full, broken = [], False
         for model in chain:
             if "/" in model and not model.startswith("models/"):
+                print("stream branch try: %s" % model, flush=True)
                 try:
                     _ans = _direct(model, key, _tier_persona(user, plan), turns)
+                    print("stream branch: %s -> %s chars" % (model, len(_ans or "")), flush=True)
                     if _ans:
                         _sse_out(handler, {"t": _ans})
                         full.append(_ans)
@@ -696,6 +698,7 @@ def _v130_install():
                 except Exception as _e:
                     print("stream %s failed: %s" % (model, str(_e)[:120]), flush=True)
             try:
+                print("stream native try: %s" % model, flush=True)
                 url = ("https://generativelanguage.googleapis.com/v1beta/models/" +
                        urllib.parse.quote(model, safe="") +
                        ":streamGenerateContent?alt=sse&" + urllib.parse.urlencode({"key": key}))
