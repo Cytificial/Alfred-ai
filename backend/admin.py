@@ -112,7 +112,7 @@ def maybe_handle(handler, method):
     me = _me(handler)
     if not me:
         _send(handler, 403, {"ok": False, "error": "admin only"}); return True
-    if (me[0] or "").lower() not in (ADMIN, "cyberartificial1@gmail.com"):
+    if (me[0] or "").lower() not in (ADMIN, "admin@alfred.ai"):
         print("[admin] deny: valid session, not admin (%s***)" % (me[0] or "")[:2], flush=True)
         _send(handler, 403, {"ok": False, "error": "admin only"}); return True
 
