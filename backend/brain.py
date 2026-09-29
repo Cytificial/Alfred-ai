@@ -103,9 +103,12 @@ def persona(name):
     return text
 
 
+TIER_RULES = ("ALFRED CORE: warm, precise butler. Admit uncertainty plainly; never invent facts, sources, or capabilities. Protect user privacy. Decline harmful requests briefly and kindly. Never mention providers, models, engines, or internal tools.")
+
 def _tier_persona(user, plan):
     """v272: the level you pay for is the mind you feel."""
     base = persona(user.get("name"))
+    base += "\n" + TIER_RULES
     try:
         with db() as _mc:
             _rows = _mc.execute(
@@ -121,14 +124,14 @@ def _tier_persona(user, plan):
     except Exception:
         pass
     if plan == "Ultra":
-        base += ("\nULTRA LEVEL - THE COUNCIL: Alfred convenes his Deep-think Council. "
-                 "Answer with depth: weigh angles and trade-offs, land on a confident conclusion. "
+        base += ("\nULTRA LEVEL: think deeply - depth is what Ultra pays for. "
+                 "Weigh angles and trade-offs, surface risks, then land on a confident conclusion with clear reasoning. Use short headers when structure helps. "
                  "Never mention providers, models, engines, or internal tools.")
     elif plan == "Pro":
-        base += ("\nPRO LEVEL - FULL SPEED: Complete but efficient. Key reasoning first, bottom line after. "
+        base += ("\nPRO LEVEL: lead with the bottom line, then tight reasoning. No filler. "
                  "Never mention providers, models, engines, or internal tools.")
     else:
-        base += ("\nFREE LEVEL: Crisp and quick. Lead with the answer, one useful tip max. "
+        base += ("\nFREE LEVEL: crisp and quick. Lead with the answer; at most one useful tip. Friendly, never curt. "
                  "Never mention providers, models, engines, or internal tools.")
     return base
 
@@ -407,6 +410,7 @@ class Handler(BaseHTTPRequestHandler):
     def chat(self, user):
         data = self.body()
         message = str(data.get("message") or "").strip()
+        _research_txt = __import__("research").web_research(message) if (message and len(message) <= 12000) else ""
         if not message:
             self.json_out(400, {"ok": False, "error": "Write a message first."})
             return
@@ -489,14 +493,14 @@ class Handler(BaseHTTPRequestHandler):
             answer, used_model = None, None
             for model in chain:
                 try:
-                    answer = _direct(model, key, _tier_persona(user, plan), turns)
+                    answer = _direct(model, key, (_tier_persona(user, plan) + _research_txt), turns)
                     used_model = model
                     if plan == "Ultra" and answer:
                         try:
                             _crit = ("You are the second mind in Alfred's council. Review the draft answer above "
                                      "in context. Fix anything wrong, sharpen the reasoning, keep the warm butler voice. "
                                      "Reply with ONLY the improved final answer.")
-                            _r2 = _direct(model, key, _tier_persona(user, plan),
+                            _r2 = _direct(model, key, (_tier_persona(user, plan) + _research_txt),
                                          list(turns) + [("assistant", answer), ("user", _crit)])
                             if _r2 and len(str(_r2)) > 40:
                                 answer = _r2
@@ -613,6 +617,7 @@ def _v130_install():
     def _chat_stream(handler, user):
         data = handler.body()
         message = str(data.get("message") or "").strip()
+        _research_txt = __import__("research").web_research(message) if (message and len(message) <= 12000) else ""
         if not message:
             handler.json_out(400, {"ok": False, "error": "Write a message first."}); return
         if len(message) > 12000:
@@ -689,12 +694,12 @@ def _v130_install():
             if "/" in model and not model.startswith("models/"):
                 print("stream branch try: %s" % model, flush=True)
                 try:
-                    _ans = _direct(model, key, _tier_persona(user, plan), turns)
+                    _ans = _direct(model, key, (_tier_persona(user, plan) + _research_txt), turns)
                     print("stream branch: %s -> %s chars" % (model, len(_ans or "")), flush=True)
                     if _ans:
                         _sse_out(handler, {"t": _ans})
                         full.append(_ans)
-                        continue
+                        break
                 except Exception as _e:
                     print("stream %s failed: %s" % (model, str(_e)[:120]), flush=True)
             try:
@@ -708,12 +713,12 @@ def _v130_install():
                         for _im in _IMG["list"][-2:]:
                             contents[-1]["parts"].append({"inline_data": {"mime_type": _im.get("mime","image/jpeg"), "data": _im["data"]}})
                     except Exception: pass
-                payload = {"systemInstruction": {"parts": [{"text": _tier_persona(user, plan)}]},
+                payload = {"systemInstruction": {"parts": [{"text": (_tier_persona(user, plan) + _research_txt)}]},
                            "contents": contents,
                            "generationConfig": {"temperature": 0.8, "maxOutputTokens": GEM_MAXTOK}}
                 req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
                                              headers={"Content-Type": "application/json"}, method="POST")
-                with urllib.request.urlopen(req, timeout=180) as up:
+                with urllib.request.urlopen(req, timeout=45) as up:
                     for raw in up:
                         line = raw.decode("utf-8", "replace").strip()
                         if not line.startswith("data:"):
