@@ -3711,4 +3711,10 @@ header[data-lvl="Ultra"] .lvl-chip,#view-chat[data-lvl="Ultra"] .lvl-chip{backgr
 .msg[data-role="assistant"] .msg-bubble{background:linear-gradient(180deg,rgba(19,32,62,.96),rgba(13,23,46,.96))!important;border:1px solid rgba(84,120,200,.28)!important;border-left:2px solid #3d7bff}
 
 /* ===== v339: composer inner box removed (wrapper: c-ic) ===== */
-#view-chat .c-ic{border:0!important;outline:none!important;background:transparent!important;box-shadow:none!important}
+
+/* ===== v340: real composer wrapper neutralized (composer) ===== */
+#view-chat .composer{border:0!important;outline:none!important;background:transparent!important;box-shadow:none!important}
+
+/* ===== v340: role colors, verified selectors ===== */
+.msg.fx-user .msg-bubble,.msg[data-role="user"] .msg-bubble{background:linear-gradient(180deg,#2e2110,#241a09)!important;border:1px solid rgba(255,166,66,.4)!important}
+.msg:not(.fx-user) .msg-bubble{background:linear-gradient(180deg,rgba(19,32,62,.96),rgba(13,23,46,.96))!important;border:1px solid rgba(84,120,200,.28)!important;border-left:2px solid #3d7bff}

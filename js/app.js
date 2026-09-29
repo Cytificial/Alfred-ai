@@ -13137,7 +13137,7 @@ try { /* v163proc: native thinking card */
     if (!v || v.offsetParent === null) return;
     [].slice.call(v.querySelectorAll(".msg")).forEach(function (m) {
       if (m.getAttribute("data-v337dead") === "1") return;
-      var busy = m.querySelector(".v129-dots, button, img, video, canvas, [aria-live]");
+      var busy = [].slice.call(m.querySelectorAll(".v129-dots, button, img, video, canvas, [aria-live]")).some(function (x) { return x.offsetWidth > 0 && x.offsetHeight > 0; });
       var core = m.querySelector(".msg-bubble") || m;
       var empty = !busy && m.offsetHeight < 160 && !(core.textContent || "").trim();
       var n = parseInt(m.getAttribute("data-v337seen") || "0", 10);
@@ -13193,5 +13193,17 @@ try { /* v163proc: native thinking card */
         b.style.opacity = t === p ? "1" : ".55";
       }
     });
+  }, 1800);
+})();
+
+
+/* ===== v340: per-message copy buttons retired (share stays in the composer area) ===== */
+(function () {
+  if (window.__v340cp) return; window.__v340cp = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll(".v249cp")).forEach(function (b) { b.remove(); });
   }, 1800);
 })();

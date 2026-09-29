@@ -1,4 +1,24 @@
-,system-ui;color:#DFEAF6;background:#080D17;min-height:100svh}",
+e("data-v287c", "1");
+      var s = document.createElement("div");
+      s.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px";
+      ["Vision", "Deep Reason", "Worlds", "Memory", "Speed"].forEach(function (c) {
+        var t = document.createElement("span"); t.textContent = c;
+        t.style.cssText = "font:11px 'DM Sans',system-ui;letter-spacing:1.5px;color:#9fd8ff;border:1px solid rgba(102,204,255,.25);border-radius:99px;padding:5px 12px;text-transform:uppercase";
+        s.appendChild(t);
+      });
+      dm.parentNode.insertBefore(s, dm.nextSibling);
+    });
+    var f = L.querySelector("#vbuild2"); if (f) f.textContent = "V1";
+  }, 900);
+})();
+
+/* ===== v288: landing rebuilt — one authored page, no legacy layers ===== */
+(function () {
+  if (window.__v288) return; window.__v288 = "1";
+  var st = document.createElement("style");
+  st.textContent = [
+    "#loading.exit{animation:none !important;opacity:0 !important;transition:opacity .32s ease !important}",
+    "#land{font-family:'DM Sans',system-ui;color:#DFEAF6;background:#080D17;min-height:100svh}",
     "#land a{text-decoration:none;color:inherit}",
     "#land .vnav{position:sticky;top:0;z-index:9;display:flex;align-items:center;gap:14px;padding:14px 22px;background:rgba(8,13,23,.72);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.06)}",
     "#land .vnav img{width:30px;height:30px;border-radius:50%}",
@@ -791,38 +811,6 @@
   }, 2000);
 })();
 
-/* ===== v302: share Alfred's answers — organic growth loop ===== */
-(function () {
-  if (window.__v302) return; window.__v302 = "1";
-  setInterval(function () {
-    if (document.hidden) return;
-    var v = document.getElementById("view-chat");
-    if (!v || v.offsetParent === null) return;
-    [].slice.call(v.querySelectorAll(".msg")).forEach(function (row) {
-      var bar = row.querySelector(".v274row");
-      if (!bar || row.querySelector(".v302sh")) return;
-      var b = document.createElement("button");
-      b.type = "button"; b.textContent = "↗";
-      b.title = "Share this answer";
-      b.style.cssText = "background:transparent;color:#9fd8ff;" +
-        "border:1px solid rgba(159,216,255,.35);border-radius:8px;" +
-        "padding:3px 10px;font:11px system-ui;cursor:pointer";
-      b.onclick = function () {
-        var t = (row.textContent || "").replace("↗", "").trim();
-        t = t.slice(0, 400);
-        if (navigator.share) {
-          navigator.share({ title: "Alfred AI", text: t })
-            .catch(function () {});
-        } else if (navigator.clipboard) {
-          navigator.clipboard.writeText(t);
-          if (window.toast) toast("Copied ✓");
-        }
-      };
-      bar.appendChild(b);
-    });
-  }, 1800);
-})();
-
 /* ===== v311: feedback loop — votes land in the database ===== */
 (function () {
   if (window.__v311) return; window.__v311 = "1";
@@ -1022,4 +1010,383 @@
       h.insertBefore(c, ref || null);
     });
   }, 4000);
+})();
+
+/* ===== v315: calm sweep + arrow backstop + admin nav removal ===== */
+(function () {
+  if (window.__v315) return; window.__v315 = "1";
+  var GLYPHS = ["\u2197", "\u2934", "\u2935", "\u2191", "\u2B06", "\u2B07", "\u2196", "\u2198"];
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    ["view-chat", "chat-scroll", "hero"].forEach(function (id) {
+      var e = document.getElementById(id);
+      if (e && e.style && e.style.backgroundImage) e.style.backgroundImage = "none";
+    });
+    [].slice.call(v.querySelectorAll("button,span,svg")).forEach(function (b) {
+      var t = (b.textContent || b.getAttribute("aria-label") || "").trim();
+      if (GLYPHS.indexOf(t) > -1 || (t.length < 3 && /[\u2190-\u21FF\u2B00-\u2BFF]/.test(t) && !b.closest(".composer"))) {
+        b.style.display = "none";
+      }
+    });
+    [].slice.call(v.querySelectorAll(".msg")).forEach(function (m) {
+      if (m.getAttribute("data-v315")) return;
+      m.setAttribute("data-v315", "1");
+      [].slice.call(m.children).forEach(function (ch) {
+        var t = (ch.textContent || "");
+        if (/[\u{1F44D}\u{1F44E}]|copy|share/i.test(t) && t.length < 40 && !ch.querySelector(".msg-bubble")) m.appendChild(ch);
+      });
+    });
+    [].slice.call(v.querySelectorAll("#chat-scroll *")).forEach(function (e) {
+      var r = e.getBoundingClientRect();
+      if (r.width > window.innerWidth + 4) { e.style.maxWidth = "92vw"; e.style.overflowX = "auto"; }
+    });
+  }, 1500);
+  setInterval(function () {
+    if (document.hidden) return;
+    [].slice.call(document.querySelectorAll("body *")).forEach(function (e) {
+      if (e.children.length || e.closest("#view-admin") || e.closest("#view-chat")) return;
+      if ((e.textContent || "").trim() === "Admin" && e.offsetWidth > 0 && e.closest("header,nav,.nav,.topbar,.burger,#burger")) e.style.display = "none";
+    });
+  }, 3000);
+})();
+
+/* ===== v318: rescue — if a sent message gets no reply in 13s, retry non-stream once ===== */
+(function () {
+  if (window.__v318r) return; window.__v318r = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    var msgs = [].slice.call(v.querySelectorAll(".msg"));
+    if (!msgs.length) return;
+    var last = msgs[msgs.length - 1];
+    if ((last.className || "").indexOf("fx-user") === -1) return;
+    var now = Date.now();
+    var ts = parseInt(last.getAttribute("data-v318t") || "0", 10);
+    if (!ts) { last.setAttribute("data-v318t", String(now)); return; }
+    if (now - ts < 13000) return;
+    last.setAttribute("data-v318t", String(now));
+    var bubble = last.querySelector(".msg-bubble") || last;
+    var txt = (bubble.textContent || "").trim();
+    if (!txt || txt.length > 4000) return;
+    fetch("http://" + location.hostname + ":8082/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: txt })
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || !j.ok || !j.reply) return;
+      var row = document.createElement("div");
+      row.className = "msg fx-scanned";
+      row.setAttribute("data-v318a", "1");
+      var b = document.createElement("div");
+      b.className = "msg-bubble";
+      b.textContent = j.reply;
+      row.appendChild(b);
+      var sc = document.getElementById("chat-scroll") || v;
+      sc.appendChild(row);
+      sc.scrollTop = sc.scrollHeight;
+    }).catch(function () {});
+  }, 4000);
+})();
+
+/* ===== v328: one plan truth, read-only modules, bar below bubble ===== */
+(function () {
+  if (window.__v328) return; window.__v328 = "1";
+  function lockPlan() {
+    try {
+      var _sp = JSON.parse(localStorage.getItem("alfred_plan") || "{}");
+      var _sid = ("" + (_sp.id || "")).toLowerCase();
+      if (localStorage.getItem("alfred_plan_server") && (_sid === "free" || _sid === "pro" || _sid === "ultra")) {
+        window.__planLock = _sid.charAt(0).toUpperCase() + _sid.slice(1);
+        return window.__planLock;
+      }
+    } catch (e) {}
+    if (window.__planLock) return window.__planLock;
+    var c = [].slice.call(document.querySelectorAll("body *")).filter(function (e) {
+      if (e.children.length) return false;
+      var t = (e.textContent || "").trim();
+      var r = e.getBoundingClientRect();
+      return (t === "Free" || t === "Pro" || t === "Ultra") && r.top > 0 && r.top < 130;
+    });
+    /* v336: visual capture removed - server plan is the only writer */
+    return window.__planLock || "";
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    var p = lockPlan(); if (!p) return;
+    [].slice.call(v.querySelectorAll("*")).forEach(function (e) {
+      if (e.children.length) return;
+      var t = e.textContent || "";
+      if (/running (Free|Pro|Ultra)/.test(t)) {
+        e.textContent = t.replace(/running (Free|Pro|Ultra)/, "running " + p);
+        return;
+      }
+      var t2 = t.trim(), r = e.getBoundingClientRect();
+      if ((t2 === "Free" || t2 === "Pro" || t2 === "Ultra") && r.top > 130) e.textContent = p;
+      var m = t.match(/^(FREE|PRO|ULTRA)\b/);
+      if (m && m[1].toLowerCase() !== p.toLowerCase()) e.textContent = p + t.slice(m[1].length);
+    });
+  }, 1800);
+  setInterval(function () {
+    if (document.hidden) return;
+    var m = document.getElementById("view-modules");
+    if (!m || m.offsetParent === null) return;
+    [].slice.call(m.querySelectorAll("select")).forEach(function (s) {
+      var o = [].slice.call(s.options).map(function (x) { return x.value || x.textContent; });
+      if (o.length && o.every(function (x) { return x === "Free" || x === "Pro" || x === "Ultra"; })) {
+        if (!s.disabled) { s.disabled = true; s.style.pointerEvents = "none"; s.style.opacity = ".75"; }
+      }
+    });
+    [].slice.call(m.querySelectorAll("button")).forEach(function (b) {
+      var t = (b.textContent || "").trim();
+      if ((t === "Free" || t === "Pro" || t === "Ultra") && !b.disabled) {
+        b.disabled = true; b.style.pointerEvents = "none"; b.style.opacity = ".75";
+      }
+    });
+  }, 2500);
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll(".msg")).forEach(function (row) {
+      var bubble = row.querySelector(".msg-bubble"), bar = null;
+      [].slice.call(row.children).forEach(function (ch) {
+        var t = ch.textContent || "";
+        if (/Retry|\u{1F44D}|\u{1F44E}/u.test(t) && t.length < 60 && !ch.querySelector(".msg-bubble")) bar = ch;
+      });
+      if (bar && bubble && bubble.nextElementSibling !== bar) bubble.after(bar);
+    });
+  }, 2000);
+})();
+
+
+/* ===== v332: role tags, header plan authority, level theming ===== */
+(function () {
+  if (window.__v332roles) return; window.__v332roles = "1";
+  function serverPlan() {
+    try {
+      if (!localStorage.getItem("alfred_plan_server")) return "";
+      var id = ("" + ((JSON.parse(localStorage.getItem("alfred_plan") || "{}") || {}).id || "")).toLowerCase();
+      return (id === "free" || id === "pro" || id === "ultra") ? id.charAt(0).toUpperCase() + id.slice(1) : "";
+    } catch (e) { return ""; }
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (v) {
+      var p = serverPlan(); if (p) v.setAttribute("data-lvl", p);
+      [].slice.call(v.querySelectorAll(".msg")).forEach(function (m) {
+        var r = m.getBoundingClientRect();
+        var isUser = m.classList.contains("fx-user") || r.left > window.innerWidth * 0.45;
+        var role = isUser ? "user" : "assistant";
+        if (m.getAttribute("data-role") !== role) m.setAttribute("data-role", role);
+      });
+    }
+    var hd = window.__v336hd && document.contains(window.__v336hd) ? window.__v336hd : null;
+    if (!hd) {
+      var _ols = [].slice.call(document.querySelectorAll("body *")).filter(function (e) {
+        if (e.children.length) return false;
+        var r = e.getBoundingClientRect();
+        return (e.textContent || "").trim() === "Online" && r.top >= 0 && r.top < 200 && r.width > 0;
+      });
+      if (_ols.length) {
+        var _a = _ols[0];
+        for (var _k = 0; _k < 5 && _a; _k++) {
+          _a = _a.parentElement;
+          if (_a && _a.offsetHeight > 40 && _a.offsetHeight < 220 && _a.getBoundingClientRect().top < 200) { hd = _a; break; }
+        }
+      }
+      window.__v336hd = hd || null;
+    }
+    if (!hd) return;
+    var p2 = serverPlan(); if (!p2) return;
+    hd.setAttribute("data-lvl", p2);
+    [].slice.call(hd.querySelectorAll("*")).forEach(function (e) {
+      if (e.children.length) return;
+      var t = (e.textContent || "").trim();
+      if ((t === "Free" || t === "Pro" || t === "Ultra") && t !== p2) {
+        e.textContent = p2;
+      }
+      if ((e.textContent || "").trim() === p2) e.classList.add("lvl-chip");
+    });
+  }, 1200);
+})();
+
+
+/* ===== v333: edit & resend (pencil prefills the composer) ===== */
+(function () {
+  if (window.__v333edit) return; window.__v333edit = "1";
+  function composer() {
+    var c = [].slice.call(document.querySelectorAll("#view-chat textarea, #view-chat input[type='text'], textarea, input[type='text']"));
+    for (var i = 0; i < c.length; i++) {
+      var r = c[i].getBoundingClientRect();
+      if (r.top > window.innerHeight * 0.5 && r.width > 100) return c[i];
+    }
+    return c[0] || null;
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll('.msg[data-role="user"]')).forEach(function (m) {
+      if (m.querySelector(".v333-edit")) return;
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "v333-edit"; b.textContent = "\u270E"; b.title = "Edit & resend";
+      b.style.cssText = "margin-left:8px;padding:1px 9px;border-radius:999px;border:1px solid #2b3f68;background:#14243f;color:#cfe2ff;font:600 12px system-ui;cursor:pointer;vertical-align:middle";
+      b.onclick = function () {
+        var t = (m.textContent || "").replace("\u270E", "").trim();
+        var el = composer();
+        if (!el) return;
+        if (el.isContentEditable) { el.textContent = t; } else { el.value = t; }
+        el.focus();
+      };
+      m.appendChild(b);
+    });
+  }, 1500);
+})();
+
+
+/* ===== v336: heal plan truth for existing sessions (page-load clear + one usage call) ===== */
+(function () {
+  if (window.__v334heal) return; window.__v334heal = "1";
+  window.__planLock = null; window.__v328lock = null; window.__v328lockOk = false;
+  var tries = 0;
+  function go() {
+    if (tries++ > 4) return;
+    try {
+      if (localStorage.getItem("alfred_plan_server")) return;
+      var t = (function(){ try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } })();
+      var m = document.cookie.match(/(?:^|;\s*)alfred_token=([^;]+)/);
+      t = (t || (m ? decodeURIComponent(m[1]) : "")).trim();
+      if (!t) { setTimeout(go, 2500); return; }
+      fetch("http://" + location.hostname + ":8082/api/usage", { headers: { "X-Alfred-Token": t } })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          var p = ("" + (j.plan || "")).toLowerCase();
+          if (p === "free" || p === "pro" || p === "ultra") {
+            localStorage.setItem("alfred_plan", JSON.stringify({ id: p }));
+            localStorage.setItem("alfred_plan_server", "1");
+            try { localStorage.setItem("alfred_module_package", p.charAt(0).toUpperCase() + p.slice(1)); } catch (e) {}
+            window.__planLock = null;
+            console.log("v336: plan healed ->", p);
+          } else { setTimeout(go, 3000); }
+        })
+        .catch(function () { setTimeout(go, 3000); });
+    } catch (e) {}
+  }
+  go();
+})();
+
+
+/* ===== v336: one bar per last answer, none on user rows, stray icon gone ===== */
+(function () {
+  if (window.__v334bars) return; window.__v334bars = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    var rows = [].slice.call(v.querySelectorAll(".msg"));
+    var lastA = -1;
+    rows.forEach(function (m, i) { if (m.getAttribute("data-role") !== "user" && (m.textContent || "").trim()) lastA = i; });
+    rows.forEach(function (m, i) {
+      if (m.querySelector(".v129-dots")) return;
+      var isUser = m.getAttribute("data-role") === "user";
+      var bars = [].slice.call(m.children).filter(function (ch) {
+        if (!ch.querySelector || ch.querySelector(".msg-bubble")) return false;
+        var t = ch.textContent || "";
+        return /Retry/i.test(t) && t.length < 60;
+      });
+      bars.forEach(function (b, bi) { if (isUser || i !== lastA || bi > 0) b.remove(); });
+    });
+    [].slice.call(v.querySelectorAll("button")).forEach(function (b) {
+      if (b.closest(".msg")) return;
+      var t = (b.textContent || "").trim();
+      if (t.length <= 2 && /\u29C9\u2197\u2398/.test(t)) b.style.display = "none";
+    });
+  }, 1600);
+})();
+
+
+/* ===== v337: empty ghost rows removed after 2 proofed ticks (streaming/controls/media safe) ===== */
+(function () {
+  if (window.__v337clean) return; window.__v337clean = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll(".msg")).forEach(function (m) {
+      if (m.getAttribute("data-v337dead") === "1") return;
+      var busy = [].slice.call(m.querySelectorAll(".v129-dots, button, img, video, canvas, [aria-live]")).some(function (x) { return x.offsetWidth > 0 && x.offsetHeight > 0; });
+      var core = m.querySelector(".msg-bubble") || m;
+      var empty = !busy && m.offsetHeight < 160 && !(core.textContent || "").trim();
+      var n = parseInt(m.getAttribute("data-v337seen") || "0", 10);
+      if (empty) {
+        n += 1;
+        if (n >= 2) { m.setAttribute("data-v337dead", "1"); m.remove(); return; }
+      } else { n = 0; }
+      m.setAttribute("data-v337seen", String(n));
+    });
+  }, 2200);
+})();
+
+
+/* ===== v339: feedback bars removed at the node; stray glyph hidden ===== */
+(function () {
+  if (window.__v339bars) return; window.__v339bars = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll(".v274row")).forEach(function (b) { b.remove(); });
+    [].slice.call(v.querySelectorAll("*")).forEach(function (e) {
+      if (e.closest(".msg") || e.children.length) return;
+      var t = (e.textContent || "").trim();
+      if (t === "\u29C9" || t === "\u2197" || t === "\u2398") e.style.display = "none";
+    });
+  }, 1600);
+})();
+
+
+/* ===== v339: module levels are admin-set, users can only look ===== */
+(function () {
+  if (window.__v339lock) return; window.__v339lock = "1";
+  function plan() {
+    try {
+      var p = (JSON.parse(localStorage.getItem("alfred_plan") || "{}").id || "").toLowerCase();
+      return p ? p.charAt(0).toUpperCase() + p.slice(1) : "";
+    } catch (e) { return ""; }
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-modules") || document.getElementById("modules");
+    if (!v || v.offsetParent === null) return;
+    var p = plan(); if (!p) return;
+    [].slice.call(v.querySelectorAll("select")).forEach(function (s) {
+      var lv = [].slice.call(s.options).some(function (o) { return /^(Free|Pro|Ultra)$/.test((o.value || o.textContent).trim()); });
+      if (lv) { s.disabled = true; s.style.pointerEvents = "none"; if ((s.value || "").toLowerCase() !== p.toLowerCase()) s.value = p; }
+    });
+    [].slice.call(v.querySelectorAll("button,.chip,[role=button]")).forEach(function (b) {
+      var t = (b.textContent || "").trim();
+      if (/^(Free|Pro|Ultra)$/.test(t)) {
+        b.setAttribute("disabled", "disabled"); b.style.pointerEvents = "none"; b.style.cursor = "not-allowed";
+        b.style.opacity = t === p ? "1" : ".55";
+      }
+    });
+  }, 1800);
+})();
+
+
+/* ===== v340: per-message copy buttons retired (share stays in the composer area) ===== */
+(function () {
+  if (window.__v340cp) return; window.__v340cp = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll(".v249cp")).forEach(function (b) { b.remove(); });
+  }, 1800);
 })();

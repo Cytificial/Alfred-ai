@@ -1,4 +1,26 @@
- (res) {
+tion hide() {
+    chip.style.display = "none";
+    if (obs) { try { obs.disconnect(); } catch (e) {} obs = null; }
+    if (fail) { clearTimeout(fail); fail = null; }
+  }
+  var of = window.fetch;
+  window.fetch = function (u, o) {
+    var s = typeof u === "string" ? u : (u && u.url) || "";
+    var isChat = o && o.method === "POST" && s.indexOf(":8082/api/chat") > -1 &&
+                 s.indexOf("/stream") === -1 && s.indexOf("/api/chats") === -1;
+    if (!isChat) return of.apply(this, arguments);
+    hide(); chip.style.display = "flex";
+    var bub = null;
+    try { var d = document.querySelector(".v129-dots"); if (d) bub = d.closest(".bubble"); } catch (e) {}
+    if (bub && !bub.dataset.v157w) {
+      bub.dataset.v157w = "1";
+      obs = new MutationObserver(function () {
+        if ((bub.textContent || "").replace(/▌/g, "").trim().length > 1) hide();
+      });
+      obs.observe(bub, { childList: true, characterData: true, subtree: true });
+    }
+    fail = setTimeout(hide, 45000);
+    return of.apply(this, arguments).then(function (res) {
       res.clone().json().then(function (j) {
         if (j && j.ok === false && j.error) {
           var b = null, list = document.querySelectorAll(".msg.ai .bubble");
@@ -2456,26 +2478,4 @@
   setInterval(function () {
     if (document.hidden) return;
     var admin = (location.hash || "").indexOf("admin") > -1;
-    var views = [].slice.call(document.querySelectorAll(".view"));
-    if (admin) {
-      var va = document.getElementById("view-admin");
-      if (va) {
-        views.forEach(function (x) { x.style.display = (x === va) ? "block" : "none"; });
-      }
-    } else {
-      views.forEach(function (x) { if (x.style.display) x.style.display = ""; });
-    }
-    /* kill the old settings admin console (ADMIN — N USERS) */
-    [].slice.call(document.querySelectorAll("div,section")).forEach(function (e) {
-      if (e.getAttribute("data-v252k")) return;
-      var t = (e.textContent || "").slice(0, 40);
-      if (/^ADMIN\s*[—-]\s*\d+\s*USERS/i.test(t) && e.textContent.length < 4000 && e.querySelector("select")) {
-        e.setAttribute("data-v252k", "1"); e.style.display = "none";
-      }
-    });
-    /* New Chat card: no logo, just the words */
-    var sc = scope();
-    [].slice.call(sc.querySelectorAll("*")).forEach(function (e) {
-      if (e.children.length || (e.textContent || "").trim() !== "New Chat") return;
-      var card = e;
-      while (card.parentElement && card !== sc && (card.parentElement.te
+    var views = [].slice.call(document.querySelectorAll(".view"

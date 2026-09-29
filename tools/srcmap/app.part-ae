@@ -1,4 +1,26 @@
-xtContent || "").indexOf("Start a new conversation") === -1) card = card.parentElement;
+));
+    if (admin) {
+      var va = document.getElementById("view-admin");
+      if (va) {
+        views.forEach(function (x) { x.style.display = (x === va) ? "block" : "none"; });
+      }
+    } else {
+      views.forEach(function (x) { if (x.style.display) x.style.display = ""; });
+    }
+    /* kill the old settings admin console (ADMIN — N USERS) */
+    [].slice.call(document.querySelectorAll("div,section")).forEach(function (e) {
+      if (e.getAttribute("data-v252k")) return;
+      var t = (e.textContent || "").slice(0, 40);
+      if (/^ADMIN\s*[—-]\s*\d+\s*USERS/i.test(t) && e.textContent.length < 4000 && e.querySelector("select")) {
+        e.setAttribute("data-v252k", "1"); e.style.display = "none";
+      }
+    });
+    /* New Chat card: no logo, just the words */
+    var sc = scope();
+    [].slice.call(sc.querySelectorAll("*")).forEach(function (e) {
+      if (e.children.length || (e.textContent || "").trim() !== "New Chat") return;
+      var card = e;
+      while (card.parentElement && card !== sc && (card.parentElement.textContent || "").indexOf("Start a new conversation") === -1) card = card.parentElement;
       if (card === sc || !card.parentElement) return;
       if (card.getAttribute("data-v252nc")) return;
       card.setAttribute("data-v252nc", "1");
@@ -1921,24 +1943,4 @@ xtContent || "").indexOf("Start a new conversation") === -1) card = card.parentE
       s.classList.add("v287rv"); if (io) io.observe(s); else s.classList.add("v287in");
     });
     [].slice.call(L.querySelectorAll(".demo")).forEach(function (dm) {
-      if (dm.getAttribute("data-v287c")) return; dm.setAttribute("data-v287c", "1");
-      var s = document.createElement("div");
-      s.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px";
-      ["Vision", "Deep Reason", "Worlds", "Memory", "Speed"].forEach(function (c) {
-        var t = document.createElement("span"); t.textContent = c;
-        t.style.cssText = "font:11px 'DM Sans',system-ui;letter-spacing:1.5px;color:#9fd8ff;border:1px solid rgba(102,204,255,.25);border-radius:99px;padding:5px 12px;text-transform:uppercase";
-        s.appendChild(t);
-      });
-      dm.parentNode.insertBefore(s, dm.nextSibling);
-    });
-    var f = L.querySelector("#vbuild2"); if (f) f.textContent = "V1";
-  }, 900);
-})();
-
-/* ===== v288: landing rebuilt — one authored page, no legacy layers ===== */
-(function () {
-  if (window.__v288) return; window.__v288 = "1";
-  var st = document.createElement("style");
-  st.textContent = [
-    "#loading.exit{animation:none !important;opacity:0 !important;transition:opacity .32s ease !important}",
-    "#land{font-family:'DM Sans'
+      if (dm.getAttribute("data-v287c")) return; dm.setAttribut

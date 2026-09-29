@@ -1,3 +1,28 @@
+/* ===== v327 governor: ONE master ticker for every loop; tab hidden = all sleep ===== */
+(function () {
+  if (window.__v327gov) return; window.__v327gov = "1";
+  var _si = window.setInterval, _ci = window.clearInterval;
+  var tasks = [], handles = {}, hid = 0;
+  window.setInterval = function (fn, ms) {
+    if (typeof fn !== "function") return _si(fn, ms);
+    var t = { fn: fn, ms: Math.max(250, ms | 0), due: 0, dead: false };
+    tasks.push(t);
+    var h = ++hid; handles[h] = t; return h;
+  };
+  window.clearInterval = function (h) {
+    if (handles[h]) { handles[h].dead = true; delete handles[h]; return; }
+    return _ci(h);
+  };
+  _si(function () {
+    if (document.hidden) return;
+    var now = Date.now();
+    for (var i = 0; i < tasks.length; i++) {
+      var t = tasks[i];
+      if (t.dead) continue;
+      if (now - t.due >= t.ms) { t.due = now; try { t.fn(); } catch (e) {} }
+    }
+  }, 250);
+})();
 /* v288flags */try{['v269','v270','v273b','v275','v276s','v277','v278','v280','v281','v284','v285b'].forEach(function(k){try{window['__'+k]='1';}catch(e){}});}catch(e){}
 /* v285: unauth route — loading -> landing (no login flash) */
 window.__v285route = function () {
@@ -246,6 +271,7 @@ try { window.__v170 = "1"; window.__v171 = "1"; window.__v170b = "1"; window.__v
     try{ localStorage.setItem("alfred_authed","1"); }catch(e){}
     try{ if(u&&u.name) localStorage.setItem("alfred_name",u.name); }catch(e){}
     try{ localStorage.setItem("alfred_plan", JSON.stringify({id:((u&&u.plan)||"free").toLowerCase()})); }catch(e){}
+try{ localStorage.setItem("alfred_plan_server","1"); }catch(e){}
     hideGate();
     var h = String(location.hash || "").toLowerCase();
     if (!h || h === "#" || h === "#/" || h.indexOf("login") !== -1) {
@@ -474,7 +500,7 @@ window.__v159="1"; window.__v161a="1"; window.__v162="1"; window.__v158c2="1"; w
   /* repair a plan store broken by older patches (plain string instead of JSON) */
   try {
     var cache = localStorage.getItem("alfred_plan_cache");
-    if (cache) localStorage.setItem("alfred_plan", cache);
+    if (cache && !localStorage.getItem("alfred_plan_server")) localStorage.setItem("alfred_plan", cache); /*v330planfix*/
     else {
       var raw = localStorage.getItem("alfred_plan") || "";
       if (raw && raw.charAt(0) !== "{") {
@@ -2500,24 +2526,4 @@ window.__v152 = "1"; /* v154 retires v152 */
   stage.insertBefore(svg, stage.firstChild);
 
   function srcPos() {
-    var c = stage.querySelector('[class*="core" i],[class*="src" i],[class*="sun" i],[class*="star" i]');
-    if (c) {
-      var r = c.getBoundingClientRect(), s = stage.getBoundingClientRect();
-      if (r.width) return { x: (r.left + r.width / 2 - s.left) / s.width * 100,
-                            y: (r.top + r.height / 2 - s.top) / s.height * 100 };
-    }
-    return { x: 50, y: 44 };
-  }
-  function draw() {
-    var s = stage.getBoundingClientRect(); if (!s.width) return;
-    svg.setAttribute("viewBox", "0 0 100 100");
-    svg.setAttribute("preserveAspectRatio", "none");
-    var src = srcPos(), out = "";
-    nodes.querySelectorAll(".const-node").forEach(function (n) {
-      var x = parseFloat(n.style.left) || 50, y = parseFloat(n.style.top) || 50;
-      var dx = x - src.x, dy = y - src.y;
-      if (Math.abs(dx) < .5 && Math.abs(dy) < .5) return;
-      var rx = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
-      var cxy = src.x.toFixed(2) + " " + src.y.toFixed(2);
-      out += '<ellipse cx="' + src.x.toFixed(2) + '" cy="' + src.y.toFixed(2) + '" rx="' + rx.toFixed(2)
-        + '
+    var c = stage.querySelector('[class*="core" i],[class*="src" i],[cl
