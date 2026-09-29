@@ -13126,3 +13126,26 @@ try { /* v163proc: native thinking card */
     });
   }, 1600);
 })();
+
+
+/* ===== v337: empty ghost rows removed after 2 proofed ticks (streaming/controls/media safe) ===== */
+(function () {
+  if (window.__v337clean) return; window.__v337clean = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll(".msg")).forEach(function (m) {
+      if (m.getAttribute("data-v337dead") === "1") return;
+      var busy = m.querySelector(".v129-dots, button, img, video, canvas, [aria-live]");
+      var core = m.querySelector(".msg-bubble") || m;
+      var empty = !busy && m.offsetHeight < 160 && !(core.textContent || "").trim();
+      var n = parseInt(m.getAttribute("data-v337seen") || "0", 10);
+      if (empty) {
+        n += 1;
+        if (n >= 2) { m.setAttribute("data-v337dead", "1"); m.remove(); return; }
+      } else { n = 0; }
+      m.setAttribute("data-v337seen", String(n));
+    });
+  }, 2200);
+})();

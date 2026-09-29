@@ -3701,3 +3701,7 @@ header[data-lvl="Ultra"] .lvl-chip,#view-chat[data-lvl="Ultra"] .lvl-chip{backgr
 /* ===== v336: composer - no inner box, focus moves to the pill ===== */
 #view-chat input[type="text"],#view-chat textarea{border:0!important;outline:none!important;box-shadow:none!important;background:transparent!important}
 #view-chat input[type="text"]:focus,#view-chat textarea:focus{outline:none!important}
+
+/* ===== v337: composer input gets real room ===== */
+#view-chat input[type="text"],#view-chat textarea{min-width:0;flex:1 1 auto;width:auto;font-size:14px}
+#view-chat input[type="text"]::placeholder,#view-chat textarea::placeholder{opacity:.55}
