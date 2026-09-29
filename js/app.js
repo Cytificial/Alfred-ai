@@ -13219,6 +13219,8 @@ try { /* v163proc: native thinking card */
     [].slice.call(v.querySelectorAll(".msg")).forEach(function (m) {
       var b = m.querySelector(".msg-bubble");
       if (!b) return;
+      if (b.getAttribute("data-v341c")) return;
+      b.setAttribute("data-v341c", "1");
       var user = m.classList.contains("fx-user") || m.getAttribute("data-role") === "user";
       if (user) {
         b.style.background = "linear-gradient(180deg,#2e2110,#241a09)";
@@ -13231,4 +13233,122 @@ try { /* v163proc: native thinking card */
       }
     });
   }, 1400);
+})();
+
+
+/* ===== v343: msg2 healer - answers recover from server chat history ===== */
+(function () {
+  if (window.__v343heal) return; window.__v343heal = "1";
+  function tok() {
+    var t = "";
+    try { t = localStorage.getItem("alfred_token") || ""; } catch (e) {}
+    var m = document.cookie.match(/(?:^|;\s*)alfred_token=([^;]+)/);
+    return (t || (m ? decodeURIComponent(m[1]) : "")).trim();
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    var rows = [].slice.call(v.querySelectorAll(".msg"));
+    if (rows.length < 2) return;
+    var last = rows[rows.length - 1];
+    if (last.getAttribute("data-v343done")) return;
+    if (last.classList.contains("fx-user")) return;
+    var b = last.querySelector(".msg-bubble");
+    if (!b) return;
+    if ((b.textContent || "").trim()) { last.setAttribute("data-v343done", "1"); return; }
+    if (window.streaming) {
+      var d = last.querySelector(".v129-dots");
+      if (d && !d.getAttribute("data-v343t")) d.setAttribute("data-v343t", String(Date.now()));
+      if (d && Date.now() - parseInt(d.getAttribute("data-v343t") || "0", 10) < 60000) return;
+    }
+    var n = parseInt(last.getAttribute("data-v343h") || "0", 10) + 1;
+    last.setAttribute("data-v343h", String(n));
+    if (n < 2) return;
+    var prev = null;
+    for (var i = rows.length - 2; i >= 0; i--) {
+      if (rows[i].classList.contains("fx-user") && (rows[i].textContent || "").trim()) { prev = rows[i]; break; }
+    }
+    var cid = window.__v129chat;
+    var ut = prev ? (prev.textContent || "").replace("\u270E", "").trim() : "";
+    if (!cid || !ut) { last.setAttribute("data-v343done", "1"); return; }
+    fetch("http://" + location.hostname + ":8082/api/chat/" + cid, { headers: { "X-Alfred-Token": tok() } })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var ms = (j && j.messages) || [];
+        var ans = "";
+        for (var k = ms.length - 1; k >= 0; k--) {
+          if ((ms[k].role || "") === "assistant" && (ms[k].content || "").trim()) { ans = ms[k].content; break; }
+        }
+        var dots = last.querySelector(".v129-dots");
+        if (dots) dots.remove();
+        last.setAttribute("data-v343done", "1");
+        if (ans) {
+          b.textContent = ans;
+          b.style.whiteSpace = "pre-wrap";
+          console.log("v343: recovered answer from history");
+        } else {
+          var rb = document.createElement("button");
+          rb.type = "button"; rb.textContent = "\u21BB Retry";
+          rb.style.cssText = "margin-top:8px;background:#14243f;color:#cfe2ff;border:1px solid #2b3f68;border-radius:99px;padding:6px 16px;font:600 12px system-ui;cursor:pointer";
+          rb.onclick = function () {
+            rb.textContent = "Thinking\u2026"; rb.disabled = true;
+            fetch("http://" + location.hostname + ":8082/api/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "X-Alfred-Token": tok() },
+              body: JSON.stringify({ message: ut, chat_id: cid })
+            }).then(function (r) { return r.json(); }).then(function (j2) {
+              b.textContent = (j2 && (j2.reply || j2.error)) || "No reply";
+              b.style.whiteSpace = "pre-wrap";
+            }).catch(function () { b.textContent = "Connection failed - tap retry again"; rb.disabled = false; rb.textContent = "\u21BB Retry"; });
+          };
+          b.appendChild(rb);
+        }
+      })
+      .catch(function () { last.setAttribute("data-v343h", "0"); });
+  }, 3000);
+})();
+
+
+/* ===== v343: module levels display-only + server gate pending recon ===== */
+(function () {
+  if (window.__v343mod) return; window.__v343mod = "1";
+  function plan() {
+    try {
+      var p = (JSON.parse(localStorage.getItem("alfred_plan") || "{}").id || "").toLowerCase();
+      return p ? p.charAt(0).toUpperCase() + p.slice(1) : "";
+    } catch (e) { return ""; }
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-modules");
+    if (!v || v.offsetParent === null) return;
+    if (!v.getAttribute("data-v343chip")) {
+      v.setAttribute("data-v343chip", "1");
+      var c = document.createElement("div");
+      c.style.cssText = "margin:0 0 12px;padding:10px 14px;border-radius:12px;background:rgba(61,123,255,.10);border:1px solid rgba(61,123,255,.3);color:#cfe2ff;font:600 13px system-ui";
+      c.textContent = "Your level: " + (plan() || "Free") + " - set by Alfred's maker";
+      v.insertBefore(c, v.firstChild);
+    }
+    [].slice.call(v.querySelectorAll('[aria-label="Choose package"], select')).forEach(function (e) { e.style.display = "none"; });
+    [].slice.call(v.querySelectorAll("button,.chip,[role=button]")).forEach(function (b) {
+      if (/^(Free|Pro|Ultra)$/.test((b.textContent || "").trim())) b.style.display = "none";
+    });
+  }, 1600);
+})();
+
+
+/* ===== v343: strip the box hugging the composer input ===== */
+(function () {
+  if (window.__v343box) return; window.__v343box = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var el = document.getElementById("msg-input");
+    if (!el || !el.parentElement) return;
+    var p = el.parentElement;
+    if (p.getAttribute("data-v343box")) return;
+    p.setAttribute("data-v343box", "1");
+    p.style.border = "0"; p.style.outline = "none";
+    p.style.boxShadow = "none"; p.style.background = "transparent";
+  }, 2000);
 })();
