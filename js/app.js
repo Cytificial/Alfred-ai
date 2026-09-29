@@ -13108,7 +13108,7 @@ try { /* v163proc: native thinking card */
     if (!v || v.offsetParent === null) return;
     var rows = [].slice.call(v.querySelectorAll(".msg"));
     var lastA = -1;
-    rows.forEach(function (m, i) { if (m.getAttribute("data-role") !== "user") lastA = i; });
+    rows.forEach(function (m, i) { if (m.getAttribute("data-role") !== "user" && (m.textContent || "").trim()) lastA = i; });
     rows.forEach(function (m, i) {
       if (m.querySelector(".v129-dots")) return;
       var isUser = m.getAttribute("data-role") === "user";
