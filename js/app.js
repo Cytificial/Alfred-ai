@@ -271,6 +271,7 @@ try { window.__v170 = "1"; window.__v171 = "1"; window.__v170b = "1"; window.__v
     try{ localStorage.setItem("alfred_authed","1"); }catch(e){}
     try{ if(u&&u.name) localStorage.setItem("alfred_name",u.name); }catch(e){}
     try{ localStorage.setItem("alfred_plan", JSON.stringify({id:((u&&u.plan)||"free").toLowerCase()})); }catch(e){}
+try{ localStorage.setItem("alfred_plan_server","1"); }catch(e){}
     hideGate();
     var h = String(location.hash || "").toLowerCase();
     if (!h || h === "#" || h === "#/" || h.indexOf("login") !== -1) {
@@ -499,7 +500,7 @@ window.__v159="1"; window.__v161a="1"; window.__v162="1"; window.__v158c2="1"; w
   /* repair a plan store broken by older patches (plain string instead of JSON) */
   try {
     var cache = localStorage.getItem("alfred_plan_cache");
-    if (cache) localStorage.setItem("alfred_plan", cache);
+    if (cache && !localStorage.getItem("alfred_plan_server")) localStorage.setItem("alfred_plan", cache); /*v330planfix*/
     else {
       var raw = localStorage.getItem("alfred_plan") || "";
       if (raw && raw.charAt(0) !== "{") {

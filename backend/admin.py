@@ -516,6 +516,54 @@ def maybe_handle(handler, method):
         db.close()
         return _send(handler, 200, {"ok": True, "day": day, "rows": rows, "caps": cfg.get("daily_caps") or {}})
 
+    if method == "GET" and p == "/api/admin/credits":
+        import time as _t3
+        day = _t3.strftime("%Y-%m-%d", _t3.gmtime())
+        gdb = sqlite3.connect(DBP); gdb.row_factory = sqlite3.Row
+        gdb.execute("CREATE TABLE IF NOT EXISTS credit_bank(user_id INTEGER PRIMARY KEY, extra INTEGER NOT NULL DEFAULT 0, updated REAL)")
+        gdb.commit()
+        rows = [dict(r) for r in gdb.execute(
+            "SELECT u.email,u.plan,COALESCE(b.extra,0) AS extra,"
+            "(SELECT count FROM usage WHERE user_id=u.id AND day=?) AS used "
+            "FROM users u LEFT JOIN credit_bank b ON b.user_id=u.id ORDER BY u.id", (day,))]
+        caps = (_cfg() or {}).get("daily_caps") or {}
+        gdb.close()
+        return _send(handler, 200, {"ok": True, "day": day, "caps": caps, "rows": rows})
+
+    if method == "POST" and p == "/api/admin/credits/set":
+        import time as _t4
+        b = _body(handler)
+        email = str(b.get("email", "")).strip().lower()
+        try: extra = max(0, min(100000, int(b.get("extra", 0))))
+        except Exception: extra = 0
+        gdb = sqlite3.connect(DBP)
+        r = gdb.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+        if not r:
+            gdb.close(); return _send(handler, 404, {"ok": False, "error": "no such user"})
+        gdb.execute("CREATE TABLE IF NOT EXISTS credit_bank(user_id INTEGER PRIMARY KEY, extra INTEGER NOT NULL DEFAULT 0, updated REAL)")
+        gdb.execute("INSERT INTO credit_bank(user_id,extra,updated) VALUES(?,?,?) "
+                    "ON CONFLICT(user_id) DO UPDATE SET extra=excluded.extra, updated=excluded.updated",
+                    (r[0], extra, _t4.time()))
+        gdb.commit(); gdb.close()
+        return _send(handler, 200, {"ok": True, "email": email, "extra": extra})
+
+    if method == "GET" and p == "/api/admin/brain/prompt":
+        import os as _o1
+        fp = _o1.path.join(_o1.path.dirname(DBP), "prompt_override.md")
+        txt = ""
+        try: txt = open(fp, encoding="utf-8", errors="replace").read()
+        except Exception: pass
+        return _send(handler, 200, {"ok": True, "prompt": txt[:6000]})
+
+    if method == "POST" and p == "/api/admin/brain/prompt":
+        import os as _o2
+        b = _body(handler)
+        txt = str(b.get("prompt", ""))[:6000]
+        fp = _o2.path.join(_o2.path.dirname(DBP), "prompt_override.md")
+        tmp = fp + ".tmp"
+        open(tmp, "w", encoding="utf-8").write(txt); _o2.replace(tmp, fp)
+        return _send(handler, 200, {"ok": True, "chars": len(txt)})
+
     if method == "GET" and p == "/api/admin/providers":
         return _send(handler, 200, _prov.public())
 

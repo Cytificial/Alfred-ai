@@ -237,4 +237,70 @@ function credRows(m){
    var cap=(j.caps||{})[r.plan]||"—";
    return "<tr><td>"+(r.email||"")+"</td><td>"+(r.plan||"")+"</td><td>"+r.used+"</td><td>"+cap+"</td></tr>"}).join("");
   tb.innerHTML="<table><tr><th>Email</th><th>Plan</th><th>Used today</th><th>Cap</th></tr>"+rows+"</table><p class=mut>day: "+(j.day||"")+" (UTC)</p>"})}
+</script><script id="v330panel">
+(function () {
+  function tok() {
+    try { var v = localStorage.getItem("alfred_admin_token") || localStorage.getItem("alfred_token") || ""; if (v) return v; } catch (e) {}
+    var m = document.cookie.match(/(?:^|;\s*)(?:alfred_token|token)=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : "";
+  }
+  function api(m, p, b) {
+    return fetch(p, { method: m, headers: { "Content-Type": "application/json", "X-Alfred-Token": tok() },
+      body: b ? JSON.stringify(b) : undefined }).then(function (r) { return r.json(); });
+  }
+  function panel(id, title) {
+    var d = document.createElement("div"); d.id = id;
+    d.style.cssText = "display:none;position:fixed;right:14px;bottom:76px;width:min(420px,92vw);max-height:70vh;overflow:auto;z-index:9999;background:#0b1220;color:#e8eefc;border:1px solid #24314f;border-radius:14px;padding:14px;font:14px/1.5 system-ui,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.5)";
+    var h = document.createElement("div"); h.textContent = title;
+    h.style.cssText = "font-weight:700;margin-bottom:10px;color:#7fb2ff";
+    d.appendChild(h); document.body.appendChild(d); return d;
+  }
+  function btn(label, x, fn) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = label;
+    b.style.cssText = "position:fixed;right:" + x + "px;bottom:16px;z-index:9999;background:#14243f;color:#cfe2ff;border:1px solid #2b3f68;border-radius:999px;padding:10px 14px;font:600 13px system-ui;cursor:pointer";
+    b.onclick = fn; document.body.appendChild(b); return b;
+  }
+  var bp = panel("v330-brain", "\u{1F9E0} Alfred Brain Prompt"), cp = panel("v330-credits", "\u{1F4B0} Bonus credits (extra daily allowance, resets midnight UTC)");
+  if (!tok()) {
+    var w = document.createElement("input"); w.placeholder = "paste admin token here";
+    w.style.cssText = "width:100%;box-sizing:border-box;background:#0e1730;color:#e8eefc;border:1px solid #2b3f68;border-radius:8px;padding:8px;margin-bottom:8px";
+    w.onchange = function () { try { localStorage.setItem("alfred_admin_token", w.value.trim()); } catch (e) {} };
+    bp.appendChild(w);
+  }
+  var ta = document.createElement("textarea");
+  ta.placeholder = "Standing instructions for Alfred. Highest priority, applied to every chat, every level. Example: tone rules, formatting rules, topics to handle specially.";
+  ta.style.cssText = "width:100%;box-sizing:border-box;min-height:150px;background:#0e1730;color:#e8eefc;border:1px solid #2b3f68;border-radius:8px;padding:8px;resize:vertical";
+  bp.appendChild(ta);
+  var r1 = document.createElement("div"); r1.style.cssText = "display:flex;gap:8px;margin-top:8px";
+  var save = document.createElement("button"); save.type = "button"; save.textContent = "Save";
+  save.style.cssText = "flex:1;background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:9px;cursor:pointer";
+  save.onclick = function () { api("POST", "/api/admin/brain/prompt", { prompt: ta.value }).then(function (j) { save.textContent = j.ok ? "Saved \u2713" : (j.error || "fail"); setTimeout(function () { save.textContent = "Save"; }, 1600); }); };
+  var clr = document.createElement("button"); clr.type = "button"; clr.textContent = "Clear";
+  clr.style.cssText = "background:#24314f;color:#cfe2ff;border:0;border-radius:8px;padding:9px;cursor:pointer";
+  clr.onclick = function () { ta.value = ""; api("POST", "/api/admin/brain/prompt", { prompt: "" }); };
+  r1.appendChild(save); r1.appendChild(clr); bp.appendChild(r1);
+  var em = document.createElement("input"); em.placeholder = "user email";
+  em.style.cssText = "width:100%;box-sizing:border-box;background:#0e1730;color:#e8eefc;border:1px solid #2b3f68;border-radius:8px;padding:8px;margin-bottom:8px";
+  var ex = document.createElement("input"); ex.placeholder = "bonus credits to add (e.g. 100)";
+  ex.style.cssText = "width:100%;box-sizing:border-box;background:#0e1730;color:#e8eefc;border:1px solid #2b3f68;border-radius:8px;padding:8px;margin-bottom:8px";
+  cp.appendChild(em); cp.appendChild(ex);
+  var setb = document.createElement("button"); setb.type = "button"; setb.textContent = "Set bonus";
+  setb.style.cssText = "width:100%;background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:9px;cursor:pointer";
+  setb.onclick = function () { api("POST", "/api/admin/credits/set", { email: em.value.trim(), extra: parseInt(ex.value || "0", 10) }).then(function (j) { setb.textContent = j.ok ? "Set \u2713" : (j.error || "fail"); load(); setTimeout(function () { setb.textContent = "Set bonus"; }, 1600); }); };
+  cp.appendChild(setb);
+  var tbl = document.createElement("div"); tbl.style.cssText = "margin-top:10px;font-size:13px"; cp.appendChild(tbl);
+  function load() {
+    api("GET", "/api/admin/brain/prompt").then(function (j) { if (j.ok && !ta.value) ta.value = j.prompt || ""; });
+    api("GET", "/api/admin/credits").then(function (j) {
+      if (!j.ok) { tbl.textContent = j.error || "auth needed - paste token in Brain panel"; return; }
+      var h = "<table style=\"width:100%;border-collapse:collapse\"><tr style=\"color:#7fb2ff\"><td align=left>user</td><td>plan</td><td>used</td><td>bonus</td></tr>";
+      (j.rows || []).forEach(function (r) {
+        h += "<tr><td align=left style=\"padding:3px 0\">" + r.email + "</td><td align=center>" + r.plan + "</td><td align=center>" + (r.used || 0) + "</td><td align=center>" + (r.extra || 0) + "</td></tr>";
+      });
+      tbl.innerHTML = h + "</table>";
+    });
+  }
+  btn("\u{1F9E0} Brain", 96, function () { bp.style.display = bp.style.display === "none" ? "block" : "none"; if (bp.style.display === "block") load(); });
+  btn("\u{1F4B0} Credits", 14, function () { cp.style.display = cp.style.display === "none" ? "block" : "none"; if (cp.style.display === "block") load(); });
+})();
 </script></body></html>

@@ -852,3 +852,51 @@ if __name__ == "__main__":
     init_db()
     print("brain up - port 8082", flush=True)
     ThreadingHTTPServer(("127.0.0.1", 8082), Handler).serve_forever()
+
+
+# ===== v330brain: maker prompt override + bonus credits (append-only) =====
+def _v330_install():
+    try:
+        with db() as c:
+            c.execute("CREATE TABLE IF NOT EXISTS credit_bank(user_id INTEGER PRIMARY KEY, extra INTEGER NOT NULL DEFAULT 0, updated REAL)")
+    except Exception as _e:
+        print("v330: credit_bank skipped", str(_e)[:60], flush=True)
+    global _tier_persona
+    if not getattr(_tier_persona, "_v330", False):
+        _orig_tp = _tier_persona
+        def _tp_v330(user, plan, *_a, **_k):
+            base = _orig_tp(user, plan, *_a, **_k)
+            try:
+                _p = os.path.join(HERE, "prompt_override.md")
+                if os.path.exists(_p):
+                    _txt = open(_p, encoding="utf-8", errors="replace").read().strip()
+                    if _txt:
+                        base += "\nINSTRUCTIONS FROM ALFRED'S MAKER (highest priority, follow exactly):\n" + _txt[:6000]
+            except Exception:
+                pass
+            return base
+        _tp_v330._v330 = True
+        _tier_persona = _tp_v330
+        print("v330: maker prompt override armed", flush=True)
+    try:
+        _orig_pi = Handler.plan_info
+        if not getattr(_orig_pi, "_v330", False):
+            def _pi_v330(self, user, cfg, *_a, **_k):
+                plan, cap = _orig_pi(self, user, cfg, *_a, **_k)
+                try:
+                    with db() as c:
+                        r = c.execute("SELECT extra FROM credit_bank WHERE user_id=?", (user["_uid"],)).fetchone()
+                        if r and r["extra"]:
+                            cap = int(cap) + int(r["extra"])
+                except Exception:
+                    pass
+                return plan, cap
+            _pi_v330._v330 = True
+            Handler.plan_info = _pi_v330
+            print("v330: bonus credits wired into cap", flush=True)
+    except AttributeError:
+        print("v330: plan_info not on Handler - skipped", flush=True)
+    except Exception as _e:
+        print("v330: plan_info wrap failed", str(_e)[:80], flush=True)
+
+_v330_install()
