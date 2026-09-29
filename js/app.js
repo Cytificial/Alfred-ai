@@ -13207,3 +13207,28 @@ try { /* v163proc: native thinking card */
     [].slice.call(v.querySelectorAll(".v249cp")).forEach(function (b) { b.remove(); });
   }, 1800);
 })();
+
+
+/* ===== v341: role colors as inline styles - nothing can override them ===== */
+(function () {
+  if (window.__v341col) return; window.__v341col = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll(".msg")).forEach(function (m) {
+      var b = m.querySelector(".msg-bubble");
+      if (!b) return;
+      var user = m.classList.contains("fx-user") || m.getAttribute("data-role") === "user";
+      if (user) {
+        b.style.background = "linear-gradient(180deg,#2e2110,#241a09)";
+        b.style.border = "1px solid rgba(255,166,66,.45)";
+        b.style.borderLeft = "";
+      } else {
+        b.style.background = "linear-gradient(180deg,rgba(19,32,62,.97),rgba(13,23,46,.97))";
+        b.style.border = "1px solid rgba(84,120,200,.30)";
+        b.style.borderLeft = "2px solid #3d7bff";
+      }
+    });
+  }, 1400);
+})();
