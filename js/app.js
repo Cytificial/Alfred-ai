@@ -12906,3 +12906,67 @@ try { /* v163proc: native thinking card */
     }).catch(function () {});
   }, 4000);
 })();
+
+/* ===== v328: one plan truth, read-only modules, bar below bubble ===== */
+(function () {
+  if (window.__v328) return; window.__v328 = "1";
+  function lockPlan() {
+    if (window.__planLock) return window.__planLock;
+    var c = [].slice.call(document.querySelectorAll("body *")).filter(function (e) {
+      if (e.children.length) return false;
+      var t = (e.textContent || "").trim();
+      var r = e.getBoundingClientRect();
+      return (t === "Free" || t === "Pro" || t === "Ultra") && r.top > 0 && r.top < 130;
+    });
+    if (c.length) { try { window.__planLock = c[0].textContent.trim(); } catch (e) {} }
+    return window.__planLock || "";
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    var p = lockPlan(); if (!p) return;
+    [].slice.call(v.querySelectorAll("*")).forEach(function (e) {
+      if (e.children.length) return;
+      var t = e.textContent || "";
+      if (/running (Free|Pro|Ultra)/.test(t)) {
+        e.textContent = t.replace(/running (Free|Pro|Ultra)/, "running " + p);
+        return;
+      }
+      var t2 = t.trim(), r = e.getBoundingClientRect();
+      if ((t2 === "Free" || t2 === "Pro" || t2 === "Ultra") && r.top > 130) e.textContent = p;
+      var m = t.match(/^(FREE|PRO|ULTRA)\b/);
+      if (m && m[1].toLowerCase() !== p.toLowerCase()) e.textContent = p + t.slice(m[1].length);
+    });
+  }, 1800);
+  setInterval(function () {
+    if (document.hidden) return;
+    var m = document.getElementById("view-modules");
+    if (!m || m.offsetParent === null) return;
+    [].slice.call(m.querySelectorAll("select")).forEach(function (s) {
+      var o = [].slice.call(s.options).map(function (x) { return x.value || x.textContent; });
+      if (o.length && o.every(function (x) { return x === "Free" || x === "Pro" || x === "Ultra"; })) {
+        if (!s.disabled) { s.disabled = true; s.style.pointerEvents = "none"; s.style.opacity = ".75"; }
+      }
+    });
+    [].slice.call(m.querySelectorAll("button")).forEach(function (b) {
+      var t = (b.textContent || "").trim();
+      if ((t === "Free" || t === "Pro" || t === "Ultra") && !b.disabled) {
+        b.disabled = true; b.style.pointerEvents = "none"; b.style.opacity = ".75";
+      }
+    });
+  }, 2500);
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll(".msg")).forEach(function (row) {
+      var bubble = row.querySelector(".msg-bubble"), bar = null;
+      [].slice.call(row.children).forEach(function (ch) {
+        var t = ch.textContent || "";
+        if (/Retry|\u{1F44D}|\u{1F44E}/u.test(t) && t.length < 60 && !ch.querySelector(".msg-bubble")) bar = ch;
+      });
+      if (bar && bubble && bubble.nextElementSibling !== bar) bubble.after(bar);
+    });
+  }, 2000);
+})();
