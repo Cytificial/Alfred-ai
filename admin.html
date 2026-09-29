@@ -374,7 +374,7 @@ function credRows(m){
 })();
 </script><script id="v332models">
 (function () {
-  var CAT = "/api/admin/models/catalog", ASR = "/api/admin/models/assign";
+  var TSTR = "/api/admin/lab/test", CAT = "/api/admin/models/catalog", ASR = "/api/admin/models/assign";
   function tok() {
     try { var v = localStorage.getItem("alfred_admin_token") || localStorage.getItem("alfred_token") || ""; if (v) return v; } catch (e) {}
     var m = document.cookie.match(/(?:^|;\s*)(?:alfred_token|token)=([^;]+)/);
@@ -405,6 +405,17 @@ function credRows(m){
           .then(function (j) { b.textContent = j.ok ? "\u2713" : "!"; setTimeout(function () { b.textContent = pl[0]; }, 1500); })
           .catch(function () { b.textContent = "!"; });
       };
+      var tb = document.createElement("button"); tb.type = "button"; tb.textContent = "\\u26A1"; tb.title = "Test model live";
+      tb.style.cssText = "width:30px;height:26px;border-radius:6px;border:1px solid #2b3f68;background:#0e2a1c;color:#8ff0b5;cursor:pointer;font:600 11px system-ui";
+      tb.onclick = function () {
+        if (!TSTR) { tb.textContent = "\\u2715"; return; }
+        tb.textContent = "\\u23F3";
+        fetch(TSTR, { method: "POST", headers: { "Content-Type": "application/json", "X-Alfred-Token": tok() }, body: JSON.stringify({ model: mid }) })
+          .then(function (x) { return x.json(); })
+          .then(function (j) { tb.textContent = j.alive ? ((j.ms || "?") + "ms") : "\\u2715"; setTimeout(function () { tb.textContent = "\\u26A1"; }, 2500); })
+          .catch(function () { tb.textContent = "\\u2715"; });
+      };
+      r.insertBefore(tb, r.firstChild);
       r.appendChild(b);
     });
     return r;

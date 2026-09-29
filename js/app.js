@@ -13017,3 +13017,36 @@ try { /* v163proc: native thinking card */
     });
   }, 1200);
 })();
+
+
+/* ===== v333: edit & resend (pencil prefills the composer) ===== */
+(function () {
+  if (window.__v333edit) return; window.__v333edit = "1";
+  function composer() {
+    var c = [].slice.call(document.querySelectorAll("#view-chat textarea, #view-chat input[type='text'], textarea, input[type='text']"));
+    for (var i = 0; i < c.length; i++) {
+      var r = c[i].getBoundingClientRect();
+      if (r.top > window.innerHeight * 0.5 && r.width > 100) return c[i];
+    }
+    return c[0] || null;
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll('.msg[data-role="user"]')).forEach(function (m) {
+      if (m.querySelector(".v333-edit")) return;
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "v333-edit"; b.textContent = "\u270E"; b.title = "Edit & resend";
+      b.style.cssText = "margin-left:8px;padding:1px 9px;border-radius:999px;border:1px solid #2b3f68;background:#14243f;color:#cfe2ff;font:600 12px system-ui;cursor:pointer;vertical-align:middle";
+      b.onclick = function () {
+        var t = (m.textContent || "").replace("\u270E", "").trim();
+        var el = composer();
+        if (!el) return;
+        if (el.isContentEditable) { el.textContent = t; } else { el.value = t; }
+        el.focus();
+      };
+      m.appendChild(b);
+    });
+  }, 1500);
+})();

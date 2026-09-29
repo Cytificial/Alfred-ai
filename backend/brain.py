@@ -410,7 +410,7 @@ class Handler(BaseHTTPRequestHandler):
     def chat(self, user):
         data = self.body()
         message = str(data.get("message") or "").strip()
-        _research_txt = __import__("research").web_research(message) if (message and len(message) <= 12000) else ""
+        _research_txt, _research_src = __import__("research").web_research2(message) if (message and len(message) <= 12000) else ("", [])
         if not message:
             self.json_out(400, {"ok": False, "error": "Write a message first."})
             return
@@ -520,6 +520,11 @@ class Handler(BaseHTTPRequestHandler):
                         import traceback as _tbe
                         print(_tbe.format_exc(limit=8)[-900:],
                               flush=True)
+            try:
+                if _research_src and answer and "Sources:" not in answer:
+                    answer += "\n\nSources:\n" + "\n".join("- " + _u for _u in _research_src[:3])
+            except Exception:
+                pass
             if answer is None:
                 self.json_out(502, {"ok": False,
                     "error": "My engines are catching their breath - try again in a moment."})
@@ -617,7 +622,7 @@ def _v130_install():
     def _chat_stream(handler, user):
         data = handler.body()
         message = str(data.get("message") or "").strip()
-        _research_txt = __import__("research").web_research(message) if (message and len(message) <= 12000) else ""
+        _research_txt, _research_src = __import__("research").web_research2(message) if (message and len(message) <= 12000) else ("", [])
         if not message:
             handler.json_out(400, {"ok": False, "error": "Write a message first."}); return
         if len(message) > 12000:
@@ -697,6 +702,11 @@ def _v130_install():
                     _ans = _direct(model, key, (_tier_persona(user, plan) + _research_txt), turns)
                     print("stream branch: %s -> %s chars" % (model, len(_ans or "")), flush=True)
                     if _ans:
+                        try:
+                            if _research_src and "Sources:" not in _ans:
+                                _ans += "\n\nSources:\n" + "\n".join("- " + _u for _u in _research_src[:3])
+                        except Exception:
+                            pass
                         _sse_out(handler, {"t": _ans})
                         full.append(_ans)
                         break
@@ -741,6 +751,11 @@ def _v130_install():
                 continue
 
         answer = "".join(full).strip()
+        try:
+            if _research_src and answer and "Sources:" not in answer:
+                answer += "\n\nSources:\n" + "\n".join("- " + _u for _u in _research_src[:3])
+        except Exception:
+            pass
         if answer:
             with db() as c:
                 c.execute("INSERT INTO messages(chat_id,role,content,ts) VALUES(?,?,?,?)",
