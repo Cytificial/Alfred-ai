@@ -12927,7 +12927,7 @@ try { /* v163proc: native thinking card */
       var r = e.getBoundingClientRect();
       return (t === "Free" || t === "Pro" || t === "Ultra") && r.top > 0 && r.top < 130;
     });
-    if (c.length) { try { window.__planLock = c[0].textContent.trim(); } catch (e) {} }
+    /* v336: visual capture removed - server plan is the only writer */
     return window.__planLock || "";
   }
   setInterval(function () {
@@ -13003,7 +13003,22 @@ try { /* v163proc: native thinking card */
         if (m.getAttribute("data-role") !== role) m.setAttribute("data-role", role);
       });
     }
-    var hd = document.querySelector("header") || document.querySelector(".topbar") || document.querySelector("nav");
+    var hd = window.__v336hd && document.contains(window.__v336hd) ? window.__v336hd : null;
+    if (!hd) {
+      var _ols = [].slice.call(document.querySelectorAll("body *")).filter(function (e) {
+        if (e.children.length) return false;
+        var r = e.getBoundingClientRect();
+        return (e.textContent || "").trim() === "Online" && r.top >= 0 && r.top < 200 && r.width > 0;
+      });
+      if (_ols.length) {
+        var _a = _ols[0];
+        for (var _k = 0; _k < 5 && _a; _k++) {
+          _a = _a.parentElement;
+          if (_a && _a.offsetHeight > 40 && _a.offsetHeight < 220 && _a.getBoundingClientRect().top < 200) { hd = _a; break; }
+        }
+      }
+      window.__v336hd = hd || null;
+    }
     if (!hd) return;
     var p2 = serverPlan(); if (!p2) return;
     hd.setAttribute("data-lvl", p2);
@@ -13049,4 +13064,65 @@ try { /* v163proc: native thinking card */
       m.appendChild(b);
     });
   }, 1500);
+})();
+
+
+/* ===== v336: heal plan truth for existing sessions (page-load clear + one usage call) ===== */
+(function () {
+  if (window.__v334heal) return; window.__v334heal = "1";
+  window.__planLock = null; window.__v328lock = null; window.__v328lockOk = false;
+  var tries = 0;
+  function go() {
+    if (tries++ > 4) return;
+    try {
+      if (localStorage.getItem("alfred_plan_server")) return;
+      var t = (function(){ try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } })();
+      var m = document.cookie.match(/(?:^|;\s*)alfred_token=([^;]+)/);
+      t = (t || (m ? decodeURIComponent(m[1]) : "")).trim();
+      if (!t) { setTimeout(go, 2500); return; }
+      fetch("http://" + location.hostname + ":8082/api/usage", { headers: { "X-Alfred-Token": t } })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          var p = ("" + (j.plan || "")).toLowerCase();
+          if (p === "free" || p === "pro" || p === "ultra") {
+            localStorage.setItem("alfred_plan", JSON.stringify({ id: p }));
+            localStorage.setItem("alfred_plan_server", "1");
+            try { localStorage.setItem("alfred_module_package", p.charAt(0).toUpperCase() + p.slice(1)); } catch (e) {}
+            window.__planLock = null;
+            console.log("v336: plan healed ->", p);
+          } else { setTimeout(go, 3000); }
+        })
+        .catch(function () { setTimeout(go, 3000); });
+    } catch (e) {}
+  }
+  go();
+})();
+
+
+/* ===== v336: one bar per last answer, none on user rows, stray icon gone ===== */
+(function () {
+  if (window.__v334bars) return; window.__v334bars = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    var rows = [].slice.call(v.querySelectorAll(".msg"));
+    var lastA = -1;
+    rows.forEach(function (m, i) { if (m.getAttribute("data-role") !== "user") lastA = i; });
+    rows.forEach(function (m, i) {
+      if (m.querySelector(".v129-dots")) return;
+      var isUser = m.getAttribute("data-role") === "user";
+      var bars = [].slice.call(m.children).filter(function (ch) {
+        if (!ch.querySelector || ch.querySelector(".msg-bubble")) return false;
+        var t = ch.textContent || "";
+        return /Retry/i.test(t) && t.length < 60;
+      });
+      bars.forEach(function (b, bi) { if (isUser || i !== lastA || bi > 0) b.remove(); });
+    });
+    [].slice.call(v.querySelectorAll("button")).forEach(function (b) {
+      if (b.closest(".msg")) return;
+      var t = (b.textContent || "").trim();
+      if (t.length <= 2 && /\u29C9\u2197\u2398/.test(t)) b.style.display = "none";
+    });
+  }, 1600);
 })();

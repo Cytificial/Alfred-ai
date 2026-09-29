@@ -3697,3 +3697,7 @@ header[data-lvl="Pro"] .lvl-chip,#view-chat[data-lvl="Pro"] .lvl-chip{background
 header[data-lvl="Ultra"] .lvl-chip,#view-chat[data-lvl="Ultra"] .lvl-chip{background:rgba(255,190,80,.14);color:#ffcf7d;box-shadow:inset 0 0 0 1px rgba(255,207,125,.4)}
 .msg[data-role="assistant"] .msg-bubble{background:linear-gradient(180deg,rgba(19,32,62,.94),rgba(14,24,48,.94))!important;border-left:2px solid #3d7bff}
 .msg[data-role="user"] .msg-bubble{border-left:0}
+
+/* ===== v336: composer - no inner box, focus moves to the pill ===== */
+#view-chat input[type="text"],#view-chat textarea{border:0!important;outline:none!important;box-shadow:none!important;background:transparent!important}
+#view-chat input[type="text"]:focus,#view-chat textarea:focus{outline:none!important}
