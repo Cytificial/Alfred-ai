@@ -167,80 +167,47 @@ class H(SimpleHTTPRequestHandler):
                 os.replace(tmp, fp)
             return self._json(200, item)
         if self.path == "/api/memory":
-            n = int(self.headers.get(
-                "Content-Length", 0) or 0)
+            n = int(self.headers.get("Content-Length", 0) or 0)
             try:
-                b = json.loads(self.rfile.read(n)
-                               or b"{}")
+                b = json.loads(self.rfile.read(n) or b"{}")
             except Exception:
-                return self._json(400,
-                    {"error": "bad json"})
-            ip = self.client_address[0]
-            nowt = _t.time()
-            if nowt - _RATE.get(ip, 0) < 2:
-                return self._json(429,
-                    {"error": "slow down"})
-            _RATE[ip] = nowt
-            tok = (self.headers.get(
-                "X-Alfred-Token")
-                or "").strip()
-            for part in self.headers.get(
-                    "Cookie", "").split(";"):
+                return self._json(400, {"error": "bad json"})
+            import hashlib as _hl, sqlite3 as _sq
+            tok = (self.headers.get("X-Alfred-Token") or "").strip()
+            for part in self.headers.get("Cookie", "").split(";"):
                 if "alfred_session=" in part:
-                    tok = part.split("=", 1)[1]
-                    tok = tok.strip()
-            import sqlite3 as _sq
-            con = _sq.connect(
-                os.path.join(HERE, "alfred.db"),
-                timeout=10)
-            con.execute("CREATE TABLE IF NOT EXISTS"
-                " memories(id INTEGER PRIMARY KEY"
-                " AUTOINCREMENT, user_id INTEGER,"
-                " text TEXT, ts REAL)")
+                    tok = part.split("=", 1)[1].strip()
+            nowt = _t.time()
+            ip = self.client_address[0]
+            if nowt - globals().setdefault("_MRATE", {}).get(ip, 0) < 1:
+                return self._json(429, {"error": "slow down"})
+            globals().setdefault("_MRATE", {})[ip] = nowt
+            con = _sq.connect(os.path.join(HERE, "alfred.db"), timeout=10)
+            con.execute("CREATE TABLE IF NOT EXISTS memories(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, text TEXT, ts REAL)")
             uid = None
-            try:
-                _cols = [r[1] for r in con.execute(
-                    "PRAGMA table_info(sessions)")]
-                _tcol = ""
-                for _cn in _cols:
-                    if "token" in _cn.lower():
-                        _tcol = _cn
-                        break
-                _u = ""
-                if "user_id" in _cols:
-                    _u = "user_id"
-                elif "uid" in _cols:
-                    _u = "uid"
-                if _tcol and _u and tok:
-                    r = con.execute("SELECT " + _u +
-                        " FROM sessions WHERE " +
-                        _tcol + "=?",
-                        (tok,)).fetchone()
+            if tok:
+                cands = [tok]
+                for _al in ['sha256']:
+                    cands.append(getattr(_hl, _al)(tok.encode()).hexdigest())
+                try:
+                    _qm = ",".join("?" * len(cands))
+                    r = con.execute("SELECT user_id FROM sessions WHERE token_hash IN (%s) AND expires>?" % _qm, cands + [nowt]).fetchone()
                     if r: uid = r[0]
-            except Exception:
-                uid = None
+                except Exception:
+                    uid = None
             if not uid:
                 con.close()
-                return self._json(401,
-                    {"error": "sign in first"})
+                return self._json(401, {"error": "sign in first"})
             txt = str(b.get("text", "")).strip()[:200]
             if not txt:
                 con.close()
-                return self._json(400,
-                    {"error": "empty"})
-            cnt = con.execute("SELECT COUNT(*) FROM"
-                " memories WHERE user_id=?",
-                (uid,)).fetchone()[0]
+                return self._json(400, {"error": "empty"})
+            cnt = con.execute("SELECT COUNT(*) FROM memories WHERE user_id=?", (uid,)).fetchone()[0]
             if cnt >= 40:
-                con.execute("DELETE FROM memories"
-                    " WHERE id=(SELECT MIN(id)"
-                    " FROM memories"
-                    " WHERE user_id=?)", (uid,))
-            con.execute("INSERT INTO memories("
-                "user_id, text, ts)"
-                " VALUES(?,?,?)",
-                (uid, txt, nowt))
-            con.commit(); con.close()
+                con.execute("DELETE FROM memories WHERE id=(SELECT MIN(id) FROM memories WHERE user_id=?)", (uid,))
+            con.execute("INSERT INTO memories(user_id,text,ts) VALUES(?,?,?)", (uid, txt, nowt))
+            con.commit()
+            con.close()
             return self._json(200, {"ok": True})
         if self.path == "/api/feedback":
             n = int(self.headers.get(

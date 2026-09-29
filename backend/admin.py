@@ -414,6 +414,100 @@ def maybe_handle(handler, method):
         finally:
             con.close()
 
+    if method == "GET" and p == "/api/admin/models/catalog":
+        import urllib.request as _ur
+        _H = os.path.dirname(DBP)
+        try:
+            _pj = json.load(open(os.path.join(_H, "providers.json")))
+        except Exception:
+            _pj = {}
+        recs = {}
+        pr = _pj.get("providers")
+        if isinstance(pr, dict):
+            for k, v in pr.items():
+                if isinstance(v, dict): recs[str(k)] = v
+        elif isinstance(pr, list):
+            for v in pr:
+                if isinstance(v, dict) and v.get("id"): recs[str(v["id"])] = v
+        out = {}
+        for pid, rec in recs.items():
+            base = str(rec.get("base_url") or rec.get("base") or "").rstrip("/")
+            key = str(rec.get("api_key") or rec.get("key") or "")
+            url, hdrs = None, {}
+            if pid == "openrouter":
+                url = (base or "https://openrouter.ai/api/v1") + "/models"
+            elif pid == "pollinations":
+                url = "https://text.pollinations.ai/models"
+            elif base:
+                url = base + "/models"
+                if "generativelanguage" in base and key:
+                    url = base + "/models?key=" + key
+                elif key:
+                    hdrs["Authorization"] = "Bearer " + key
+            if not url:
+                out[pid] = {"models": [], "err": "no base_url"}; continue
+            try:
+                rq = _ur.Request(url, headers=hdrs)
+                with _ur.urlopen(rq, timeout=10) as _r:
+                    d = json.loads(_r.read().decode("utf-8"))
+                ids = []
+                if isinstance(d, dict) and isinstance(d.get("data"), list):
+                    ids = [str(m.get("id")) for m in d["data"] if isinstance(m, dict) and m.get("id")]
+                elif isinstance(d, dict) and isinstance(d.get("models"), list):
+                    ids = [str(m.get("name", "")).replace("models/", "") for m in d["models"] if isinstance(m, dict)]
+                elif isinstance(d, list):
+                    ids = [str(m.get("name") or m.get("id") or "") for m in d if isinstance(m, (dict, str)) and (m.get("name") if isinstance(m, dict) else m)]
+                out[pid] = {"models": ids[:250], "total": len(ids)}
+            except Exception as e:
+                out[pid] = {"models": [], "err": str(e)[:80]}
+        try:
+            json.dump({"ok": True, "providers": out}, open(os.path.join(_H, "catalog.json"), "w"))
+        except Exception:
+            pass
+        return _send(handler, 200, {"ok": True, "providers": out})
+
+    if method == "POST" and p == "/api/admin/models/assign":
+        b = _body(handler)
+        model = str(b.get("model", "")).strip()[:80]
+        level = str(b.get("level", "")).capitalize()
+        if not model or level not in ("Free", "Pro", "Ultra"):
+            return _send(handler, 400, {"ok": False, "error": "need model + level"})
+        _H = os.path.dirname(DBP)
+        _pjf = os.path.join(_H, "providers.json")
+        try:
+            _pj = json.load(open(_pjf))
+        except Exception:
+            _pj = {}
+        ch = _pj.setdefault("chains", {}).setdefault(level, [])
+        recs = _pj.get("providers")
+        rec = None
+        head = model.split("/")[0]
+        if isinstance(recs, dict):
+            rec = recs.get(head)
+        elif isinstance(recs, list):
+            for v in recs:
+                if isinstance(v, dict) and str(v.get("id")) == head:
+                    rec = v; break
+        full = model if "/" in model else ((str(rec.get("id")) + "/") if rec else "") + model
+        if full not in ch:
+            ch.append(full)
+            del ch[:-8]
+        _t2 = _pjf + ".tmp"
+        open(_t2, "w").write(json.dumps(_pj, indent=1))
+        os.replace(_t2, _pjf)
+        return _send(handler, 200, {"ok": True, "added": full, "chains": _pj.get("chains", {})})
+
+    if method == "GET" and p == "/api/admin/credits":
+        import time as _t3
+        cfg = _cfg()
+        day = _t3.strftime("%Y-%m-%d", _t3.gmtime())
+        db = sqlite3.connect(DBP); db.row_factory = sqlite3.Row
+        rows = [dict(r) for r in db.execute(
+            "SELECT u.email, u.plan, IFNULL(g.count,0) AS used FROM users u "
+            "LEFT JOIN usage g ON g.user_id=u.id AND g.day=? ORDER BY g.count DESC", (day,))]
+        db.close()
+        return _send(handler, 200, {"ok": True, "day": day, "rows": rows, "caps": cfg.get("daily_caps") or {}})
+
     if method == "GET" and p == "/api/admin/providers":
         return _send(handler, 200, _prov.public())
 

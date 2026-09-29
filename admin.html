@@ -197,4 +197,44 @@ function vShow(m){
  ld.onclick=function(){fetch("/showcase.json").then(function(x){return x.ok?x.json():{items:[]}}).then(function(j){ta.value=(j.items||[]).map(function(i){return i.name+" | "+i.desc+" | "+i.tier}).join("\n")})};
  r.appendChild(pb);r.appendChild(ld);c.appendChild(r);m.appendChild(c)}
 if(TOK){api("/api/admin/metrics").then(function(m){if(m.ok)boot();else{try{sessionStorage.removeItem("ac_tok")}catch(e){}TOK=""}})}
+
+var _p318 = vProv;
+vProv = function(m){ _p318(m); catCard(m); };
+function catCard(m){
+ var c=el("div","card","<h4>Model catalog — scan providers, assign to a level</h4>");
+ var r=el("div","row");var rb=document.createElement("button");rb.className="act";rb.textContent="Refresh models";
+ var out=el("div","");
+ rb.onclick=function(){rb.textContent="scanning…";out.innerHTML="";
+  api("/api/admin/models/catalog").then(function(j){
+   rb.textContent="Refresh models";
+   if(!j.ok){out.appendChild(el("div","mut",j.error||"scan failed"));return}
+   var pv=j.providers||{};
+   Object.keys(pv).forEach(function(pid){
+    var x=pv[pid]||{};
+    var head=el("div","","<b>"+pid+"</b> "+(x.err?("· <span class=mut>"+x.err+"</span>"):("· "+(x.total||0)+" models")));
+    out.appendChild(head);
+    (x.models||[]).slice(0,80).forEach(function(mid){
+     var row=el("div","row");
+     var s1=document.createElement("span");s1.className="mut";s1.textContent=mid;s1.style.flex="1";s1.style.overflow="hidden";
+     var s2=document.createElement("select");["Free","Pro","Ultra"].forEach(function(p){var o=document.createElement("option");o.value=p;o.textContent=p;s2.appendChild(o)});
+     var ab=document.createElement("button");ab.className="ghost";ab.textContent="+ level";
+     ab.onclick=function(){api("/api/admin/models/assign",{method:"POST",body:{model:mid,level:s2.value}}).then(function(r2){ab.textContent=r2.ok?("✓ "+s2.value):(r2.error||"✗");setTimeout(function(){ab.textContent="+ level"},1600)})};
+     row.appendChild(s1);row.appendChild(s2);row.appendChild(ab);out.appendChild(row);
+    });
+   });
+  })};
+ r.appendChild(rb);c.appendChild(r);c.appendChild(out);m.appendChild(c);
+ var note=el("div","card mut","Keys live server-side (masked). Rotate anytime: re-add the provider with a new key — it overwrites. Catalog snapshot also saved to backend/catalog.json.");
+ m.appendChild(note);}
+var _c318 = vCred;
+vCred = function(m){ _c318(m); credRows(m); };
+function credRows(m){
+ var c=el("div","card","<h4>Per-user usage today</h4>");
+ var tb=el("div","mut","loading…");c.appendChild(tb);m.appendChild(c);
+ api("/api/admin/credits").then(function(j){
+  if(!j.ok){tb.textContent=j.error||"failed";return}
+  var rows=(j.rows||[]).map(function(r){
+   var cap=(j.caps||{})[r.plan]||"—";
+   return "<tr><td>"+(r.email||"")+"</td><td>"+(r.plan||"")+"</td><td>"+r.used+"</td><td>"+cap+"</td></tr>"}).join("");
+  tb.innerHTML="<table><tr><th>Email</th><th>Plan</th><th>Used today</th><th>Cap</th></tr>"+rows+"</table><p class=mut>day: "+(j.day||"")+" (UTC)</p>"})}
 </script></body></html>

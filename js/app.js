@@ -12842,3 +12842,42 @@ try { /* v163proc: native thinking card */
     });
   }, 3000);
 })();
+
+/* ===== v318: rescue — if a sent message gets no reply in 13s, retry non-stream once ===== */
+(function () {
+  if (window.__v318r) return; window.__v318r = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    var msgs = [].slice.call(v.querySelectorAll(".msg"));
+    if (!msgs.length) return;
+    var last = msgs[msgs.length - 1];
+    if ((last.className || "").indexOf("fx-user") === -1) return;
+    var now = Date.now();
+    var ts = parseInt(last.getAttribute("data-v318t") || "0", 10);
+    if (!ts) { last.setAttribute("data-v318t", String(now)); return; }
+    if (now - ts < 13000) return;
+    last.setAttribute("data-v318t", String(now));
+    var bubble = last.querySelector(".msg-bubble") || last;
+    var txt = (bubble.textContent || "").trim();
+    if (!txt || txt.length > 4000) return;
+    fetch("http://" + location.hostname + ":8082/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: txt })
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || !j.ok || !j.reply) return;
+      var row = document.createElement("div");
+      row.className = "msg fx-scanned";
+      row.setAttribute("data-v318a", "1");
+      var b = document.createElement("div");
+      b.className = "msg-bubble";
+      b.textContent = j.reply;
+      row.appendChild(b);
+      var sc = document.getElementById("chat-scroll") || v;
+      sc.appendChild(row);
+      sc.scrollTop = sc.scrollHeight;
+    }).catch(function () {});
+  }, 4000);
+})();

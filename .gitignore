@@ -32,3 +32,4 @@ backend/engine_state.json
 *.bak*
 *.pre-v*
 backend/providers_keys.json
+backend/*.broken*
