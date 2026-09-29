@@ -218,7 +218,7 @@ function catCard(m){
      var s1=document.createElement("span");s1.className="mut";s1.textContent=mid;s1.style.flex="1";s1.style.overflow="hidden";
      var s2=document.createElement("select");["Free","Pro","Ultra"].forEach(function(p){var o=document.createElement("option");o.value=p;o.textContent=p;s2.appendChild(o)});
      var ab=document.createElement("button");ab.className="ghost";ab.textContent="+ level";
-     ab.onclick=function(){api("/api/admin/models/assign",{method:"POST",body:{model:mid,level:s2.value}}).then(function(r2){ab.textContent=r2.ok?("✓ "+s2.value):(r2.error||"✗");setTimeout(function(){ab.textContent="+ level"},1600)})};
+     ab.onclick=function(){api("/api/admin/models/assign",{method:"POST",body:{model:mid,level:s2.value,pid:pid}}).then(function(r2){ab.textContent=r2.ok?("✓ "+s2.value):(r2.error||"✗");setTimeout(function(){ab.textContent="+ level"},1600)})};
      row.appendChild(s1);row.appendChild(s2);row.appendChild(ab);out.appendChild(row);
     });
    });

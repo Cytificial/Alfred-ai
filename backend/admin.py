@@ -470,6 +470,7 @@ def maybe_handle(handler, method):
         b = _body(handler)
         model = str(b.get("model", "")).strip()[:80]
         level = str(b.get("level", "")).capitalize()
+        pid = str(b.get("pid", "")).strip()[:20]
         if not model or level not in ("Free", "Pro", "Ultra"):
             return _send(handler, 400, {"ok": False, "error": "need model + level"})
         _H = os.path.dirname(DBP)
@@ -488,7 +489,14 @@ def maybe_handle(handler, method):
             for v in recs:
                 if isinstance(v, dict) and str(v.get("id")) == head:
                     rec = v; break
-        full = model if "/" in model else ((str(rec.get("id")) + "/") if rec else "") + model
+        if "/" in model:
+            full = model
+        elif pid and pid != "google":
+            full = pid + "/" + model
+        elif rec:
+            full = str(rec.get("id")) + "/" + model
+        else:
+            full = model
         if full not in ch:
             ch.append(full)
             del ch[:-8]
