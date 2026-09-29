@@ -39,9 +39,9 @@
    "openrouter/stealth/space-bunny-alpha"
   ],
   "Ultra": [
+   "pollinations/openai",
    "gemini-pro-latest",
    "gemini-3.1-pro-preview",
-   "pollinations/openai",
    "gemini-flash-latest",
    "openrouter/stealth/space-bunny-alpha"
   ]

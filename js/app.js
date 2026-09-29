@@ -1,3 +1,28 @@
+/* ===== v327 governor: ONE master ticker for every loop; tab hidden = all sleep ===== */
+(function () {
+  if (window.__v327gov) return; window.__v327gov = "1";
+  var _si = window.setInterval, _ci = window.clearInterval;
+  var tasks = [], handles = {}, hid = 0;
+  window.setInterval = function (fn, ms) {
+    if (typeof fn !== "function") return _si(fn, ms);
+    var t = { fn: fn, ms: Math.max(250, ms | 0), due: 0, dead: false };
+    tasks.push(t);
+    var h = ++hid; handles[h] = t; return h;
+  };
+  window.clearInterval = function (h) {
+    if (handles[h]) { handles[h].dead = true; delete handles[h]; return; }
+    return _ci(h);
+  };
+  _si(function () {
+    if (document.hidden) return;
+    var now = Date.now();
+    for (var i = 0; i < tasks.length; i++) {
+      var t = tasks[i];
+      if (t.dead) continue;
+      if (now - t.due >= t.ms) { t.due = now; try { t.fn(); } catch (e) {} }
+    }
+  }, 250);
+})();
 /* v288flags */try{['v269','v270','v273b','v275','v276s','v277','v278','v280','v281','v284','v285b'].forEach(function(k){try{window['__'+k]='1';}catch(e){}});}catch(e){}
 /* v285: unauth route — loading -> landing (no login flash) */
 window.__v285route = function () {
