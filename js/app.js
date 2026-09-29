@@ -13003,7 +13003,7 @@ try { /* v163proc: native thinking card */
         if (m.getAttribute("data-role") !== role) m.setAttribute("data-role", role);
       });
     }
-    var hd = document.querySelector("header") || document.querySelector(".topbar") || document.querySelector("nav");
+    var hd = document.querySelector("header") || document.querySelector(".topbar") || document.querySelector("nav") || document.querySelector(".online");
     if (!hd) return;
     var p2 = serverPlan(); if (!p2) return;
     hd.setAttribute("data-lvl", p2);
@@ -13049,4 +13049,66 @@ try { /* v163proc: native thinking card */
       m.appendChild(b);
     });
   }, 1500);
+})();
+
+
+/* ===== v334: heal plan truth for existing sessions (one read-only call) ===== */
+(function () {
+  if (window.__v334heal) return; window.__v334heal = "1";
+  var tries = 0;
+  function go() {
+    if (tries++ > 4) return;
+    try {
+      if (localStorage.getItem("alfred_plan_server")) return;
+      var t = (function(){ try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } })();
+      var m = document.cookie.match(/(?:^|;\s*)alfred_token=([^;]+)/);
+      t = (t || (m ? decodeURIComponent(m[1]) : "")).trim();
+      if (!t) { setTimeout(go, 2500); return; }
+      fetch("http://" + location.hostname + ":8082/api/usage", { headers: { "X-Alfred-Token": t } })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          var p = ("" + (j.plan || "")).toLowerCase();
+          if (p === "free" || p === "pro" || p === "ultra") {
+            localStorage.setItem("alfred_plan", JSON.stringify({ id: p }));
+            localStorage.setItem("alfred_plan_server", "1");
+            try { localStorage.setItem("alfred_module_package", p.charAt(0).toUpperCase() + p.slice(1)); } catch (e) {}
+            window.__planLock = null; window.__v328lock = null; window.__v328lockOk = false;
+            console.log("v334: plan healed ->", p);
+          } else { setTimeout(go, 3000); }
+        })
+        .catch(function () { setTimeout(go, 3000); });
+    } catch (e) {}
+  }
+  go();
+})();
+
+
+/* ===== v334: one bar per last answer, none on user rows, stray icon gone ===== */
+(function () {
+  if (window.__v334bars) return; window.__v334bars = "1";
+  setInterval(function () {
+    if (document.hidden) return;
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    var rows = [].slice.call(v.querySelectorAll(".msg"));
+    var lastA = -1;
+    rows.forEach(function (m, i) { if (m.getAttribute("data-role") !== "user") lastA = i; });
+    rows.forEach(function (m, i) {
+      if (m.querySelector(".v129-dots")) return;
+      var isUser = m.getAttribute("data-role") === "user";
+      var bars = [].slice.call(m.children).filter(function (ch) {
+        if (!ch.querySelector || ch.querySelector(".msg-bubble")) return false;
+        var t = ch.textContent || "";
+        return /Retry/i.test(t) && t.length < 60;
+      });
+      bars.forEach(function (b, bi) {
+        if (isUser || i !== lastA || bi > 0) b.remove();
+      });
+    });
+    [].slice.call(v.querySelectorAll("button")).forEach(function (b) {
+      if (b.closest(".msg")) return;
+      var t = (b.textContent || "").trim();
+      if (t.length <= 2 && /⧉↗⎘/.test(t)) b.style.display = "none";
+    });
+  }, 1600);
 })();
