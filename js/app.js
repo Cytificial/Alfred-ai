@@ -6355,7 +6355,7 @@ try { /* v163proc: native thinking card */
       }
       function pump() {
         return rd.read().then(function (res) {
-          if (res.done) { finish(false); return; }
+          if (res.done) { finish(false); return; } try { window.streaming = false; } catch (e0) {}
           buf += dec.decode(res.value, { stream: true });
           var parts = buf.split("\n\n"); buf = parts.pop();
           parts.forEach(function (blk) {
@@ -6370,6 +6370,7 @@ try { /* v163proc: native thinking card */
       }
       return pump();
     }).catch(function (err) {
+      try { window.streaming = false; } catch (e0) {}
       if (err && err.name === "AbortError") { finish(true); return; }
       var had = ab.textContent && !ab.querySelector(".v129-dots");
       if (had) { finish(true); return; }
@@ -13463,4 +13464,65 @@ try { /* v163proc: native thinking card */
   [].slice.call(document.querySelectorAll(".view")).forEach(function (v) {
     mo.observe(v, { attributes: true, attributeFilter: ["class"] });
   });
+})();
+
+
+/* ===== v353: one identity (stale-token heal), plan write-pin, warden badge ===== */
+(function () {
+  if (window.__v353) return; window.__v353 = "1";
+  /* fresh token on every login, so the pill/sidebar always read the signed-in user */
+  try {
+    var _f = window.fetch;
+    window.fetch = function (u, o) {
+      var s2 = ""; try { s2 = String(u); } catch (e) {}
+      var p = _f.apply(this, arguments);
+      if (s2.indexOf("/api/auth/login") > -1 && o && o.method === "POST") {
+        p.then(function (r) {
+          try { r.clone().json().then(function (j) {
+            if (j && j.ok && j.token) localStorage.setItem("alfred_token", j.token);
+          }); } catch (e) {}
+        }).catch(function () {});
+      }
+      return p;
+    };
+  } catch (e) {}
+  /* if the stored token belongs to a DIFFERENT user than the session -> evict it */
+  setTimeout(function () {
+    function me(hdrs) {
+      return _f("/api/auth/me", hdrs).then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) { return (j && j.ok && j.user) ? (j.user.email || "").toLowerCase() : null; })
+        .catch(function () { return null; });
+    }
+    Promise.all([me({ credentials: "include" }), me({ credentials: "include", headers: { "X-Alfred-Token": (localStorage.getItem("alfred_token") || "") } })])
+      .then(function (r) {
+        if (r[0] && r[1] && r[0] !== r[1]) { try { localStorage.removeItem("alfred_token"); } catch (e) {} }
+      });
+  }, 2500);
+  /* nothing may write a plan different from the server's (data-plan set only after real auth) */
+  try {
+    var _sp = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k, v) {
+      try {
+        var want = (document.documentElement.getAttribute("data-plan") || "").toLowerCase();
+        if (want) {
+          var cap = want.charAt(0).toUpperCase() + want.slice(1);
+          if (k === "alfred_plan") v = JSON.stringify({ id: want });
+          else if (k === "alfred_plan_cache") v = want;
+          else if (k === "alfred_module_package") v = cap;
+        }
+      } catch (e) {}
+      return _sp.call(this, k, v);
+    };
+  } catch (e) {}
+  /* warden badge: shows the last view switch on screen (screenshot-friendly) */
+  try {
+    var bd = document.createElement("div");
+    bd.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(0,0,0,.72);color:#9fe;font:10px monospace;padding:4px 7px;border-radius:8px;pointer-events:none;max-width:70vw";
+    document.body.appendChild(bd);
+    setInterval(function () {
+      if (document.hidden) return;
+      var L = window.__v347log || [], e = L[L.length - 1];
+      bd.textContent = e ? ("v353 " + e.shown + " <- " + e.prev + " (" + Math.max(0, Math.round((Date.now() - e.t) / 1000)) + "s ago)") : "v353 quiet";
+    }, 1500);
+  } catch (e) {}
 })();

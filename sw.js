@@ -1,4 +1,4 @@
-const CACHE = "alfred-v100";
+const CACHE = "alfred-v101";
 const SHELL = ["/", "/index.html", "/manifest.json", "/css/style.css", "/js/app.js"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -23,7 +23,11 @@ self.addEventListener("fetch", (e) => {
 
 self.addEventListener('activate', function (e) {
   e.waitUntil(caches.keys().then(function (ks) {
-    return Promise.all(ks.filter(function (k) { return /^alfred-v/.test(k) && k !== 'alfred-v100'; })
+    return Promise.all(ks.filter(function (k) { return /^alfred-v/.test(k) && k !== 'alfred-v101'; })
       .map(function (k) { return caches.delete(k); }));
   }));
+});
+
+self.addEventListener('activate', function (e) {
+  e.waitUntil(caches.open('alfred-v101').then(function (c) { return c.delete('/admin.html'); }).catch(function(){}));
 });

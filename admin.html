@@ -37,7 +37,18 @@ textarea{width:100%;min-height:84px;resize:vertical}
 .mut{color:#8ba1b5;font-size:11px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
 .hide{display:none!important}
-</style></head><body>
+</style><script>
+try {
+  if (sessionStorage.getItem("__v353ah") !== "1") {
+    sessionStorage.setItem("__v353ah", "1");
+    if (window.caches && caches.keys) caches.keys().then(function (ks) {
+      ks.filter(function (k) { return /^alfred-v/.test(k); }).forEach(function (k) { caches.delete(k); });
+    });
+    setTimeout(function () { location.reload(); }, 350);
+  }
+} catch (e) {}
+</script>
+</head><body>
 <div id=login>
  <div class=lg-mark>◈</div>
  <div class=lg-kick>ALFRED</div>
