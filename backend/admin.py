@@ -530,6 +530,62 @@ def maybe_handle(handler, method):
         gdb.close()
         return _send(handler, 200, {"ok": True, "day": day, "caps": caps, "rows": rows})
 
+    if method == "GET" and p == "/api/admin/credits/full":  # v352
+        import time as _t5, json as _j5, os as _o5
+        day = _t5.strftime("%Y-%m-%d", _t5.gmtime())
+        gdb = sqlite3.connect(DBP); gdb.row_factory = sqlite3.Row
+        gdb.execute("CREATE TABLE IF NOT EXISTS credit_bank(user_id INTEGER PRIMARY KEY, extra INTEGER NOT NULL DEFAULT 0, updated REAL)")
+        caps = {"Free": 60, "Pro": 120, "Ultra": 500}
+        try:
+            cf = _j5.load(open(_o5.path.join(_o5.path.dirname(DBP), "brain_config.json")))
+            for _k in ("Free", "Pro", "Ultra"):
+                if isinstance((cf.get("daily_caps") or {}).get(_k), int): caps[_k] = cf["daily_caps"][_k]
+        except Exception: pass
+        rows = [dict(r) for r in gdb.execute(
+            "SELECT u.email, u.plan, "
+            "COALESCE((SELECT count FROM usage WHERE user_id=u.id AND day=?),0) AS used, "
+            "COALESCE((SELECT extra FROM credit_bank WHERE user_id=u.id),0) AS extra "
+            "FROM users u ORDER BY u.id", (day,))]
+        gdb.close()
+        return _send(handler, 200, {"ok": True, "day": day, "caps": caps, "rows": rows})
+
+    if method == "POST" and p == "/api/admin/credits/add":  # v352: atomic +/- top-up
+        import time as _t6
+        b = _body(handler)
+        email = str(b.get("email", "")).strip().lower()
+        try: add = int(b.get("add", 0))
+        except Exception: add = 0
+        if add == 0: return _send(handler, 400, {"ok": False, "error": "add must be nonzero"})
+        gdb = sqlite3.connect(DBP)
+        r = gdb.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+        if not r:
+            gdb.close(); return _send(handler, 404, {"ok": False, "error": "no such user"})
+        gdb.execute("CREATE TABLE IF NOT EXISTS credit_bank(user_id INTEGER PRIMARY KEY, extra INTEGER NOT NULL DEFAULT 0, updated REAL)")
+        gdb.execute("INSERT INTO credit_bank(user_id, extra, updated) VALUES(?, MAX(0, ?), ?) "
+                    "ON CONFLICT(user_id) DO UPDATE SET "
+                    "extra = MAX(0, MIN(100000, credit_bank.extra + excluded.extra)), updated = excluded.updated",
+                    (r[0], add, _t6.time()))
+        ne = gdb.execute("SELECT extra FROM credit_bank WHERE user_id=?", (r[0],)).fetchone()[0]
+        gdb.commit(); gdb.close()
+        return _send(handler, 200, {"ok": True, "email": email, "extra": ne})
+
+    if method == "POST" and p == "/api/admin/caps/set":  # v352: base credits per level
+        import json as _j7, os as _o7
+        b = _body(handler)
+        plan = str(b.get("plan", "")).capitalize()
+        try: cap = int(b.get("cap", 0))
+        except Exception: cap = 0
+        if plan not in ("Free", "Pro", "Ultra") or not (1 <= cap <= 100000):
+            return _send(handler, 400, {"ok": False, "error": "need plan Free/Pro/Ultra + cap 1..100000"})
+        fp = _o7.path.join(_o7.path.dirname(DBP), "brain_config.json")
+        try: cfg = _j7.load(open(fp))
+        except Exception: cfg = {}
+        cfg.setdefault("daily_caps", {})[plan] = cap
+        tmp = fp + ".tmp"
+        open(tmp, "w").write(_j7.dumps(cfg, indent=1))
+        _o7.replace(tmp, fp)
+        return _send(handler, 200, {"ok": True, "plan": plan, "cap": cap})
+
     if method == "POST" and p == "/api/admin/credits/set":
         import time as _t4
         b = _body(handler)

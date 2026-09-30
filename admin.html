@@ -79,7 +79,63 @@ function boot(){
  document.getElementById("app").classList.remove("hide");
  nav(0);
  api("/api/admin/metrics").then(function(j){if(!j.ok){try{sessionStorage.removeItem("ac_tok")}catch(e){}location.reload()}})}
-var TABS=[["Overview",vOver],["Users",vUsers],["Credits",vCred],["Brain",vBrain],["Providers",vProv],["Memory",vMem],["Showcase",vShow]];
+function esc2(x){return String(x==null?"":x).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]})}
+function vCred2(m){
+ var wrap=el("div","card");
+ wrap.innerHTML="<h4>Credits - live control</h4><p class=mut>Base = plan daily credits. Extra = your top-ups. Left = spendable today.</p>";
+ m.appendChild(wrap);
+ var tb=el("div","card"); m.appendChild(tb);
+ function load(){
+  api("/api/admin/credits/full").then(function(j){
+   if(!j.ok){tb.innerHTML="<p class=mut>"+esc2(j.error||"auth needed")+"</p>";return}
+   var caps=j.caps||{};
+   var rows=(j.rows||[]).map(function(r){
+    var base=caps[r.plan]||0, left=Math.max(0,base+(r.extra||0)-(r.used||0));
+    return "<tr><td>"+esc2(r.email)+"</td><td>"+esc2(r.plan)+"</td><td>"+(r.used||0)+"</td><td>"+base+"</td><td>"+(r.extra||0)+"</td><td><b>"+left+"</b></td>"
+     +"<td><button data-a=10 data-e=\""+esc2(r.email)+"\">+10</button> <button data-a=25 data-e=\""+esc2(r.email)+"\">+25</button> <button data-a=100 data-e=\""+esc2(r.email)+"\">+100</button> <button data-a=reset data-e=\""+esc2(r.email)+"\">reset</button></td></tr>";
+   }).join("");
+   tb.innerHTML="<h4>Users - day "+esc2(j.day)+"</h4><table><tr><th>Email</th><th>Plan</th><th>Used</th><th>Base</th><th>Extra</th><th>Left</th><th>Top up</th></tr>"+rows+"</table>"
+    +"<p class=mut>Base caps: Free "+esc2(caps.Free)+" / Pro "+esc2(caps.Pro)+" / Ultra "+esc2(caps.Ultra)+"</p>";
+   [].slice.call(tb.querySelectorAll("button")).forEach(function(b){
+    b.onclick=function(){
+     var em=b.getAttribute("data-e"), a=b.getAttribute("data-a");
+     b.disabled=true;
+     var p2=(a==="reset")?api("/api/admin/credits/set",{method:"POST",body:{email:em,extra:0}})
+       :api("/api/admin/credits/add",{method:"POST",body:{email:em,add:parseInt(a,10)}});
+     p2.then(function(){load()});
+    };
+   });
+  });
+ }
+ load();
+ var ce=el("div","card");
+ ce.innerHTML="<h4>Base credits per level</h4><p class=mut>Applies from the next message - no restart needed.</p>"
+  +"<label>Free <input id=capFree type=number min=1 max=100000 style=width:90px></label> "
+  +"<label>Pro <input id=capPro type=number min=1 max=100000 style=width:90px></label> "
+  +"<label>Ultra <input id=capUltra type=number min=1 max=100000 style=width:90px></label> "
+  +"<button id=capSave>Save caps</button> <span id=capMsg class=mut></span>";
+ m.appendChild(ce);
+ api("/api/admin/credits/full").then(function(j){
+  if(!j.ok)return; var c=j.caps||{};
+  var f=document.getElementById("capFree"),p=document.getElementById("capPro"),u=document.getElementById("capUltra");
+  if(f)f.value=c.Free||60; if(p)p.value=c.Pro||120; if(u)u.value=c.Ultra||500;
+ });
+ var sb=document.getElementById("capSave");
+ if(sb)sb.onclick=function(){
+  var msg=document.getElementById("capMsg"), done=0, total=0;
+  ["Free","Pro","Ultra"].forEach(function(k){
+   var v=parseInt((document.getElementById("cap"+k)||{}).value,10);
+   if(v>=1&&v<=100000){
+    total++;
+    api("/api/admin/caps/set",{method:"POST",body:{plan:k,cap:v}}).then(function(j){
+     done++; if(msg)msg.textContent="saved "+done+"/"+total+(j&&j.ok?"":" ERROR");
+    });
+   }
+  });
+  if(!total&&msg)msg.textContent="nothing valid to save";
+ };
+}
+var TABS=[["Overview",vOver],["Users",vUsers],["Credits",vCred2],["Brain",vBrain],["Providers",vProv],["Memory",vMem],["Showcase",vShow]];
 function nav(i){
  var t=document.getElementById("tabs");t.innerHTML="";
  TABS.forEach(function(x,k){var b=el("button","",x[0]);if(k==i)b.className="on";b.onclick=function(){nav(k)};t.appendChild(b)});
