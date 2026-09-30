@@ -13384,3 +13384,39 @@ try { /* v163proc: native thinking card */
     });
   }, 1500);
 })();
+
+
+/* ===== v346: server plan is the ONLY plan + one-time stale-asset self-heal ===== */
+(function () {
+  if (window.__v346boot) return; window.__v346boot = "1";
+  try {
+    if (sessionStorage.getItem("__v346done") !== "1" && localStorage.getItem("__alfred_build") !== "346") {
+      sessionStorage.setItem("__v346done", "1");
+      localStorage.setItem("__alfred_build", "346");
+      if (window.caches && caches.keys) caches.keys().then(function (ks) {
+        ks.filter(function (k) { return /^alfred-v/.test(k); }).forEach(function (k) { caches.delete(k); });
+      });
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+        navigator.serviceWorker.getRegistrations().then(function (rs) {
+          rs.forEach(function (r) { if ((r.active && String(r.active.scriptURL).indexOf("sw.js") > -1) || !r.active) r.unregister().catch(function(){}); });
+        });
+      }
+      setTimeout(function () { location.reload(); }, 400);
+      return;
+    }
+  } catch (e) {}
+  function run(plan) {
+    try {
+      var id = (plan || "free").toLowerCase();
+      localStorage.setItem("alfred_plan", JSON.stringify({ id: id }));
+      localStorage.setItem("alfred_plan_cache", id);
+      localStorage.setItem("alfred_module_package", id.charAt(0).toUpperCase() + id.slice(1));
+      document.documentElement.setAttribute("data-plan", id);
+    } catch (e) {}
+  }
+  run("free");                                   /* safe default while asking */
+  fetch("/api/auth/me", { credentials: "include" })
+    .then(function (r) { return r.json(); })
+    .then(function (j) { if (j && j.ok && j.user && j.user.plan) run(j.user.plan); })
+    .catch(function () {});
+})();

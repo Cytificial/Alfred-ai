@@ -1,4 +1,4 @@
-const CACHE = "alfred-v99";
+const CACHE = "alfred-v98";
 const SHELL = ["/", "/index.html", "/manifest.json", "/css/style.css", "/js/app.js"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -19,4 +19,11 @@ self.addEventListener("fetch", (e) => {
       return r;
     }).catch(() => caches.match(e.request).then((m) => m || caches.match("/index.html")))
   );
+});
+
+self.addEventListener('activate', function (e) {
+  e.waitUntil(caches.keys().then(function (ks) {
+    return Promise.all(ks.filter(function (k) { return /^alfred-v/.test(k) && k !== 'alfred-v98'; })
+      .map(function (k) { return caches.delete(k); }));
+  }));
 });
