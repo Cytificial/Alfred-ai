@@ -73,6 +73,8 @@ def _egate_failed(email):
             return getattr(_egTL, "res", False)
         with _egL:
             c = _conn()
+            try: c.execute("PRAGMA busy_timeout=5000")  # V360
+            except Exception: pass
             c.execute("CREATE TABLE IF NOT EXISTS egate(email TEXT PRIMARY KEY, fails INTEGER NOT NULL DEFAULT 0, since REAL NOT NULL DEFAULT 0, lastn INTEGER NOT NULL DEFAULT -1)")
             r = c.execute("SELECT fails,since,lastn FROM egate WHERE email=?", (email,)).fetchone()
             fails, since, lastn = (int(r[0]), float(r[1]), int(r[2])) if r else (0, 0.0, -1)
@@ -94,6 +96,13 @@ def _egate_failed(email):
             return True
         return False
     except Exception as _e9:
+        if "locked" in str(_e9) and not getattr(_egTL, "rt", False):
+            try:
+                _egTL.rt = True
+                time.sleep(0.2)
+                return _egate_failed(email)
+            finally:
+                _egTL.rt = False
         try: print("[v359] egate fail-open: %s" % str(_e9)[:80], flush=True)
         except Exception: pass
         return False
