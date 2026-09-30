@@ -712,6 +712,9 @@ def _v130_install():
                         break
                 except Exception as _e:
                     print("stream %s failed: %s" % (model, str(_e)[:120]), flush=True)
+            if "/" in model:
+                print("stream skip native (slash model): %s" % model, flush=True)
+                continue
             try:
                 print("stream native try: %s" % model, flush=True)
                 url = ("https://generativelanguage.googleapis.com/v1beta/models/" +
