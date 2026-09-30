@@ -96,14 +96,14 @@ def _egate_failed(email):
             return True
         return False
     except Exception as _e9:
-        if "locked" in str(_e9) and not getattr(_egTL, "rt", False):
+        if (("locked" in str(_e9).lower() or "busy" in str(_e9).lower()) and not getattr(_egTL, "rt", False)):
             try:
                 _egTL.rt = True
                 time.sleep(0.2)
                 return _egate_failed(email)
             finally:
                 _egTL.rt = False
-        try: print("[v359] egate fail-open: %s" % str(_e9)[:80], flush=True)
+        try: print("[v359] egate fail-open: %s: %s" % (type(_e9).__name__, str(_e9)[:80]), flush=True)
         except Exception: pass
         return False
 
