@@ -3718,3 +3718,10 @@ header[data-lvl="Ultra"] .lvl-chip,#view-chat[data-lvl="Ultra"] .lvl-chip{backgr
 /* ===== v340: role colors, verified selectors ===== */
 .msg.fx-user .msg-bubble,.msg[data-role="user"] .msg-bubble{background:linear-gradient(180deg,#2e2110,#241a09)!important;border:1px solid rgba(255,166,66,.4)!important}
 .msg:not(.fx-user) .msg-bubble{background:linear-gradient(180deg,rgba(19,32,62,.96),rgba(13,23,46,.96))!important;border:1px solid rgba(84,120,200,.28)!important;border-left:2px solid #3d7bff}
+
+/* ===== v344: verified against source ===== */
+#view-chat .pill{border:0!important;box-shadow:none!important;background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+#view-chat{background:#060a14!important;background-image:none!important}
+.msg .bubble{border-top-left-radius:16px!important}
+.msg:not(.fx-user):not(.user) .bubble{background:linear-gradient(180deg,rgba(17,30,58,.97),rgba(11,21,42,.97))!important;border:1px solid rgba(84,120,200,.30)!important;border-left:3px solid #3d7bff!important}
+.msg.fx-user .bubble,.msg.user .bubble{background:linear-gradient(180deg,#2e2110,#241a09)!important;border:1px solid rgba(255,166,66,.45)!important}

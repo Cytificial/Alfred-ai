@@ -12852,7 +12852,7 @@ try { /* v163proc: native thinking card */
       m.setAttribute("data-v315", "1");
       [].slice.call(m.children).forEach(function (ch) {
         var t = (ch.textContent || "");
-        if (/[\u{1F44D}\u{1F44E}]|copy|share/i.test(t) && t.length < 40 && !ch.querySelector(".msg-bubble")) m.appendChild(ch);
+        if (/[\u{1F44D}\u{1F44E}]|copy|share/i.test(t) && t.length < 40 && !ch.querySelector(".msg-bubble, .bubble")) m.appendChild(ch);
       });
     });
     [].slice.call(v.querySelectorAll("#chat-scroll *")).forEach(function (e) {
@@ -12885,7 +12885,7 @@ try { /* v163proc: native thinking card */
     if (!ts) { last.setAttribute("data-v318t", String(now)); return; }
     if (now - ts < 13000) return;
     last.setAttribute("data-v318t", String(now));
-    var bubble = last.querySelector(".msg-bubble") || last;
+    var bubble = last.querySelector(".msg-bubble, .bubble") || last;
     var txt = (bubble.textContent || "").trim();
     if (!txt || txt.length > 4000) return;
     fetch("http://" + location.hostname + ":8082/api/chat", {
@@ -12970,10 +12970,10 @@ try { /* v163proc: native thinking card */
     var v = document.getElementById("view-chat");
     if (!v || v.offsetParent === null) return;
     [].slice.call(v.querySelectorAll(".msg")).forEach(function (row) {
-      var bubble = row.querySelector(".msg-bubble"), bar = null;
+      var bubble = row.querySelector(".msg-bubble, .bubble"), bar = null;
       [].slice.call(row.children).forEach(function (ch) {
         var t = ch.textContent || "";
-        if (/Retry|\u{1F44D}|\u{1F44E}/u.test(t) && t.length < 60 && !ch.querySelector(".msg-bubble")) bar = ch;
+        if (/Retry|\u{1F44D}|\u{1F44E}/u.test(t) && t.length < 60 && !ch.querySelector(".msg-bubble, .bubble")) bar = ch;
       });
       if (bar && bubble && bubble.nextElementSibling !== bar) bubble.after(bar);
     });
@@ -13113,7 +13113,7 @@ try { /* v163proc: native thinking card */
       if (m.querySelector(".v129-dots")) return;
       var isUser = m.getAttribute("data-role") === "user";
       var bars = [].slice.call(m.children).filter(function (ch) {
-        if (!ch.querySelector || ch.querySelector(".msg-bubble")) return false;
+        if (!ch.querySelector || ch.querySelector(".msg-bubble, .bubble")) return false;
         var t = ch.textContent || "";
         return /Retry/i.test(t) && t.length < 60;
       });
@@ -13138,7 +13138,7 @@ try { /* v163proc: native thinking card */
     [].slice.call(v.querySelectorAll(".msg")).forEach(function (m) {
       if (m.getAttribute("data-v337dead") === "1") return;
       var busy = [].slice.call(m.querySelectorAll(".v129-dots, button, img, video, canvas, [aria-live]")).some(function (x) { return x.offsetWidth > 0 && x.offsetHeight > 0; });
-      var core = m.querySelector(".msg-bubble") || m;
+      var core = m.querySelector(".msg-bubble, .bubble") || m;
       var empty = !busy && m.offsetHeight < 160 && !(core.textContent || "").trim();
       var n = parseInt(m.getAttribute("data-v337seen") || "0", 10);
       if (empty) {
@@ -13217,7 +13217,7 @@ try { /* v163proc: native thinking card */
     var v = document.getElementById("view-chat");
     if (!v || v.offsetParent === null) return;
     [].slice.call(v.querySelectorAll(".msg")).forEach(function (m) {
-      var b = m.querySelector(".msg-bubble");
+      var b = m.querySelector(".msg-bubble, .bubble");
       if (!b) return;
       if (b.getAttribute("data-v341c")) return;
       b.setAttribute("data-v341c", "1");
@@ -13254,7 +13254,7 @@ try { /* v163proc: native thinking card */
     var last = rows[rows.length - 1];
     if (last.getAttribute("data-v343done")) return;
     if (last.classList.contains("fx-user")) return;
-    var b = last.querySelector(".msg-bubble");
+    var b = last.querySelector(".msg-bubble, .bubble");
     if (!b) return;
     if ((b.textContent || "").trim()) { last.setAttribute("data-v343done", "1"); return; }
     if (window.streaming) {
@@ -13351,4 +13351,36 @@ try { /* v163proc: native thinking card */
     p.style.border = "0"; p.style.outline = "none";
     p.style.boxShadow = "none"; p.style.background = "transparent";
   }, 2000);
+})();
+
+
+/* ===== v344: one plan truth for every reader, incl. the old cache ===== */
+(function () {
+  if (window.__v344plan) return; window.__v344plan = "1";
+  function label() {
+    try {
+      var p = (JSON.parse(localStorage.getItem("alfred_plan") || "{}").id || "").toLowerCase();
+      return (p === "free" || p === "pro" || p === "ultra") ? p.charAt(0).toUpperCase() + p.slice(1) : "";
+    } catch (e) { return ""; }
+  }
+  setInterval(function () {
+    if (document.hidden) return;
+    var L = label(); if (!L) return;
+    try {
+      if ((localStorage.getItem("alfred_module_package") || "").toLowerCase() !== L.toLowerCase()) {
+        localStorage.setItem("alfred_module_package", L);
+      }
+    } catch (e) {}
+    var v = document.getElementById("view-chat");
+    if (!v || v.offsetParent === null) return;
+    [].slice.call(v.querySelectorAll(".m-tx b")).forEach(function (b) {
+      var t = (b.textContent || "").trim();
+      if (t === "Free" || t === "Pro" || t === "Ultra") {
+        if (t !== L) b.textContent = L;
+        b.classList.add("lvl-chip");
+        var vc = document.getElementById("view-chat");
+        if (vc) vc.setAttribute("data-lvl", L);
+      }
+    });
+  }, 1500);
 })();
