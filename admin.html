@@ -324,7 +324,7 @@ function credRows(m){
   }
   function btn(label, x, fn) {
     var b = document.createElement("button"); b.type = "button"; b.textContent = label;
-    b.style.cssText = "position:fixed;right:" + x + "px;bottom:16px;z-index:9999;background:#14243f;color:#cfe2ff;border:1px solid #2b3f68;border-radius:999px;padding:10px 14px;font:600 13px system-ui;cursor:pointer";
+    b.style.cssText = "display:none!important;position:fixed;right:" + x + "px;bottom:16px;z-index:9999;background:#14243f;color:#cfe2ff;border:1px solid #2b3f68;border-radius:999px;padding:10px 14px;font:600 13px system-ui;cursor:pointer";
     b.onclick = fn; document.body.appendChild(b); return b;
   }
   var bp = panel("v330-brain", "\u{1F9E0} Alfred Brain Prompt"), cp = panel("v330-credits", "\u{1F4B0} Bonus credits (extra daily allowance, resets midnight UTC)");
@@ -429,7 +429,7 @@ function credRows(m){
     save.textContent = "Save " + cur;
   }
   var bt = document.createElement("button"); bt.type = "button"; bt.textContent = "\uD83E\uDDE0 Brain x3";
-  bt.style.cssText = "position:fixed;right:14px;bottom:16px;z-index:9999;background:#14243f;color:#cfe2ff;border:1px solid #2b3f68;border-radius:999px;padding:10px 14px;font:600 13px system-ui;cursor:pointer";
+  bt.style.cssText = "display:none!important;position:fixed;right:14px;bottom:16px;z-index:9999;background:#14243f;color:#cfe2ff;border:1px solid #2b3f68;border-radius:999px;padding:10px 14px;font:600 13px system-ui;cursor:pointer";
   bt.onclick = function () {
     d.style.display = d.style.display === "none" ? "block" : "none";
     if (d.style.display === "block") api("GET", "/api/admin/brain/prompt").then(function (j) {
@@ -509,7 +509,7 @@ function credRows(m){
   }
   rf.onclick = load;
   var bt = document.createElement("button"); bt.type = "button"; bt.textContent = "\uD83D\uDEE1 Models";
-  bt.style.cssText = "position:fixed;right:96px;bottom:76px;z-index:9999;background:#14243f;color:#cfe2ff;border:1px solid #2b3f68;border-radius:999px;padding:10px 14px;font:600 13px system-ui;cursor:pointer";
+  bt.style.cssText = "display:none!important;position:fixed;right:96px;bottom:76px;z-index:9999;background:#14243f;color:#cfe2ff;border:1px solid #2b3f68;border-radius:999px;padding:10px 14px;font:600 13px system-ui;cursor:pointer";
   bt.onclick = function () { d.style.display = d.style.display === "none" ? "block" : "none"; if (d.style.display === "block") load(); };
   document.body.appendChild(d); document.body.appendChild(bt);
 })();

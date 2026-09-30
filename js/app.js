@@ -13516,6 +13516,7 @@ try { /* v163proc: native thinking card */
   } catch (e) {}
   /* warden badge: shows the last view switch on screen (screenshot-friendly) */
   try {
+    if (location.search.indexOf("debug=1") === -1) return;
     var bd = document.createElement("div");
     bd.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(0,0,0,.72);color:#9fe;font:10px monospace;padding:4px 7px;border-radius:8px;pointer-events:none;max-width:70vw";
     document.body.appendChild(bd);
@@ -13533,7 +13534,7 @@ try { /* v163proc: native thinking card */
   if (window.__v354) return; window.__v354 = "1";
   function stamp() {
     try {
-      if (document.title !== "Alfred AI - v354") document.title = "Alfred AI - v354";
+      if (document.title !== "Alfred AI - v1") document.title = "Alfred AI - v1";
       var c = document.getElementById("__v354chip");
       if (!c) {
         c = document.createElement("div");
@@ -13541,9 +13542,55 @@ try { /* v163proc: native thinking card */
         c.style.cssText = "position:fixed;right:8px;bottom:8px;z-index:99999;background:rgba(0,0,0,.72);color:#ff9;font:10px monospace;padding:3px 6px;border-radius:8px;pointer-events:none";
         (document.body || document.documentElement).appendChild(c);
       }
-      c.textContent = "v354";
+      c.textContent = "AI v1";
     } catch (e) {}
   }
   stamp();
   setInterval(stamp, 5000);
+})();
+
+
+/* ===== v355: one identity - stale-token purge + server-true plan ===== */
+(function () {
+  if (window.__v355id) return; window.__v355id = "1";
+  try {
+    if (localStorage.getItem("__abuild") !== "355") {
+      localStorage.setItem("__abuild", "355");
+      localStorage.removeItem("alfred_token");
+    }
+  } catch (e) {}
+  function setPlan(p) {
+    try { if (p && typeof p === "string") document.documentElement.setAttribute("data-plan", p.toLowerCase()); } catch (e) {}
+  }
+  try {
+    var _f = window.fetch;
+    window.fetch = function (u, o) {
+      var s2 = ""; try { s2 = String(u); } catch (e) {}
+      var p = _f.apply(this, arguments);
+      if (s2.indexOf("/api/auth/login") > -1 && o && o.method === "POST") {
+        p.then(function (r) {
+          try {
+            r.clone().json().then(function (j) {
+              if (j && j.ok && j.token) {
+                localStorage.setItem("alfred_token", j.token);
+                _f("/api/auth/me", { headers: { "X-Alfred-Token": j.token } })
+                  .then(function (r2) { return r2.ok ? r2.json() : null; })
+                  .then(function (j2) { if (j2 && j2.ok && j2.user) setPlan(j2.user.plan); });
+              }
+            });
+          } catch (e) {}
+        }).catch(function () {});
+      }
+      return p;
+    };
+  } catch (e) {}
+  setTimeout(function () {
+    try {
+      var t = localStorage.getItem("alfred_token") || "";
+      if (!t) return;
+      _f("/api/auth/me", { headers: { "X-Alfred-Token": t } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) { if (j && j.ok && j.user) setPlan(j.user.plan); });
+    } catch (e) {}
+  }, 2000);
 })();
