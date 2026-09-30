@@ -446,4 +446,27 @@ function credRows(m){
   bt.onclick = function () { d.style.display = d.style.display === "none" ? "block" : "none"; if (d.style.display === "block") load(); };
   document.body.appendChild(d); document.body.appendChild(bt);
 })();
-</script></body></html>
+</script>
+<script>
+/* ===== v347: floating panels only for a logged-in owner ===== */
+(function () {
+  if (window.__v347gate) return; window.__v347gate = "1";
+  setInterval(function () {
+    var lg = document.getElementById("login");
+    if (!lg) return;
+    var locked = !lg.classList.contains("hide");
+    [].slice.call(document.body.children).forEach(function (el) {
+      if (el === lg || el.id === "app") return;
+      var st = el.getAttribute("style") || "";
+      if (st.indexOf("z-index:9999") === -1) return;
+      var t = el.textContent || "";
+      if (el.tagName === "BUTTON" && /Models|Brain|Credits/.test(t)) {
+        el.style.display = locked ? "none" : "";
+      } else if (el.tagName === "DIV" && locked) {
+        el.style.display = "none";
+      }
+    });
+  }, 700);
+})();
+</script>
+</body></html>

@@ -13420,3 +13420,47 @@ try { /* v163proc: native thinking card */
     .then(function (j) { if (j && j.ok && j.user && j.user.plan) run(j.user.plan); })
     .catch(function () {});
 })();
+
+
+/* ===== v347: modules display-only + plan write-pin + view warden ===== */
+(function () {
+  if (window.__v347lock) return; window.__v347lock = "1";
+  /* (a) picker trigger + selects + buttons inside modules go inert */
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    if (!t || !t.closest || !t.closest("#view-modules")) return;
+    if (t.closest('[aria-label="Choose package"], select, button')) {
+      e.preventDefault(); e.stopPropagation();
+    }
+  }, true);
+  /* (b) nothing may write a plan different from the server's (data-plan) */
+  try {
+    var _s = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k, v) {
+      try {
+        if (k === "alfred_module_package") {
+          var want = (document.documentElement.getAttribute("data-plan") || "").toLowerCase();
+          if (want && String(v || "").toLowerCase() !== want) v = want.charAt(0).toUpperCase() + want.slice(1);
+        }
+      } catch (e) {}
+      return _s.call(this, k, v);
+    };
+  } catch (e) {}
+  /* (c) view warden: records every switch, changes nothing */
+  window.__v347log = [];
+  var last = (document.querySelector(".view.show") || {}).id || "(none)";
+  var mo = new MutationObserver(function (muts) {
+    muts.forEach(function (m) {
+      if (m.attributeName !== "class") return;
+      var el = m.target;
+      if (!el.classList || !el.classList.contains("show")) return;
+      var prev = last; last = el.id;
+      window.__v347log.push({ t: Date.now(), shown: el.id, prev: prev, hash: location.hash });
+      if (window.__v347log.length > 25) window.__v347log.shift();
+      try { console.warn("[v347view]", el.id, "prev:", prev, "hash:", location.hash); } catch (e) {}
+    });
+  });
+  [].slice.call(document.querySelectorAll(".view")).forEach(function (v) {
+    mo.observe(v, { attributes: true, attributeFilter: ["class"] });
+  });
+})();
