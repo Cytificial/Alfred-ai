@@ -59,6 +59,45 @@ def _fail_ok(email):  # v356: per-email brute-force gate - 8 attempts / 15 min
         if len(q) >= 8: _fail[email] = q; return False
         q.append(now); _fail[email] = q; return True
 
+# ===== v359: per-email brute-force gate (durable, idempotent per request) =====
+import threading as _thg9
+_egL = _thg9.RLock()
+_egTL = _thg9.local()
+
+def _egate_failed(email):
+    """Runs where a login failure is emitted. True -> send 429 instead."""
+    try:
+        now = time.time()
+        sig = (email, int(now // 3))
+        if getattr(_egTL, "sig", None) == sig:
+            return getattr(_egTL, "res", False)
+        with _egL:
+            c = _conn()
+            c.execute("CREATE TABLE IF NOT EXISTS egate(email TEXT PRIMARY KEY, fails INTEGER NOT NULL DEFAULT 0, since REAL NOT NULL DEFAULT 0, lastn INTEGER NOT NULL DEFAULT -1)")
+            r = c.execute("SELECT fails,since,lastn FROM egate WHERE email=?", (email,)).fetchone()
+            fails, since, lastn = (int(r[0]), float(r[1]), int(r[2])) if r else (0, 0.0, -1)
+            n = c.execute("SELECT COUNT(*) FROM sessions s JOIN users u ON u.id=s.user_id WHERE u.email=? AND s.expires>?", (email, now)).fetchone()[0]
+            if lastn >= 0 and n > lastn:
+                fails, since = 0, 0.0
+            if fails >= 9 and (now - since) >= 900:
+                fails, since = 0, 0.0
+            fails += 1
+            if fails == 1 or (now - since) >= 900:
+                since = now
+            blocked = fails >= 9 and (now - since) < 900
+            c.execute("INSERT INTO egate(email,fails,since,lastn) VALUES(?,?,?,?) ON CONFLICT(email) DO UPDATE SET fails=excluded.fails, since=excluded.since, lastn=excluded.lastn", (email, fails, since, n))
+            c.commit(); c.close()
+        _egTL.sig = sig; _egTL.res = bool(blocked)
+        if blocked:
+            try: print("[v359] egate lockout: %s***" % (email or "?")[:2], flush=True)
+            except Exception: pass
+            return True
+        return False
+    except Exception as _e9:
+        try: print("[v359] egate fail-open: %s" % str(_e9)[:80], flush=True)
+        except Exception: pass
+        return False
+
 def _rate_ok(ip):
     now = time.time()
     with RLOCK:
@@ -130,9 +169,21 @@ def maybe_handle(handler, method):
                 if row:
                     uid, uname, plan = row[0], row[1], row[4]
                     if not hmac.compare_digest(row[2], _hash_pw(pw, row[3])):
+                        try: _eb = bool(email) and _egate_failed(email)
+                        except Exception: _eb = False
+                        if _eb:
+                            try: c.close()
+                            except Exception: pass
+                            _json(handler, 429, {"ok": False, "error": "Too many attempts for this account. Wait 15 minutes."}); return True
                         c.close(); _json(handler, 401, {"ok": False, "error": "Email or password is incorrect."}); return True
                 else:
                     _hash_pw(pw, secrets.token_hex(16))  # timing equalizer
+                    try: _eb = bool(email) and _egate_failed(email)
+                    except Exception: _eb = False
+                    if _eb:
+                        try: c.close()
+                        except Exception: pass
+                        _json(handler, 429, {"ok": False, "error": "Too many attempts for this account. Wait 15 minutes."}); return True
                     c.close(); _json(handler, 401, {"ok": False, "error": "Email or password is incorrect."}); return True
             tok = secrets.token_urlsafe(32)
             days = 90 if (body.get("remember") or register) else 1
@@ -248,7 +299,12 @@ def _alfred_guard_install():
                 elif isinstance(res, dict) and email and "@" in email:
                     _log(email, 0, "bad")
                     _bump(email)
-                    res = {"ok": False, "error": "Email or password is incorrect."}
+                    try: _eb = bool(email) and _egate_failed(email)
+                    except Exception: _eb = False
+                    if _eb:
+                        res = {"ok": False, "error": "Too many attempts for this account. Wait 15 minutes."}
+                    else:
+                        res = {"ok": False, "error": "Email or password is incorrect."}
                 return res
             if kind == "register":
                 if body and (body.get("website") or body.get("honeypot")):
@@ -370,7 +426,12 @@ def _alfred_guard2_install():
                     _log(email, 1, "ok"); _clear(email)   # v165b: real login resets fails
                 elif isinstance(res, dict) and email and "@" in email:
                     _log(email, 0, "bad"); _bump(email)
-                    res = {"ok": False, "error": "Email or password is incorrect."}
+                    try: _eb = bool(email) and _egate_failed(email)
+                    except Exception: _eb = False
+                    if _eb:
+                        res = {"ok": False, "error": "Too many attempts for this account. Wait 15 minutes."}
+                    else:
+                        res = {"ok": False, "error": "Email or password is incorrect."}
                 return res
             if kind == "register":
                 if body and (body.get("website") or body.get("honeypot")):
