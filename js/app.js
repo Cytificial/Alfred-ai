@@ -6355,7 +6355,7 @@ try { /* v163proc: native thinking card */
       }
       function pump() {
         return rd.read().then(function (res) {
-          if (res.done) { finish(false); return; } try { window.streaming = false; } catch (e0) {}
+          if (res.done) { finish(false); return; } try { streaming = false; window.streaming = false; } catch (e0) {}
           buf += dec.decode(res.value, { stream: true });
           var parts = buf.split("\n\n"); buf = parts.pop();
           parts.forEach(function (blk) {
@@ -6370,7 +6370,7 @@ try { /* v163proc: native thinking card */
       }
       return pump();
     }).catch(function (err) {
-      try { window.streaming = false; } catch (e0) {}
+      try { streaming = false; window.streaming = false; } catch (e0) {}
       if (err && err.name === "AbortError") { finish(true); return; }
       var had = ab.textContent && !ab.querySelector(".v129-dots");
       if (had) { finish(true); return; }
@@ -13525,4 +13525,25 @@ try { /* v163proc: native thinking card */
       bd.textContent = e ? ("v353 " + e.shown + " <- " + e.prev + " (" + Math.max(0, Math.round((Date.now() - e.t) / 1000)) + "s ago)") : "v353 quiet";
     }, 1500);
   } catch (e) {}
+})();
+
+
+/* ===== v354: build proof - title + chip always show the live build ===== */
+(function () {
+  if (window.__v354) return; window.__v354 = "1";
+  function stamp() {
+    try {
+      if (document.title !== "Alfred AI - v354") document.title = "Alfred AI - v354";
+      var c = document.getElementById("__v354chip");
+      if (!c) {
+        c = document.createElement("div");
+        c.id = "__v354chip";
+        c.style.cssText = "position:fixed;right:8px;bottom:8px;z-index:99999;background:rgba(0,0,0,.72);color:#ff9;font:10px monospace;padding:3px 6px;border-radius:8px;pointer-events:none";
+        (document.body || document.documentElement).appendChild(c);
+      }
+      c.textContent = "v354";
+    } catch (e) {}
+  }
+  stamp();
+  setInterval(stamp, 5000);
 })();

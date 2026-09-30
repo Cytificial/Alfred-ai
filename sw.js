@@ -1,33 +1,26 @@
-const CACHE = "alfred-v101";
-const SHELL = ["/", "/index.html", "/manifest.json", "/css/style.css", "/js/app.js"];
-self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
-});
-self.addEventListener("activate", (e) => {
-  e.waitUntil(caches.keys().then((ks) =>
-    Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-  ).then(() => self.clients.claim()));
-});
-self.addEventListener("fetch", (e) => {
-  const u = new URL(e.request.url);
-  if (e.request.method !== "GET" || u.pathname.startsWith("/api/")) return;  /* never cache APIs */
-  e.respondWith(
-    fetch(e.request).then((r) => {
-      if (r.ok && u.origin === location.origin) {
-        const cp = r.clone(); caches.open(CACHE).then((c) => c.put(e.request, cp));
-      }
-      return r;
-    }).catch(() => caches.match(e.request).then((m) => m || caches.match("/index.html")))
+const CACHE = "alfred-v102";
+self.addEventListener("install", function (e) { self.skipWaiting(); });
+self.addEventListener("activate", function (e) {
+  e.waitUntil(
+    caches.keys().then(function (ks) {
+      return Promise.all(ks.filter(function (k) { return k !== CACHE; })
+        .map(function (k) { return caches.delete(k); }));
+    }).then(function () { return self.clients.claim(); })
   );
 });
-
-self.addEventListener('activate', function (e) {
-  e.waitUntil(caches.keys().then(function (ks) {
-    return Promise.all(ks.filter(function (k) { return /^alfred-v/.test(k) && k !== 'alfred-v101'; })
-      .map(function (k) { return caches.delete(k); }));
-  }));
-});
-
-self.addEventListener('activate', function (e) {
-  e.waitUntil(caches.open('alfred-v101').then(function (c) { return c.delete('/admin.html'); }).catch(function(){}));
+self.addEventListener("fetch", function (e) {
+  var u;
+  try { u = new URL(e.request.url); } catch (er) { return; }
+  if (e.request.method !== "GET") return;
+  if (u.origin !== location.origin) return;
+  if (u.pathname.indexOf("/api/") === 0) return;
+  e.respondWith(
+    fetch(e.request).then(function (r) {
+      if (r && r.ok) {
+        var cl = r.clone();
+        caches.open(CACHE).then(function (c) { c.put(e.request, cl); });
+      }
+      return r;
+    }).catch(function () { return caches.match(e.request); })
+  );
 });
