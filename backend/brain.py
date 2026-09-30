@@ -411,6 +411,8 @@ class Handler(BaseHTTPRequestHandler):
         data = self.body()
         message = str(data.get("message") or "").strip()
         _research_txt, _research_src = __import__("research").web_research2(message) if (message and len(message) <= 12000) else ("", [])
+        try: _memblock = __import__("memory2").recall_block(user["_uid"], message)
+        except Exception: _memblock = ""
         if not message:
             self.json_out(400, {"ok": False, "error": "Write a message first."})
             return
@@ -493,14 +495,14 @@ class Handler(BaseHTTPRequestHandler):
             answer, used_model = None, None
             for model in chain:
                 try:
-                    answer = _direct(model, key, (_tier_persona(user, plan) + _research_txt), turns)
+                    answer = _direct(model, key, (_tier_persona(user, plan) + _research_txt + _memblock), turns)
                     used_model = model
                     if plan == "Ultra" and answer:
                         try:
                             _crit = ("You are the second mind in Alfred's council. Review the draft answer above "
                                      "in context. Fix anything wrong, sharpen the reasoning, keep the warm butler voice. "
                                      "Reply with ONLY the improved final answer.")
-                            _r2 = _direct(model, key, (_tier_persona(user, plan) + _research_txt),
+                            _r2 = _direct(model, key, (_tier_persona(user, plan) + _research_txt + _memblock),
                                          list(turns) + [("assistant", answer), ("user", _crit)])
                             if _r2 and len(str(_r2)) > 40:
                                 answer = _r2
@@ -533,6 +535,8 @@ class Handler(BaseHTTPRequestHandler):
                 c.execute("INSERT INTO messages(chat_id,role,content,ts) VALUES(?,?,?,?)",
                           (chat_id, "assistant", answer, time.time()))
                 c.execute("UPDATE chats SET updated=? WHERE id=?", (time.time(), chat_id))
+            try: __import__("memory2").maybe_extract(user["_uid"], message, answer, lambda _s, _t: _direct("gemini-flash-lite-latest", key, _s, _t))
+            except Exception: pass
             public = (cfg.get("public_names") or {}).get(plan, "Alfred")
             self.json_out(200, {"ok": True, "chat_id": chat_id, "reply": answer,
                 "model": public, "remaining": max(0, cap - used - 1)})
@@ -623,6 +627,8 @@ def _v130_install():
         data = handler.body()
         message = str(data.get("message") or "").strip()
         _research_txt, _research_src = __import__("research").web_research2(message) if (message and len(message) <= 12000) else ("", [])
+        try: _memblock = __import__("memory2").recall_block(user["_uid"], message)
+        except Exception: _memblock = ""
         if not message:
             handler.json_out(400, {"ok": False, "error": "Write a message first."}); return
         if len(message) > 12000:
@@ -699,7 +705,7 @@ def _v130_install():
             if "/" in model and not model.startswith("models/"):
                 print("stream branch try: %s" % model, flush=True)
                 try:
-                    _ans = _direct(model, key, (_tier_persona(user, plan) + _research_txt), turns)
+                    _ans = _direct(model, key, (_tier_persona(user, plan) + _research_txt + _memblock), turns)
                     print("stream branch: %s -> %s chars" % (model, len(_ans or "")), flush=True)
                     if _ans:
                         try:
@@ -708,6 +714,8 @@ def _v130_install():
                         except Exception:
                             pass
                         _sse_out(handler, {"t": _ans})
+                        try: __import__("memory2").maybe_extract(user["_uid"], message, _ans, lambda _s, _t: _direct("gemini-flash-lite-latest", key, _s, _t))
+                        except Exception: pass
                         full.append(_ans)
                         break
                 except Exception as _e:
@@ -726,7 +734,7 @@ def _v130_install():
                         for _im in _IMG["list"][-2:]:
                             contents[-1]["parts"].append({"inline_data": {"mime_type": _im.get("mime","image/jpeg"), "data": _im["data"]}})
                     except Exception: pass
-                payload = {"systemInstruction": {"parts": [{"text": (_tier_persona(user, plan) + _research_txt)}]},
+                payload = {"systemInstruction": {"parts": [{"text": (_tier_persona(user, plan) + _research_txt + _memblock)}]},
                            "contents": contents,
                            "generationConfig": {"temperature": 0.8, "maxOutputTokens": GEM_MAXTOK}}
                 req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
@@ -768,6 +776,8 @@ def _v130_install():
             if not answer:
                 try: _sse_out(handler, {"error": "My engines are catching their breath - try again in a moment."})
                 except Exception: pass
+            try: __import__("memory2").maybe_extract(user["_uid"], message, answer, lambda _s, _t: _direct("gemini-flash-lite-latest", key, _s, _t))
+            except Exception: pass
             public = (cfg.get("public_names") or {}).get(plan, "Alfred")
             try:
                 _sse_out(handler, {"done": True, "chat_id": chat_id, "model": public,

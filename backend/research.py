@@ -1,6 +1,7 @@
 """R2.1: grounded research - GDELT/Wikipedia/HN JSON + page fetch + SSRF guard."""
 import re
 import json
+import time
 import ipaddress
 import socket
 import urllib.parse
@@ -130,6 +131,7 @@ def _hn(q):
     return out
 
 _BACKS = {"gdelt": _gdelt, "wiki": _wiki, "hn": _hn}
+_CB = {}
 
 def _route(q):
     ql = q.lower()
@@ -151,9 +153,14 @@ def web_research2(q):
         query = q[8:].strip() if ql.startswith("/search ") else q
         recs, used = [], "?"
         for name in _route(query):
+            _st = _CB.get(name) or {"n": 0, "t": 0.0}
+            if _st["n"] >= 3 and (time.time() - _st["t"]) < 600:
+                continue
             try:
                 r = _BACKS[name](query)
+                _CB[name] = {"n": 0, "t": _st["t"]}
             except Exception as e:
+                _CB[name] = {"n": _st["n"] + 1, "t": time.time()}
                 print("research backend %s failed: %s" % (name, str(e)[:60]), flush=True)
                 r = []
             if r:
