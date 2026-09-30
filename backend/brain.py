@@ -164,7 +164,7 @@ def _direct(model, key, system, turns):
                 "https://openrouter.ai/api/v1" +
                 "/chat/completions", data=body,
                 headers=hh, method="POST")
-            with _open_retry(rq, timeout=90) as rr:
+            with _open_retry(rq, timeout=35) as rr:
                 d2 = json.loads(rr.read().decode("utf-8"))
             mm = ((d2.get("choices") or [{}])[0]
                   .get("message") or {})
@@ -184,7 +184,7 @@ def _direct(model, key, system, turns):
     rq = urllib.request.Request(u, data=json.dumps(pl).encode(
          "utf-8"), headers={"Content-Type":
          "application/json"}, method="POST")
-    with _open_retry(rq, timeout=90) as rr:
+    with _open_retry(rq, timeout=35) as rr:
         d2 = json.loads(rr.read().decode("utf-8"))
     cand = (d2.get("candidates") or [{}])[0]
     ps = ((cand.get("content") or {}).get("parts")) or []
@@ -222,7 +222,7 @@ def _prov_route(model, system, turns):
                            "max_tokens": 1200}).encode()
         rq = urllib.request.Request(u, data=body,
                                     headers=hs, method="POST")
-        with _open_retry(rq, timeout=90) as r:
+        with _open_retry(rq, timeout=35) as r:
             d2 = json.loads(r.read().decode("utf-8"))
         mm = ((d2.get("choices") or [{}])[0].get("message") or {})
         txt = mm.get("content") or mm.get("text") or ""
@@ -728,7 +728,7 @@ def _v130_install():
                            "generationConfig": {"temperature": 0.8, "maxOutputTokens": GEM_MAXTOK}}
                 req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
                                              headers={"Content-Type": "application/json"}, method="POST")
-                with urllib.request.urlopen(req, timeout=45) as up:
+                with urllib.request.urlopen(req, timeout=35) as up:
                     for raw in up:
                         line = raw.decode("utf-8", "replace").strip()
                         if not line.startswith("data:"):
