@@ -50,6 +50,15 @@ def _user_from_session(h):
         c.close()
     return {"name": row[1], "email": row[2], "plan": row[3]} if row else None
 
+_fail = {}
+
+def _fail_ok(email):  # v356: per-email brute-force gate - 8 attempts / 15 min
+    now = time.time()
+    with RLOCK:
+        q = [t for t in _fail.get(email, []) if now - t < 900]
+        if len(q) >= 8: _fail[email] = q; return False
+        q.append(now); _fail[email] = q; return True
+
 def _rate_ok(ip):
     now = time.time()
     with RLOCK:
@@ -92,6 +101,8 @@ def maybe_handle(handler, method):
             _json(handler, 429, {"ok": False, "error": "Too many attempts. Wait a few minutes."}); return True
 
         email = (body.get("email") or "").strip().lower()
+        if not _fail_ok(email):
+            _json(handler, 429, {"ok": False, "error": "Too many attempts for this account. Wait 15 minutes."}); return True
         pw    = body.get("password") or ""
         name  = (body.get("name") or "").strip()
         if not EMAIL_RE.match(email): _json(handler, 400, {"ok": False, "error": "Enter a valid email address."}); return True
