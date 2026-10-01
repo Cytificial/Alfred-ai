@@ -94,3 +94,15 @@
 .msg.ai .bubble.v392-hidden {
   display: none !important;
 }
+
+/* v392c: stop the pulse animation once the card is complete */
+.v390-card.v390-complete .v390-icon {
+  animation: none !important;
+  background: #4d8ac4 !important;
+  box-shadow: none !important;
+  opacity: .55;
+}
+.v390-card.v390-complete .v390-chev { opacity: .5; }
+.v390-card.v390-complete .v390-title { color: #a8bedb; font-weight: 500; }
+.v390-card.v390-complete .v390-head { cursor: pointer; }
+.v390-card.v390-complete:hover { border-color: rgba(120,180,255,.35); }

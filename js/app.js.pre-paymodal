@@ -3594,9 +3594,11 @@ window.__v152 = "1"; /* v154 retires v152 */
       }).join("") + '</div>'
     + '<div class="pay-trust">\u2713 Cancel anytime \u00b7 \u2713 Secure checkout at launch \u00b7 \u2713 Prices in USD</div>'
     + '</div>';
-  document.body.appendChild(pay);
-  /* v370o: fixed overlay, hard-hidden inline. Only openPlans() flips display. */
-  pay.style.cssText = "display:none;position:fixed;inset:0;z-index:200;overflow-y:auto;background:#080D17;padding:24px 16px 60px;box-sizing:border-box";
+  setView.parentElement.insertBefore(pay, setView);
+  pay.style.display = "none";
+  pay.style.visibility = "hidden";
+  pay.style.pointerEvents = "none";
+  /* v370n: back button handler */
   var _payBack = pay.querySelector(".pay-back");
   if (_payBack) _payBack.addEventListener("click", function (e) { e.stopPropagation(); closePlans(); });
 
@@ -3641,15 +3643,33 @@ window.__v152 = "1"; /* v154 retires v152 */
   var payHidden = [];                            /* v92: every view we cover */
   function openPlans() {
     payMode = true;
-    pay.style.display = "block";
-    document.body.style.overflow = "hidden";
+    payHidden = [];
+    [].slice.call(setView.parentElement.children).forEach(function (el) {
+      if (el === pay || el === setView || el.nodeType !== 1) return;
+      var cs = getComputedStyle(el);
+      if (cs.display !== "none" && cs.visibility !== "hidden") {
+        payHidden.push({ el: el, d: el.style.display });
+        el.style.display = "none";
+      }
+    });
+    setView.style.display = "none";
+    pay.style.display = "";
+    pay.style.visibility = "";
+    pay.style.pointerEvents = "";
+    pay.classList.add("v370-manual-open");   /* v370n: opt-in to CSS kill switch */
+    /* highlight the Plans row in nav, unhighlight others */
+    try {
+      document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
+    } catch (e) {}
     try { window.scrollTo(0, 0); } catch (e) {}
   }
   function closePlans() {
     if (!payMode) return;
     payMode = false;
+    pay.classList.remove("v370-manual-open");
     pay.style.display = "none";
-    document.body.style.overflow = "";
+    payHidden.forEach(function (h) { try { h.el.style.display = h.d; } catch (e) {} });
+    setView.style.display = "";
   }
   window.__openPlans = openPlans;
   var _op361 = openPlans;
@@ -6174,7 +6194,6 @@ window.__v152 = "1"; /* v154 retires v152 */
     document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2600);
   }
   function send() {
-    if (window.__v130) return;   /* v380: v130 owns streaming */
     if (pending) return;
     var c = composer(), input = inputOf(c);
     if (!input) return;
@@ -6249,14 +6268,12 @@ try { /* v163proc: native thinking card */
   }
 
   document.addEventListener("click", function (e) {
-    if (window.__v130) return;   /* v380: yield to v130 (real SSE streaming) */
     var b = e.target.closest && e.target.closest(".send");
     if (!b || !b.closest(".composer")) return;
     e.preventDefault(); e.stopImmediatePropagation(); send();
   }, true);
 
   document.addEventListener("keydown", function (e) {
-    if (window.__v130) return;   /* v380: yield to v130 */
     var c = composer();
     if (!c || !e.target.matches("textarea,input") || !c.contains(e.target)) return;
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
@@ -6346,7 +6363,6 @@ try { /* v163proc: native thinking card */
       if (!r.ok || !r.body) throw { fallback: true };
       var rd = r.body.getReader(), dec = new TextDecoder(), buf = "";
       function handle(ev) {
-        try { window.dispatchEvent(new CustomEvent("alfred:sse", { detail: ev })); } catch (e) {}
         if (ev.chat_id && !ev.done) { window.__v129chat = ev.chat_id; return; }
         if (typeof ev.t === "string") {
           var d = ab.querySelector(".v129-dots");

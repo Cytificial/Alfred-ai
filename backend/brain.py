@@ -5,7 +5,7 @@ import json
 import os
 import sqlite3
 try:
-    import react_pipeline, tools_web
+    import react_pipeline, tools_web, router_local, file_upload, chat_extras
 except Exception:
     react_pipeline = None; tools_web = None
 import time
@@ -381,6 +381,66 @@ class Handler(BaseHTTPRequestHandler):
             if not user:
                 return
 
+            # v401: file upload
+            if method == "POST" and path == "/api/chat/upload":
+                try:
+                    user = handler.require_user()
+                    if not user: return
+                    data = handler.body()
+                    name = data.get("name", "")
+                    b64 = data.get("data", "")
+                    r = file_upload.save_file(name, b64)
+                    handler.json_out(200 if r.get("ok") else 400, r)
+                except Exception as _e:
+                    handler.json_out(500, {"ok": False, "error": str(_e)[:120]})
+                return
+            # v401: chat search
+            if method == "GET" and path == "/api/chats/search":
+                try:
+                    user = handler.require_user()
+                    if not user: return
+                    q = (handler.query or {}).get("q", "") if hasattr(handler, "query") else ""
+                    if not q:
+                        # parse from url
+                        import urllib.parse as _up
+                        qs = _up.parse_qs(_up.urlparse(handler.path).query)
+                        q = (qs.get("q") or [""])[0]
+                    rows = chat_extras.search_chats(user["_uid"], q)
+                    handler.json_out(200, {"ok": True, "results": rows})
+                except Exception as _e:
+                    handler.json_out(500, {"ok": False, "error": str(_e)[:120]})
+                return
+            # v401: delete-after (edit-and-resend)
+            if method == "POST" and path == "/api/chats/delete-after":
+                try:
+                    user = handler.require_user()
+                    if not user: return
+                    data = handler.body()
+                    r = chat_extras.delete_after(user["_uid"], int(data.get("chat_id") or 0), int(data.get("message_id") or 0))
+                    handler.json_out(200 if r.get("ok") else 400, r)
+                except Exception as _e:
+                    handler.json_out(500, {"ok": False, "error": str(_e)[:120]})
+                return
+            # v401: export chat
+            if method == "GET" and path.startswith("/api/chats/export/"):
+                try:
+                    user = handler.require_user()
+                    if not user: return
+                    try: cid = int(path.rsplit("/", 1)[-1])
+                    except: handler.json_out(400, {"ok": False, "error": "bad chat id"}); return
+                    md = chat_extras.export_chat(user["_uid"], cid)
+                    if not md:
+                        handler.json_out(404, {"ok": False, "error": "not found"}); return
+                    handler.send_response(200)
+                    handler.cors_headers()
+                    handler.send_header("Content-Type", "text/markdown; charset=utf-8")
+                    handler.send_header("Content-Disposition", 'attachment; filename="alfred-chat-' + str(cid) + '.md"')
+                    handler.send_header("Cache-Control", "no-store")
+                    handler.end_headers()
+                    handler.wfile.write(md.encode("utf-8"))
+                except Exception as _e:
+                    handler.json_out(500, {"ok": False, "error": str(_e)[:120]})
+                return
             if method == "POST" and path == "/api/chat":
                 self.chat(user)
                 return
@@ -414,6 +474,15 @@ class Handler(BaseHTTPRequestHandler):
     def chat(self, user):
         data = self.body()
         message = str(data.get("message") or "").strip()
+        # v401: load any attached files as prompt context
+        try:
+            _att_ids = data.get("attachments") or []
+            if _att_ids:
+                _att_txt = file_upload.load_for_prompt(_att_ids)
+                if _att_txt:
+                    message = message + _att_txt
+        except Exception as _e:
+            print("[v401 attachments] fail:", _e, flush=True)
         # v390: router decides if research is needed
         _research_txt, _research_src = "", []
         _route_decision = {"search": False, "complex": False}
@@ -429,6 +498,7 @@ class Handler(BaseHTTPRequestHandler):
                     _research_txt, _research_src = tools_web.search(message)
         except Exception as _e:
             print("[v390 router] fail-open:", _e, flush=True)
+
         try: _memblock = __import__("memory2").recall_block(user["_uid"], message)
         except Exception: _memblock = ""
         try: _sklblock = __import__("skillsys").block_for(message)
@@ -513,6 +583,8 @@ class Handler(BaseHTTPRequestHandler):
             turns.append(("model" if row["role"] == "assistant" else "user", row["content"]))
         try:
             answer, used_model = None, None
+
+
             try: _sse_out(handler, {"phase": "answering", "label": "Writing the answer"})
             except Exception: pass
             for model in chain:
@@ -657,8 +729,24 @@ def _v130_install():
                 def _probe_model(m, sysp, turns, _k=None):
                     try: return _direct(m, _k or api_key(config()), sysp, turns) or ""
                     except Exception: return ""
-                _route_decision = react_pipeline.route(message, _probe_model, _probe_chain) or _route_decision
-                print("[v390 router] %s" % _route_decision, flush=True)
+                # v401: try local heuristic router first (0ms, zero cost)
+                _local = router_local.classify(message)
+                if _local.get("confidence") == "high" or _local.get("level") == "no_llm":
+                    _route_decision = {
+                        "search": _local.get("search", False),
+                        "complex": _local.get("level") == "large",
+                        "topic": "",
+                        "level": _local.get("level", "large"),
+                        "quick_reply": _local.get("quick_reply"),
+                        "math": _local.get("math", False),
+                        "source": "local",
+                    }
+                    print("[v401 router-local] %s" % _local, flush=True)
+
+                else:
+                    _route_decision = react_pipeline.route(message, _probe_model, _probe_chain) or _route_decision
+                    _route_decision["source"] = "llm"
+                    print("[v390 router-llm] %s" % _route_decision, flush=True)
                 if _route_decision.get("search") and tools_web:
                     _research_txt, _research_src = tools_web.search(message)
                     print("[v390 search] %d sources" % len(_research_src or []), flush=True)
@@ -739,6 +827,28 @@ def _v130_install():
         handler.end_headers()
         handler.close_connection = True
         _sse_out(handler, {"chat_id": chat_id})
+        # v401f: quick-reply short-circuit (post-headers, safe)
+        _qr = _route_decision.get("quick_reply")
+        _math = _route_decision.get("math")
+        if _qr or _math:
+            _a = _qr
+            if _math:
+                _a = None
+                try:
+                    _v = router_local.safe_math(message)
+                    if _v is not None:
+                        _a = "That comes to " + str(_v) + "."
+                except Exception:
+                    _a = None
+            if _a:
+                try: _sse_out(handler, {"phase": "answering", "label": "Writing the answer"})
+                except Exception: pass
+                try: _sse_out(handler, {"t": _a})
+                except Exception: pass
+                try: _sse_out(handler, {"done": True, "chat_id": chat_id, "remaining": max(0, cap - used - 1)})
+                except Exception: pass
+                return
+
 
         full, broken = [], False
 

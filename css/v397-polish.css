@@ -1,0 +1,41 @@
+/* v397-polish: stop button, scroll-to-bottom, voice, model switcher */
+.composer .send.v397-stop {
+  background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+  color: #fff !important;
+  animation: v397pulse 1.4s ease-in-out infinite;
+}
+@keyframes v397pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,.4); }
+  50%      { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+}
+.composer .send.v397-stop svg { width: 20px; height: 20px; }
+
+/* scroll-to-bottom button */
+#view-chat { position: relative; }
+.v398-scroll-btn {
+  position: absolute; right: 18px; bottom: 110px;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(16,26,48,.95); border: 1px solid rgba(120,180,255,.4);
+  color: #cfe4ff; cursor: pointer; z-index: 25;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transform: translateY(8px);
+  transition: opacity .2s, transform .2s;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+.v398-scroll-btn.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.v398-scroll-btn svg { width: 20px; height: 20px; }
+.v398-scroll-btn:hover { background: rgba(30,60,120,.95); border-color: rgba(160,220,255,.7); }
+
+/* voice button listening state */
+.composer .c-ic.v399-rec { color: #ff6b8a !important; animation: v399pulse 1s ease-in-out infinite; }
+@keyframes v399pulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
+
+.v399-toast {
+  position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%);
+  background: rgba(16,26,48,.98); color: #eaf4ff;
+  border: 1px solid rgba(120,180,255,.35);
+  border-radius: 12px; padding: 10px 18px;
+  font: 500 13px system-ui; z-index: 400;
+  box-shadow: 0 8px 26px rgba(0,0,0,.45);
+  pointer-events: none;
+}
