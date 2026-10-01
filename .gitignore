@@ -1,4 +1,4 @@
-# Python
+# ---------- Python ----------
 __pycache__/
 *.pyc
 *.pyo
@@ -7,9 +7,13 @@ __pycache__/
 venv/
 env/
 *.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Secrets — NEVER COMMIT
+# ---------- Secrets — NEVER COMMIT ----------
 keys.env
+*.env
 providers_keys.json
 *_keys.json
 mail_config.json
@@ -17,31 +21,42 @@ oauth_config.json
 *.pem
 *.key
 
-# Database
+# ---------- Database ----------
 *.db
 *.db-shm
 *.db-wal
 *.sqlite
 *.sqlite3
+*.db.corrupt.*
+*.db.dead.*
+*.db.broken.*
+alfred_recovered.db
 
-# Backups
-*.bak-*
+# ---------- Backups ----------
 *.bak
+*.bak-*
 *.pre-v*
 *.part-*
+*.before-fix
+*.before-v*
+*.disabled
+*.broken.*
 
-# Logs & PID
+# ---------- Logs & PID ----------
 *.log
 *.pid
 *.lock
 
-# Runtime state
+# ---------- Runtime state (regenerable) ----------
 engine_state.json
 brain_config.json
 providers.json
 catalog.json
 explore.json
 
-# OS / Editor
+# ---------- OS / Editor ----------
 .DS_Store
+Thumbs.db
 *.swp
+*.swo
+*~
