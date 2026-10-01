@@ -44,6 +44,24 @@ class H(SimpleHTTPRequestHandler):
         p = (self.path or "").split("?")[0]
         if p == "/" or p.endswith("/index.html") or p.endswith("/app.js") or p.endswith("/login.html"):
             self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+        # ---- v369: security headers on every response ----
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+        self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=(), interest-cohort=()")
+        self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+        self.send_header("Cross-Origin-Resource-Policy", "same-origin")
+        # CSP: allows self + Google Fonts + brain port 8082. Report-only first so we can see violations.
+        self.send_header("Content-Security-Policy",
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com data:; "
+            "img-src 'self' data: blob: http://127.0.0.1:8082 http://localhost:8082; "
+            "connect-src 'self' http://127.0.0.1:8082 http://localhost:8082; "
+            "frame-ancestors 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'")
         super().end_headers()
     def mem_route(self):
         """v361b: /api/memory/list + /api/memory/delete - session-scoped, uid never from request."""
