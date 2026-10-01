@@ -370,7 +370,7 @@ try{ localStorage.setItem("alfred_plan_server","1"); }catch(e){}
     try{
       if(s.indexOf("/api/auth/logout")>-1)
         p.then(function(r){ if(r.ok){ wipe(); showGate(""); } }).catch(function(){});
-      if(s.indexOf(":8082/api/chat")>-1)
+      if((s.indexOf(":8082/api/chat") > -1 || s.indexOf("/brain/api/chat") > -1))
         p.then(function(r){ if(r.status===401) probe(); }).catch(function(){});
     }catch(e){}
     return p;
@@ -398,7 +398,7 @@ window.__v137c="1"; window.__v140="1"; window.__v141="1"; window.__v142="1"; win
     return _set.call(this, k, v);
   };
 
-  var API = "http://" + location.hostname + ":8082";
+  var API = window.__ALFRED_API.brain;
   function tok() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
   function composerUp() { var c = document.querySelector(".composer"); return !!(c && c.offsetWidth > 0); }
   function hidePill() { var p = document.getElementById("v160cr"); if (p) p.style.display = "none"; }
@@ -424,7 +424,7 @@ window.__v137c="1"; window.__v140="1"; window.__v141="1"; window.__v142="1"; win
 window.__v163f = "1";
 (function () {
   if (window.__v166) return; window.__v166 = "1";
-  var API = "http://" + location.hostname + ":8082";
+  var API = window.__ALFRED_API.brain;
   function tok() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
   function wipe() { try { localStorage.removeItem("alfred_token"); localStorage.removeItem("alfred_authed"); } catch (e) {} }
 
@@ -493,7 +493,7 @@ window.__v163f = "1";
 window.__v159="1"; window.__v161a="1"; window.__v162="1"; window.__v158c2="1"; window.__v161e="1"; window.__v163a="1"; window.__v163b="1";
 (function () {
   if (window.__v163f) return; window.__v163f = "1";
-  var API = "http://" + location.hostname + ":8082";
+  var API = window.__ALFRED_API.brain;
   function tok() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
   var userTyped = false, admitted = false, bootId = "free", planNode = null;
 
@@ -644,7 +644,7 @@ window.__v159 = "1"; window.__v161a = "1";
   function check() {
     if (done) return;
     var t = tok(); if (!t) return;
-    fetch("http://" + location.hostname + ":8082/api/usage",
+    fetch(window.__ALFRED_API.brain + "/api/usage",
       { credentials: "include", headers: { "X-Alfred-Token": t } })
       .then(function (r) {
         if (r.status === 401) {
@@ -691,7 +691,7 @@ window.__v158c2 = "1"; window.__v161e = "1";          /* retire the swap layers 
     } catch (e) {}
   }
   setInterval(function () {
-    fetch("http://" + location.hostname + ":8082/api/usage",
+    fetch(window.__ALFRED_API.brain + "/api/usage",
       { credentials: "include", headers: { "X-Alfred-Token": tok() } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) { if (j && j.ok) setNativePlan(j.plan); })
@@ -718,7 +718,7 @@ window.__v158c2 = "1"; window.__v161e = "1";          /* retire the swap layers 
   var of = window.fetch;
   window.fetch = function (u, o) {
     var s = typeof u === "string" ? u : (u && u.url) || "";
-    if (!(o && o.method === "POST" && s.indexOf(":8082/api/chat") > -1 &&
+    if (!(o && o.method === "POST" && (s.indexOf(":8082/api/chat") > -1 || s.indexOf("/brain/api/chat") > -1) &&
           s.indexOf("/stream") === -1 && s.indexOf("/api/chats") === -1))
       return of.apply(this, arguments);
     hide();
@@ -759,7 +759,7 @@ window.__v159 = "1"; window.__v159b = "1";
   function check() {
     if (tried || gone) return;
     var t = tok(); if (!t) return;
-    fetch("http://" + location.hostname + ":8082/api/usage",
+    fetch(window.__ALFRED_API.brain + "/api/usage",
       { credentials: "include", headers: { "X-Alfred-Token": t } })
       .then(function (r) {
         if (r.status === 401) { gone = true;
@@ -868,7 +868,7 @@ window.__v159 = "1"; window.__v159b = "1";
             localStorage.setItem("alfred_authed", "1");
             if (x.j.user && x.j.user.name) localStorage.setItem("alfred_name", x.j.user.name);
             sessionStorage.setItem("v157rl", "1"); sessionStorage.setItem("v158in", "1"); } catch (e) {}
-      native("http://" + location.hostname + ":8082/api/usage",
+      native(window.__ALFRED_API.brain + "/api/usage",
         { credentials: "include", headers: { "X-Alfred-Token": x.j.token } })
         .then(function (u) { busy = false; btn.disabled = false;
           if (u.ok) { /* v203: no reload */ }
@@ -921,7 +921,7 @@ window.__v152 = "1"; /* v154 retires v152 */
   window.fetch = function (u, o) {
     o = o || {};
     var s = typeof u === "string" ? u : (u && u.url) || "";
-    if (s.indexOf("/api/auth/") > -1 || s.indexOf(":8082/") > -1) {
+    if (s.indexOf("/api/auth/") > -1 || (s.indexOf(":8082/") > -1 || s.indexOf("/brain/") > -1)) {
       o.headers = o.headers || {};
       if (!o.headers["X-Alfred-Token"]) o.headers["X-Alfred-Token"] = tok();
       if (!o.credentials) o.credentials = "same-origin";
@@ -6221,7 +6221,7 @@ try { /* v163proc: native thinking card */
 
     var started = Date.now();
 
-    fetch("http://" + location.hostname + ":8082/api/chat/stream", {
+    fetch(window.__ALFRED_API.brain + "/api/chat/stream", {
       method: "POST", credentials: "include",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({chat_id: window.__v129chat || null, message: text})
@@ -6267,7 +6267,7 @@ try { /* v163proc: native thinking card */
 /* ===== v130: M2 living brain (true streaming + stop + server history) ===== */
 (function () {
   if (window.__v130) return; window.__v130 = "1";
-  var API = "http://" + location.hostname + ":8082";
+  var API = window.__ALFRED_API.brain;
   var streaming = false, ctrl = null;
 
   function $(s, c) { return (c || document).querySelector(s); }
@@ -6449,7 +6449,7 @@ try { /* v163proc: native thinking card */
     var p = of.apply(this, arguments);
     try {
       var s = typeof u === "string" ? u : (u && u.url) || "";
-      if (s.indexOf(":8082/api/chat") > -1 && o && o.method === "POST") {
+      if ((s.indexOf(":8082/api/chat") > -1 || s.indexOf("/brain/api/chat") > -1) && o && o.method === "POST") {
         p.then(function (r) {
           if (r && r.status === 401) {
             try { if (typeof showToast === "function") showToast("Session expired — one more sign-in and you're set"); } catch (e) {}
@@ -6532,7 +6532,7 @@ try { /* v163proc: native thinking card */
         say("v134 login attempt #" + i + " sent…");
         p.then(function (r) { say("v134 attempt #" + i + " → " + r.status); }).catch(function () {});
         setTimeout(function () {
-          fetch("http://" + location.hostname + ":8082/api/whoami", { credentials: "include" })
+          fetch(window.__ALFRED_API.brain + "/api/whoami", { credentials: "include" })
             .then(function (r) { return r.json(); })
             .then(function (j) {
               say("v134 cookie check: stored=" + j.n_cookies +
@@ -6565,7 +6565,7 @@ try { /* v163proc: native thinking card */
     o = o || {};
     var s = typeof u === "string" ? u : (u && u.url) || "";
     var isLogin = /\/api\/auth\/(login|register)/.test(s);
-    var isChat  = s.indexOf(":8082/") > -1 && s.indexOf("/api/chat") > -1;
+    var isChat  = (s.indexOf(":8082/") > -1 || s.indexOf("/brain/") > -1) && s.indexOf("/api/chat") > -1;
     var p = of.apply(this, arguments);
     if (isLogin) {
       p.then(function (r) {
@@ -6650,7 +6650,7 @@ try { /* v163proc: native thinking card */
     var p = of.apply(this, arguments);
     try {
       var s = typeof u === "string" ? u : (u && u.url) || "";
-      if (s.indexOf(":8082/") > -1 && s.indexOf("/api/chat") > -1) {
+      if ((s.indexOf(":8082/") > -1 || s.indexOf("/brain/") > -1) && s.indexOf("/api/chat") > -1) {
         p.then(function (r) {
           if (r.status === 401) {
             try { if (typeof showToast === "function") showToast("Session expired — refreshing…", true); } catch (e) {}
@@ -6680,7 +6680,7 @@ try { /* v163proc: native thinking card */
   }, true);
   /* brain health on load */
   try {
-    fetch("http://" + location.hostname + ":8082/health")
+    fetch(window.__ALFRED_API.brain + "/health")
       .then(function (r) { return r.json(); })
       .then(function (j) { say("radar: brain UP (" + (j.model || "?") + ")"); })
       .catch(function (e) { say("radar: brain UNREACHABLE — " + e); });
@@ -6689,7 +6689,7 @@ try { /* v163proc: native thinking card */
   var of = window.fetch;
   window.fetch = function (u, o) {
     var s = typeof u === "string" ? u : (u && u.url) || "";
-    var isChat = s.indexOf(":8082/") > -1 && s.indexOf("/api/chat") > -1;
+    var isChat = (s.indexOf(":8082/") > -1 || s.indexOf("/brain/") > -1) && s.indexOf("/api/chat") > -1;
     if (isChat) {
       var n = 0; try { n = (localStorage.getItem("alfred_token") || "").length; } catch (e) {}
       say("radar: chat → sending (token " + (n ? n + " chars" : "NONE") + ")");
@@ -6722,7 +6722,7 @@ try { /* v163proc: native thinking card */
   var of = window.fetch;
   window.fetch = function (u, o) {
     var s = typeof u === "string" ? u : (u && u.url) || "";
-    var isChat = s.indexOf(":8082/") > -1 && s.indexOf("/api/chat") > -1;
+    var isChat = (s.indexOf(":8082/") > -1 || s.indexOf("/brain/") > -1) && s.indexOf("/api/chat") > -1;
     if (isChat) {
       var p;
       try { p = of.apply(this, arguments); }
@@ -6794,7 +6794,7 @@ try { /* v163proc: native thinking card */
   window.fetch = function (u, o) {
     o = o || {};
     var s = typeof u === "string" ? u : (u && u.url) || "";
-    var isChat = o.method === "POST" && s.indexOf(":8082/api/chat") > -1 &&
+    var isChat = o.method === "POST" && (s.indexOf(":8082/api/chat") > -1 || s.indexOf("/brain/api/chat") > -1) &&
                  s.indexOf("/stream") === -1 && s.indexOf("/api/chats") === -1;
     if (!isChat) return of.apply(this, arguments);
     var url = s.replace("/api/chat", "/api/chat/stream");
@@ -6887,7 +6887,7 @@ try { /* v163proc: native thinking card */
   window.fetch = function (u, o) {
     o = o || {};
     var s = typeof u === "string" ? u : (u && u.url) || "";
-    var isChat = o.method === "POST" && s.indexOf(":8082/api/chat") > -1 &&
+    var isChat = o.method === "POST" && (s.indexOf(":8082/api/chat") > -1 || s.indexOf("/brain/api/chat") > -1) &&
                  s.indexOf("/stream") === -1 && s.indexOf("/api/chats") === -1;
     if (!isChat) return of.apply(this, arguments);
     var url = s.replace("/api/chat", "/api/chat/stream");
@@ -6994,7 +6994,7 @@ try { /* v163proc: native thinking card */
   window.fetch = function (u, o) {
     o = o || {};
     var s = typeof u === "string" ? u : (u && u.url) || "";
-    var isChat = o.method === "POST" && s.indexOf(":8082/api/chat") > -1 &&
+    var isChat = o.method === "POST" && (s.indexOf(":8082/api/chat") > -1 || s.indexOf("/brain/api/chat") > -1) &&
                  s.indexOf("/stream") === -1 && s.indexOf("/api/chats") === -1;
     if (!isChat) return of.apply(this, arguments);
     var gen = window.__v155gen;
@@ -7019,7 +7019,7 @@ try { /* v163proc: native thinking card */
 /* ===== v155b: Your chats — real DB history, layered above the worlds scene ===== */
 (function () {
   if (window.__v155b) return; window.__v155b = "1";
-  var API = "http://" + location.hostname + ":8082";
+  var API = window.__ALFRED_API.brain;
   var sec = null, busy = false;
   function tok() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
   function get(u) {
@@ -7169,7 +7169,7 @@ try { /* v163proc: native thinking card */
 /* ===== v156: restore engine + chip hygiene (native history already reads the DB) ===== */
 (function () {
   if (window.__v156) return; window.__v156 = "1";
-  var API = "http://" + location.hostname + ":8082";
+  var API = window.__ALFRED_API.brain;
   var cache = [];
   function tok() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
   function get(u) {
@@ -7306,7 +7306,7 @@ try { /* v163proc: native thinking card */
         n.nodeValue = "Selected: " + plan;
   }
   window.__v157usage = function () {
-    fetch("http://" + location.hostname + ":8082/api/usage",
+    fetch(window.__ALFRED_API.brain + "/api/usage",
       { credentials: "include", headers: { "X-Alfred-Token": tok() } })
       .then(function (r) {
         if (r.status === 401) { try { localStorage.removeItem("alfred_token");
@@ -7321,12 +7321,12 @@ try { /* v163proc: native thinking card */
     o = o || {};
     var s = typeof u === "string" ? u : (u && u.url) || "";
     if (tok() && !(o.headers && o.headers["X-Alfred-Token"]) &&
-        (s.indexOf("/api/auth/") > -1 || s.indexOf(":8082/") > -1)) {
+        (s.indexOf("/api/auth/") > -1 || (s.indexOf(":8082/") > -1 || s.indexOf("/brain/") > -1))) {
       o.headers = Object.assign({}, o.headers || {}, { "X-Alfred-Token": tok() });
     }
     arguments[1] = o;
     var p = of.apply(this, arguments);
-    if (/\/api\/auth\/(login|register)/.test(s) || s.indexOf(":8082/") > -1) {
+    if (/\/api\/auth\/(login|register)/.test(s) || (s.indexOf(":8082/") > -1 || s.indexOf("/brain/") > -1)) {
       p.then(function (r) {
         r.clone().json().then(function (j) {
           if (j && j.ok && j.token) {
@@ -7344,7 +7344,7 @@ try { /* v163proc: native thinking card */
   function boot() {
     if (booted) return; booted = true;
     if (!tok()) { window.__v157usage(); return; }
-    fetch("http://" + location.hostname + ":8082/api/usage",
+    fetch(window.__ALFRED_API.brain + "/api/usage",
       { credentials: "include", headers: { "X-Alfred-Token": tok() } })
       .then(function (r) {
         if (r.status === 401) { try { localStorage.removeItem("alfred_token");
@@ -7415,7 +7415,7 @@ try { /* v163proc: native thinking card */
   var of = window.fetch;
   window.fetch = function (u, o) {
     var s = typeof u === "string" ? u : (u && u.url) || "";
-    var isChat = o && o.method === "POST" && s.indexOf(":8082/api/chat") > -1 &&
+    var isChat = o && o.method === "POST" && (s.indexOf(":8082/api/chat") > -1 || s.indexOf("/brain/api/chat") > -1) &&
                  s.indexOf("/stream") === -1 && s.indexOf("/api/chats") === -1;
     if (!isChat) return of.apply(this, arguments);
     hide(); chip.style.display = "flex";
@@ -7487,7 +7487,7 @@ try { /* v163proc: native thinking card */
     }
   }
   window.__v158cr = function () {
-    fetch("http://" + location.hostname + ":8082/api/usage",
+    fetch(window.__ALFRED_API.brain + "/api/usage",
       { credentials: "include", headers: { "X-Alfred-Token": tok() } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) { if (j && j.ok) set(j.remaining, j.plan); })
@@ -7511,7 +7511,7 @@ try { /* v163proc: native thinking card */
     try { sessionStorage.setItem("v159adm", tok().slice(0, 8)); } catch (e) {}
     location.replace("/#/chat");                        /* full navigation = the proven path */
   }
-  fetch("http://" + location.hostname + ":8082/api/usage",
+  fetch(window.__ALFRED_API.brain + "/api/usage",
     { credentials: "include", headers: { "X-Alfred-Token": tok() } })
     .then(function (r) {
       if (r.status === 401) {                           /* dead token: wipe, never admit */
@@ -7578,7 +7578,7 @@ try { /* v163proc: native thinking card */
   setInterval(function () {
     if (busy) return; busy = true;
     var t = ""; try { t = localStorage.getItem("alfred_token") || ""; } catch (e) {}
-    fetch("http://" + location.hostname + ":8082/api/usage",
+    fetch(window.__ALFRED_API.brain + "/api/usage",
       { credentials: "include", headers: { "X-Alfred-Token": t } })
       .then(function (r) {
         busy = false;
@@ -7635,7 +7635,7 @@ try { /* v163proc: native thinking card */
   }
   function tok() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
   function update() {
-    fetch("http://" + location.hostname + ":8082/api/usage",
+    fetch(window.__ALFRED_API.brain + "/api/usage",
       { credentials: "include", headers: { "X-Alfred-Token": tok() } })
       .then(function (r) {
         if (r.status === 401) { pill.style.display = "none"; return null; }
@@ -7693,7 +7693,7 @@ try { /* v163proc: native thinking card */
     var p = of.apply(this, arguments);
     try {
       var s = typeof u === "string" ? u : (u && u.url) || "";
-      if (o && o.method === "POST" && s.indexOf(":8082/api/chat") > -1 &&
+      if (o && o.method === "POST" && (s.indexOf(":8082/api/chat") > -1 || s.indexOf("/brain/api/chat") > -1) &&
           s.indexOf("/stream") === -1 && s.indexOf("/api/chats") === -1) {
         p.then(function (r) {
           r.clone().json().then(function (j) {
@@ -7746,7 +7746,7 @@ try { /* v163proc: native thinking card */
   }
   setInterval(fix, 700);
   setInterval(function () {
-    fetch("http://" + location.hostname + ":8082/api/usage",
+    fetch(window.__ALFRED_API.brain + "/api/usage",
       { credentials: "include", headers: { "X-Alfred-Token": tok() } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
@@ -7777,7 +7777,7 @@ try { /* v163proc: native thinking card */
   var of = window.fetch;
   window.fetch = function (u, o) {
     var s = typeof u === "string" ? u : (u && u.url) || "";
-    if (!(o && o.method === "POST" && s.indexOf(":8082/api/chat") > -1 &&
+    if (!(o && o.method === "POST" && (s.indexOf(":8082/api/chat") > -1 || s.indexOf("/brain/api/chat") > -1) &&
           s.indexOf("/stream") === -1 && s.indexOf("/api/chats") === -1))
       return of.apply(this, arguments);
     hide();
@@ -7813,7 +7813,7 @@ try { /* v163proc: native thinking card */
   function tok() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
   var plan = "";
   setInterval(function () {
-    fetch("http://" + location.hostname + ":8082/api/usage",
+    fetch(window.__ALFRED_API.brain + "/api/usage",
       { credentials: "include", headers: { "X-Alfred-Token": tok() } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) { if (j && j.ok) plan = j.plan; }).catch(function () {});
@@ -7841,7 +7841,7 @@ try { /* v163proc: native thinking card */
   function tok() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
   var plan = "";
   setInterval(function () {
-    fetch("http://" + location.hostname + ":8082/api/usage",
+    fetch(window.__ALFRED_API.brain + "/api/usage",
       { credentials: "include", headers: { "X-Alfred-Token": tok() } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) { if (j && j.ok) plan = j.plan; }).catch(function () {});
@@ -7889,7 +7889,7 @@ try { /* v163proc: native thinking card */
   if (window.__v168) return;
   window.__v168 = true;
 
-  var API = "http://" + location.hostname + ":8082";
+  var API = window.__ALFRED_API.brain;
   var RECOVERY_KEY = "v168_gate_reload";
   var realFetch = window.fetch;
   var loginInFlight = 0, recovering = false;
@@ -8944,7 +8944,7 @@ try { /* v163proc: native thinking card */
     var h = { credentials: "include", headers: { "X-Alfred-Token": tok() } };
     Promise.all([
       fetch("/api/auth/me", h).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
-      fetch("http://" + location.hostname + ":8082/api/usage", h)
+      fetch(window.__ALFRED_API.brain + "/api/usage", h)
         .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
     ]).then(function (res) {
       var me = res[0], us = res[1];
@@ -12905,7 +12905,7 @@ try { /* v163proc: native thinking card */
     var bubble = last.querySelector(".msg-bubble, .bubble") || last;
     var txt = (bubble.textContent || "").trim();
     if (!txt || txt.length > 4000) return;
-    fetch("http://" + location.hostname + ":8082/api/chat", {
+    fetch(window.__ALFRED_API.brain + "/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: txt })
@@ -13097,7 +13097,7 @@ try { /* v163proc: native thinking card */
       var m = document.cookie.match(/(?:^|;\s*)alfred_token=([^;]+)/);
       t = (t || (m ? decodeURIComponent(m[1]) : "")).trim();
       if (!t) { setTimeout(go, 2500); return; }
-      fetch("http://" + location.hostname + ":8082/api/usage", { headers: { "X-Alfred-Token": t } })
+      fetch(window.__ALFRED_API.brain + "/api/usage", { headers: { "X-Alfred-Token": t } })
         .then(function (r) { return r.json(); })
         .then(function (j) {
           var p = ("" + (j.plan || "")).toLowerCase();
@@ -13289,7 +13289,7 @@ try { /* v163proc: native thinking card */
     var cid = window.__v129chat;
     var ut = prev ? (prev.textContent || "").replace("\u270E", "").trim() : "";
     if (!cid || !ut) { last.setAttribute("data-v343done", "1"); return; }
-    fetch("http://" + location.hostname + ":8082/api/chat/" + cid, { headers: { "X-Alfred-Token": tok() } })
+    fetch(window.__ALFRED_API.brain + "/api/chat/" + cid, { headers: { "X-Alfred-Token": tok() } })
       .then(function (r) { return r.json(); })
       .then(function (j) {
         var ms = (j && j.messages) || [];
@@ -13310,7 +13310,7 @@ try { /* v163proc: native thinking card */
           rb.style.cssText = "margin-top:8px;background:#14243f;color:#cfe2ff;border:1px solid #2b3f68;border-radius:99px;padding:6px 16px;font:600 12px system-ui;cursor:pointer";
           rb.onclick = function () {
             rb.textContent = "Thinking\u2026"; rb.disabled = true;
-            fetch("http://" + location.hostname + ":8082/api/chat", {
+            fetch(window.__ALFRED_API.brain + "/api/chat", {
               method: "POST",
               headers: { "Content-Type": "application/json", "X-Alfred-Token": tok() },
               body: JSON.stringify({ message: ut, chat_id: cid })
@@ -13619,7 +13619,7 @@ try { /* v163proc: native thinking card */
     var sv = document.getElementById("view-settings");
     if (!sv || !sv.children.length) { if (++tries < 60) setTimeout(wait, 500); return; }
     if (sv.dataset.v361mem) return; sv.dataset.v361mem = "1";
-    var API = "http://" + location.hostname + ":8082";
+    var API = window.__ALFRED_API.brain;
     function tok() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
     var card = document.createElement("div");
     card.style.cssText = "margin:18px 0;padding:14px;border:1px solid rgba(120,170,255,.18);border-radius:14px;background:rgba(10,20,44,.5)";
@@ -13669,7 +13669,7 @@ try { /* v163proc: native thinking card */
   var done = false;
   function fin() { if (!done) { done = true; window.__v362planReady = true; } }
   setTimeout(fin, 10000);                        /* failsafe: skeleton can never stick */
-  fetch("http://" + location.hostname + ":8082/api/auth/me",
+  fetch(window.__ALFRED_API.brain + "/api/auth/me",
     { credentials: "include", headers: { "X-Alfred-Token": tk() } })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (j) {
