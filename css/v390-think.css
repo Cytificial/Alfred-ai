@@ -1,0 +1,96 @@
+/* v390-think: collapsible reasoning card */
+.v390-card {
+  margin: 4px 0 8px 0; max-width: 100%;
+  background: rgba(16,26,48,.6);
+  border: 1px solid rgba(120,180,255,.22);
+  border-radius: 12px; overflow: hidden;
+  font: 13px/1.5 system-ui, sans-serif;
+  transition: border-color .2s;
+}
+.v390-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; cursor: pointer;
+  color: #cfe4ff;
+  -webkit-user-select: none; user-select: none;
+}
+.v390-head:hover { background: rgba(120,180,255,.06); }
+.v390-icon {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #7fc4ff; box-shadow: 0 0 8px rgba(127,196,255,.9);
+  animation: v390pulse 1.4s ease-in-out infinite;
+}
+@keyframes v390pulse {
+  0%, 100% { opacity: .6; transform: scale(1); }
+  50%      { opacity: 1;  transform: scale(1.3); }
+}
+.v390-title { flex: 1; font-weight: 600; font-size: 12.5px; letter-spacing: .3px; }
+.v390-chev { transition: transform .18s; opacity: .7; font-size: 12px; }
+.v390-open .v390-chev { transform: rotate(180deg); }
+.v390-body {
+  display: none;
+  padding: 0 12px 10px 12px;
+  border-top: 1px solid rgba(120,180,255,.12);
+  padding-top: 10px;
+}
+.v390-open .v390-body { display: block; animation: v390fade .2s ease-out; }
+@keyframes v390fade { from { opacity: 0; } to { opacity: 1; } }
+
+.v390-phase {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 0; color: #b6c8e2; font-size: 12.5px;
+}
+.v390-phase .v390-pi { width: 18px; text-align: center; font-size: 13px; }
+.v390-phase .v390-pl { flex: 1; }
+.v390-phase .v390-ps { color: #7fc4ff; font-weight: 700; }
+.v390-phase.v390-done { color: #8fa9c8; }
+.v390-phase.v390-done .v390-pi { opacity: .7; }
+
+.v390-sources {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 6px 0 4px 26px;
+}
+.v390-sources a {
+  font-size: 11px; padding: 3px 8px;
+  background: rgba(80,140,240,.12);
+  border: 1px solid rgba(120,180,255,.28);
+  border-radius: 999px; color: #9fd4ff;
+  text-decoration: none;
+}
+.v390-sources a:hover { background: rgba(120,180,255,.2); }
+
+.v390-reason {
+  margin: 6px 0 0 26px; padding: 8px 10px;
+  background: rgba(10,18,40,.7);
+  border-left: 3px solid rgba(120,180,255,.5);
+  border-radius: 6px;
+  color: #c7d6e8; font: 12px/1.55 ui-monospace, Menlo, monospace;
+  white-space: pre-wrap; word-break: break-word;
+  max-height: 220px; overflow-y: auto;
+}
+
+/* suppress native browser long-press menu on bubbles (our custom menu takes over) */
+.msg .bubble {
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.msg .bubble a, .msg .bubble code, .msg .bubble pre {
+  -webkit-touch-callout: default;
+}
+
+/* v391f: hide empty AI bubble while phase card is showing */
+.msg.ai:has(.v390-card:not(.v390-done-card)) .bubble:empty {
+  display: none !important;
+}
+.msg.ai:has(.v390-card:not(.v390-done-card)) .bubble:not(:has(*)):not([data-has-text]) {
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.v390-card.v390-done-card + .bubble { display: block; }
+
+/* v392: hide empty AI bubble while thinking */
+.msg.ai .bubble.v392-hidden {
+  display: none !important;
+}

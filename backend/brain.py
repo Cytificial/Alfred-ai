@@ -4,6 +4,10 @@ import hashlib
 import json
 import os
 import sqlite3
+try:
+    import react_pipeline, tools_web
+except Exception:
+    react_pipeline = None; tools_web = None
 import time
 import traceback
 import urllib.error
@@ -410,7 +414,21 @@ class Handler(BaseHTTPRequestHandler):
     def chat(self, user):
         data = self.body()
         message = str(data.get("message") or "").strip()
-        _research_txt, _research_src = __import__("research").web_research2(message) if (message and len(message) <= 12000) else ("", [])
+        # v390: router decides if research is needed
+        _research_txt, _research_src = "", []
+        _route_decision = {"search": False, "complex": False}
+        try:
+            if react_pipeline and message and len(message) <= 12000:
+                _chain_probe = chain_for(config(), "Free")  # cheap probe; refined below
+                def _probe_model(m, sysp, turns):
+                    try: return _direct(m, api_key(config()), sysp, turns) or ""
+                    except Exception: return ""
+                _route_decision = react_pipeline.route(message, _probe_model, _chain_probe or [])
+                print("[v390 router] %s" % _route_decision, flush=True)
+                if _route_decision.get("search") and tools_web:
+                    _research_txt, _research_src = tools_web.search(message)
+        except Exception as _e:
+            print("[v390 router] fail-open:", _e, flush=True)
         try: _memblock = __import__("memory2").recall_block(user["_uid"], message)
         except Exception: _memblock = ""
         try: _sklblock = __import__("skillsys").block_for(message)
@@ -495,6 +513,8 @@ class Handler(BaseHTTPRequestHandler):
             turns.append(("model" if row["role"] == "assistant" else "user", row["content"]))
         try:
             answer, used_model = None, None
+            try: _sse_out(handler, {"phase": "answering", "label": "Writing the answer"})
+            except Exception: pass
             for model in chain:
                 try:
                     answer = _direct(model, key, (_tier_persona(user, plan) + _research_txt + _memblock + _sklblock), turns)
@@ -628,7 +648,23 @@ def _v130_install():
     def _chat_stream(handler, user):
         data = handler.body()
         message = str(data.get("message") or "").strip()
-        _research_txt, _research_src = __import__("research").web_research2(message) if (message and len(message) <= 12000) else ("", [])
+        # v390: SAFE route_decision — always defined
+        _route_decision = {"search": False, "complex": False}
+        _research_txt, _research_src = "", []
+        try:
+            if react_pipeline and message and len(message) <= 12000:
+                _probe_chain = chain_for(config(), "Free") or []
+                def _probe_model(m, sysp, turns, _k=None):
+                    try: return _direct(m, _k or api_key(config()), sysp, turns) or ""
+                    except Exception: return ""
+                _route_decision = react_pipeline.route(message, _probe_model, _probe_chain) or _route_decision
+                print("[v390 router] %s" % _route_decision, flush=True)
+                if _route_decision.get("search") and tools_web:
+                    _research_txt, _research_src = tools_web.search(message)
+                    print("[v390 search] %d sources" % len(_research_src or []), flush=True)
+        except Exception as _e:
+            print("[v390 router] fail-open:", _e, flush=True)
+        # v390: research now comes from router above
         try: _memblock = __import__("memory2").recall_block(user["_uid"], message)
         except Exception: _memblock = ""
         try: _sklblock = __import__("skillsys").block_for(message)
@@ -705,11 +741,33 @@ def _v130_install():
         _sse_out(handler, {"chat_id": chat_id})
 
         full, broken = [], False
+
+        # v390: reasoning phase (only for complex questions)
+        _reasoning = ""
+        try: _route_decision
+        except NameError: _route_decision = {"search": False, "complex": False}
+        if react_pipeline and _route_decision.get("complex"):
+            try:
+                def _reason_model(m, sysp, turns):
+                    try: return _direct(m, key, sysp, turns) or ""
+                    except Exception: return ""
+                _reasoning = react_pipeline.reason(message, _research_txt, _memblock, _sklblock,
+                                                   _reason_model, chain)
+                if _reasoning:
+                    _sse_out(handler, {"think": _reasoning})
+                    print("[v390 reason] %d chars" % len(_reasoning), flush=True)
+            except Exception as _e:
+                print("[v390 reason] fail-open:", _e, flush=True)
+
         for model in chain:
             if "/" in model and not model.startswith("models/"):
                 print("stream branch try: %s" % model, flush=True)
                 try:
-                    _ans = _direct(model, key, (_tier_persona(user, plan) + _research_txt + _memblock + _sklblock), turns)
+                    _sys = react_pipeline.build_answer_system(
+                        _tier_persona(user, plan) + _memblock + _sklblock,
+                        _reasoning, _research_txt) if react_pipeline else (
+                        _tier_persona(user, plan) + _research_txt + _memblock + _sklblock)
+                    _ans = _direct(model, key, _sys, turns)
                     print("stream branch: %s -> %s chars" % (model, len(_ans or "")), flush=True)
                     if _ans:
                         try:
