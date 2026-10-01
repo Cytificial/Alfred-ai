@@ -102,7 +102,21 @@ class H(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(b)))
         self.end_headers(); self.wfile.write(b)
 
+    def blocked(self, p):
+        """v366: secrets never served - denylist + traversal guard on every GET."""
+        try:
+            q = (p or "").split("?")[0].lstrip("/").lower()
+        except Exception:
+            q = ""
+        if not q or ".." in q: return True
+        if "keys.env" in q or ".db" in q or ".git" in q: return True
+        return q.startswith(("backend/", "backups/", "tools/", "."))
+
     def do_GET(self):
+        if self.blocked(self.path):
+            self._json(404, {"ok": False, "error": "Not found."})
+            return
+
         if self.mem_route(): return
         if self.path == "/api/health":
             return self._json(200, {"ok": True, "status": "online", "brain": "ready"})
