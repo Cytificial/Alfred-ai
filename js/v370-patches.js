@@ -1,54 +1,37 @@
-/* v370b-patches: password eye toggle — bulletproof
- * Runs in capture phase, stops app.js interference, re-applies on reset. */
+/* v370L: type-flip reveal (required by Chrome) + dual class (keeps app.js happy) */
 (function () {
   'use strict';
-
-  function findInput(btn) {
-    // Walk up from the button looking for a container that has an <input>
-    var n = btn.parentElement;
-    for (var i = 0; i < 5 && n; i++) {
-      var inp = n.querySelector('input');
-      if (inp) return inp;
-      n = n.parentElement;
-    }
-    return null;
-  }
-
   document.addEventListener('click', function (e) {
     var b = e.target && e.target.closest && e.target.closest('.eye');
     if (!b) return;
-
-    var input = findInput(b);
-    if (!input) {
-      console.warn('[v370b] eye clicked, no input found near', b);
-      return;
-    }
-
-    // Block any other handlers (app.js) from stealing the click.
+    var wrap = b.parentElement;
+    if (!wrap) return;
+    var input = wrap.querySelector('input.pw, input.pw-revealed');
+    if (!input) return;
     e.preventDefault();
     e.stopImmediatePropagation();
 
-    var wasHidden = (input.type === 'password');
-    var nextType = wasHidden ? 'text' : 'password';
-    input.type = nextType;
-    b.classList.toggle('on', wasHidden);
-    b.setAttribute('aria-label', wasHidden ? 'Hide password' : 'Show password');
+    var isPw = input.type === 'password';
+    if (isPw) {
+      input.type = 'text';
+      input.classList.remove('pw');
+      input.classList.add('pw-revealed');
+      input.style.webkitTextSecurity = 'none';
+      input.style.letterSpacing = 'normal';
+      input.setAttribute('autocomplete', 'off');
+    } else {
+      input.type = 'password';
+      input.classList.remove('pw-revealed');
+      input.classList.add('pw');
+      input.style.webkitTextSecurity = '';
+      input.style.letterSpacing = '';
+      input.setAttribute('autocomplete', 'current-password');
+    }
+    var v = input.value; input.value = ''; input.value = v;
 
-    if(window.__v370log)window.__v370log("click inp="+input.id+" was="+(wasHidden?"pw":"txt")+" now="+input.type);
-
-    // Re-apply twice in case app.js flips it back.
-    function reapply() { if (input.type !== nextType) { input.type = nextType; } }
-    setTimeout(reapply, 0);
-    setTimeout(reapply, 60);
+    b.classList.toggle('on', isPw);
+    b.setAttribute('aria-label', isPw ? 'Hide password' : 'Show password');
+    try { input.focus(); var L = input.value.length; input.setSelectionRange(L, L); } catch (err) {}
+    console.log('[v370L] ' + (isPw ? 'reveal' : 'hide') + ' type=' + input.type + ' cls=' + input.className);
   }, true);
-
-  // Also intercept pointerdown/touchstart so mobile fires our handler first.
-  ['pointerdown', 'touchstart'].forEach(function (evt) {
-    document.addEventListener(evt, function (e) {
-      var b = e.target && e.target.closest && e.target.closest('.eye');
-      if (!b) return;
-      // Don't do the toggle here — just make sure the click event isn't consumed.
-      e.stopPropagation();
-    }, true);
-  });
 })();

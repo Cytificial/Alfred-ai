@@ -1,0 +1,50 @@
+/* v380: chat markdown styling */
+.v380-md { white-space: normal !important; }
+.v380-md p { margin: 0 0 10px 0; line-height: 1.55; }
+.v380-md p:last-child { margin-bottom: 0; }
+.v380-md h1, .v380-md h2, .v380-md h3, .v380-md h4 { margin: 14px 0 8px 0; color: #eaf4ff; font-weight: 700; }
+.v380-md h1 { font-size: 1.25em; }
+.v380-md h2 { font-size: 1.15em; }
+.v380-md h3 { font-size: 1.05em; }
+.v380-md ul, .v380-md ol { margin: 6px 0 10px 0; padding-left: 22px; }
+.v380-md li { margin: 3px 0; line-height: 1.5; }
+.v380-md code { background: rgba(80,140,240,.15); color: #9fd4ff; padding: 2px 6px; border-radius: 5px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .92em; }
+.v380-md a { color: #7fc4ff; text-decoration: underline; }
+.v380-md strong { color: #eaf4ff; font-weight: 700; }
+
+/* code block card */
+.v380-code {
+  background: rgba(8,14,32,.85);
+  border: 1px solid rgba(80,140,255,.25);
+  border-radius: 10px;
+  margin: 10px 0;
+  overflow: hidden;
+  font-size: 13px;
+}
+.v380-code-hd {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 12px; background: rgba(30,60,120,.3);
+  border-bottom: 1px solid rgba(80,140,255,.15);
+  font: 600 11px/1 ui-monospace, monospace; color: #9fd4ff;
+  letter-spacing: .5px; text-transform: uppercase;
+}
+.v380-lang { opacity: .8; }
+.v380-copy {
+  background: transparent; border: 1px solid rgba(127,196,255,.3);
+  color: #7fc4ff; padding: 4px 10px; border-radius: 6px;
+  font: 600 11px/1 system-ui, sans-serif; cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.v380-copy:hover { background: rgba(127,196,255,.12); border-color: rgba(160,220,255,.6); }
+.v380-code pre {
+  margin: 0; padding: 12px 14px; overflow-x: auto;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12.5px; line-height: 1.55; color: #d8e6ff;
+  white-space: pre; tab-size: 2;
+}
+.v380-code pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+
+/* v380c: keep code blocks inside the bubble */
+.v380-code { max-width: 100%; box-sizing: border-box; }
+.v380-code pre { max-width: 100%; box-sizing: border-box; overflow-x: auto; }
+.v380-md { overflow-wrap: break-word; word-break: break-word; }

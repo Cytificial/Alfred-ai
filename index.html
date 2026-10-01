@@ -8,7 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="css/style.css?v=364a"/>
-  <link rel="stylesheet" href="css/v370-ui.css?v=370a"/>
+  <link rel="stylesheet" href="css/v370-ui.css?v=370p"/>
+  <link rel="stylesheet" href="css/v380-chat.css?v=380c"/>
   <link rel="manifest" href="manifest.json?v=355">
   <meta name="theme-color" content="#0a1220">
   <meta name="description" content="Alfred AI — Your Mind, Amplified. A multi-model AI assistant with memory, skills, and streaming.">
@@ -53,7 +54,7 @@
     <div class="head"><h2><span class="glowdot"></span>Welcome Back</h2><p>Sign in to continue your journey</p></div>
     <form id="login-form" novalidate>
       <label class="fld"><span class="lbl">Email address</span><input type="email" placeholder="you@example.com" autocomplete="email"/></label>
-      <label class="fld"><span class="lbl">Password</span><span class="inp-wrap"><input type="password" class="pw" placeholder="Enter your password" autocomplete="current-password"/><button type="button" class="eye" aria-label="Show password"></button></span></label>
+      <div class="fld"><span class="lbl">Password</span><span class="inp-wrap"><input type="password" class="pw" placeholder="Enter your password" autocomplete="current-password"/><button type="button" class="eye" aria-label="Show password"></button></span></div>
       <div class="row"><label class="chk"><input type="checkbox"/><span class="box"></span>Remember me</label><a href="mailto:support@alfredai.com?subject=Password%20reset" class="lnk">Forgot password?</a></div>
       <button class="btn-main" type="submit"><span>Sign In</span><span class="chev">&#10095;</span></button>
     </form>
@@ -79,7 +80,7 @@
     <form id="register-form" novalidate>
       <label class="fld"><span class="lbl">Full Name</span><input type="text" id="reg-name" placeholder="Your name" autocomplete="name"/></label>
       <label class="fld"><span class="lbl">Email address</span><input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email"/></label>
-      <label class="fld"><span class="lbl">Password</span><span class="inp-wrap"><input type="password" class="pw" placeholder="Create a strong password" autocomplete="new-password"/><button type="button" class="eye" aria-label="Show password"></button></span></label>
+      <div class="fld"><span class="lbl">Password</span><span class="inp-wrap"><input type="password" class="pw" placeholder="Create a strong password" autocomplete="new-password"/><button type="button" class="eye" aria-label="Show password"></button></span></div>
       <label class="chk terms"><input type="checkbox"/><span class="box"></span><span class="t">I agree to the <a href="/terms.html" target="_blank" rel="noopener noreferrer" class="lnk">Terms of Service</a> &amp; <a href="/privacy.html" target="_blank" rel="noopener noreferrer" class="lnk">Privacy Policy</a></span></label>
       <button class="btn-main" type="submit"><span>Create Account</span><span class="chev">&#10095;</span></button>
     </form>
@@ -254,10 +255,9 @@
 
 
 <script>window.__ALFRED_API={srv:"",brain:(location.protocol==="https:"?"/brain":location.protocol+"//"+location.hostname+":8082")};</script>
-<script src="js/app.js?v=365a"></script>
-<script src="js/v370-debug.js?v=1"></script>
-<script src="js/v370-patches.js?v=370b"></script>
-<script src="js/v370-viewfix.js?v=370"></script>
+<script src="js/app.js?v=380"></script>
+<script src="js/v380-chat.js?v=380c"></script>
+<script src="js/v370-patches.js?v=370L"></script>
 <script>if ("serviceWorker" in navigator) { addEventListener("load", function () { navigator.serviceWorker.register("/sw.js").catch(function(){}); }); }</script>
 
 </body>
