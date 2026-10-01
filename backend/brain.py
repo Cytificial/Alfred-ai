@@ -413,6 +413,8 @@ class Handler(BaseHTTPRequestHandler):
         _research_txt, _research_src = __import__("research").web_research2(message) if (message and len(message) <= 12000) else ("", [])
         try: _memblock = __import__("memory2").recall_block(user["_uid"], message)
         except Exception: _memblock = ""
+        try: _sklblock = __import__("skillsys").block_for(message)
+        except Exception: _sklblock = ""
         if not message:
             self.json_out(400, {"ok": False, "error": "Write a message first."})
             return
@@ -495,14 +497,14 @@ class Handler(BaseHTTPRequestHandler):
             answer, used_model = None, None
             for model in chain:
                 try:
-                    answer = _direct(model, key, (_tier_persona(user, plan) + _research_txt + _memblock), turns)
+                    answer = _direct(model, key, (_tier_persona(user, plan) + _research_txt + _memblock + _sklblock), turns)
                     used_model = model
                     if plan == "Ultra" and answer:
                         try:
                             _crit = ("You are the second mind in Alfred's council. Review the draft answer above "
                                      "in context. Fix anything wrong, sharpen the reasoning, keep the warm butler voice. "
                                      "Reply with ONLY the improved final answer.")
-                            _r2 = _direct(model, key, (_tier_persona(user, plan) + _research_txt + _memblock),
+                            _r2 = _direct(model, key, (_tier_persona(user, plan) + _research_txt + _memblock + _sklblock),
                                          list(turns) + [("assistant", answer), ("user", _crit)])
                             if _r2 and len(str(_r2)) > 40:
                                 answer = _r2
@@ -629,6 +631,8 @@ def _v130_install():
         _research_txt, _research_src = __import__("research").web_research2(message) if (message and len(message) <= 12000) else ("", [])
         try: _memblock = __import__("memory2").recall_block(user["_uid"], message)
         except Exception: _memblock = ""
+        try: _sklblock = __import__("skillsys").block_for(message)
+        except Exception: _sklblock = ""
         if not message:
             handler.json_out(400, {"ok": False, "error": "Write a message first."}); return
         if len(message) > 12000:
@@ -705,7 +709,7 @@ def _v130_install():
             if "/" in model and not model.startswith("models/"):
                 print("stream branch try: %s" % model, flush=True)
                 try:
-                    _ans = _direct(model, key, (_tier_persona(user, plan) + _research_txt + _memblock), turns)
+                    _ans = _direct(model, key, (_tier_persona(user, plan) + _research_txt + _memblock + _sklblock), turns)
                     print("stream branch: %s -> %s chars" % (model, len(_ans or "")), flush=True)
                     if _ans:
                         try:
@@ -734,7 +738,7 @@ def _v130_install():
                         for _im in _IMG["list"][-2:]:
                             contents[-1]["parts"].append({"inline_data": {"mime_type": _im.get("mime","image/jpeg"), "data": _im["data"]}})
                     except Exception: pass
-                payload = {"systemInstruction": {"parts": [{"text": (_tier_persona(user, plan) + _research_txt + _memblock)}]},
+                payload = {"systemInstruction": {"parts": [{"text": (_tier_persona(user, plan) + _research_txt + _memblock + _sklblock)}]},
                            "contents": contents,
                            "generationConfig": {"temperature": 0.8, "maxOutputTokens": GEM_MAXTOK}}
                 req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),

@@ -603,6 +603,24 @@ def maybe_handle(handler, method):
         gdb.commit(); gdb.close()
         return _send(handler, 200, {"ok": True, "email": email, "extra": extra})
 
+    if method == "GET" and p == "/api/admin/skills":
+        import skillsys as _sk
+        return _send(handler, 200, {"ok": True,
+            "skills": [{"name": x["name"], "description": x["description"], "trigger": x["trigger"]} for x in _sk.index()]})
+
+    if method == "POST" and p == "/api/admin/skills/add":
+        import skillsys as _sk
+        b = _body(handler)
+        ok, err = _sk.create(str(b.get("name", "")), str(b.get("description", "")),
+                             str(b.get("trigger", "")), str(b.get("body", "")))
+        return _send(handler, 200 if ok else 400, {"ok": ok, "error": err})
+
+    if method == "POST" and p == "/api/admin/skills/delete":
+        import skillsys as _sk
+        b = _body(handler)
+        ok, err = _sk.delete(str(b.get("name", "")))
+        return _send(handler, 200 if ok else 400, {"ok": ok, "error": err})
+
     if method == "GET" and p == "/api/admin/brain/prompt":
         import os as _o1
         _dir = _o1.path.dirname(DBP)
