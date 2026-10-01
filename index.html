@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="css/style.css?v=364a"/>
+  <link rel="stylesheet" href="css/v370-ui.css?v=370"/>
   <link rel="manifest" href="manifest.json?v=355">
   <meta name="theme-color" content="#0a1220">
   <meta name="description" content="Alfred AI — Your Mind, Amplified. A multi-model AI assistant with memory, skills, and streaming.">
@@ -254,6 +255,9 @@
 
 <script>window.__ALFRED_API={srv:"",brain:(location.protocol==="https:"?"/brain":location.protocol+"//"+location.hostname+":8082")};</script>
 <script src="js/app.js?v=365a"></script>
+<script src="js/v370-patches.js?v=370"></script>
+<script src="js/v370-viewfix.js?v=370"></script>
 <script>if ("serviceWorker" in navigator) { addEventListener("load", function () { navigator.serviceWorker.register("/sw.js").catch(function(){}); }); }</script>
+
 </body>
 </html>

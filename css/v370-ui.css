@@ -1,0 +1,25 @@
+/* v370: password reveal button */
+.eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  width:28px;height:28px;border:0;background:transparent;cursor:pointer;
+  border-radius:6px;padding:0;display:flex;align-items:center;justify-content:center;
+  color:rgba(232,242,255,.55);transition:color .15s,background .15s}
+.eye::before{content:"";display:block;width:18px;height:18px;
+  background:currentColor;
+  -webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z'/><circle cx='12' cy='12' r='3'/></svg>") no-repeat center/contain;
+          mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z'/><circle cx='12' cy='12' r='3'/></svg>") no-repeat center/contain}
+.eye:hover{color:#7fc4ff;background:rgba(127,196,255,.08)}
+.eye.on{color:#7fc4ff}
+.eye.on::before{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'><path d='M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22'/></svg>");
+        mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'><path d='M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22'/></svg>")}
+
+/* v370: eliminate view-switching flicker */
+.views{position:relative;flex:1;min-height:0;overflow:hidden}
+.view{position:absolute;inset:0;opacity:0;visibility:hidden;pointer-events:none;
+  transform:translateY(6px);
+  transition:opacity .18s ease,transform .18s ease,visibility 0s linear .18s;
+  will-change:opacity,transform}
+.view.show{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0);
+  transition:opacity .18s ease,transform .18s ease,visibility 0s}
+@media (prefers-reduced-motion:reduce){
+  .view{transition:none!important;transform:none!important}
+}
