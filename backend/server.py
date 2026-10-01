@@ -108,7 +108,8 @@ class H(SimpleHTTPRequestHandler):
             q = (p or "").split("?")[0].lstrip("/").lower()
         except Exception:
             q = ""
-        if not q or ".." in q: return True
+        if ".." in q: return True
+        if q in ("", "index.html", "admin.html"): return False
         if "keys.env" in q or ".db" in q or ".git" in q: return True
         return q.startswith(("backend/", "backups/", "tools/", "."))
 
