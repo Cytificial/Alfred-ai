@@ -82,23 +82,19 @@ def remember(uid, text, src="chat"):
         return False
 
 def forget(uid, mid):
+    """v361c: delete ONE memory owned by uid (v2 + fts, one transaction)."""
     try:
         c = _conn()
         try:
-            c.execute("DELETE FROM memories_v2 WHERE id=? AND user_id=?", (mid, uid))
-            c.execute("DELETE FROM memories_fts WHERE rowid=?", (mid,))
+            r = c.execute("DELETE FROM memories_v2 WHERE id=? AND user_id=?", (mid, uid)).rowcount
+            if r > 0:
+                c.execute("DELETE FROM memories_fts WHERE rowid=? AND user_id=?", (mid, uid))
             c.commit()
+            return r > 0
         finally:
             c.close()
-        return True
     except Exception:
         return False
-
-_EXTR_SYS = ("You extract durable facts about THE USER from a chat exchange "
-             "(preferences, identity, ongoing projects). Return ONLY a JSON array of up to 3 "
-             "short strings. [] if none. Never store passwords, keys, or credentials - "
-             "if present, output [].")
-
 def maybe_extract(uid, message, reply, call):
     try:
         if not call:

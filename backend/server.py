@@ -45,6 +45,56 @@ class H(SimpleHTTPRequestHandler):
         if p == "/" or p.endswith("/index.html") or p.endswith("/app.js") or p.endswith("/login.html"):
             self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
         super().end_headers()
+    def mem_route(self):
+        """v361b: /api/memory/list + /api/memory/delete - session-scoped, uid never from request."""
+        path = self.path.split("?")[0]
+        if path not in ("/api/memory/list", "/api/memory/delete"):
+            return False
+        try:
+            import hashlib as _hlM, sqlite3 as _sqM, json as _jsM, time as _tM
+            _tokM = (self.headers.get("X-Alfred-Token") or "").strip()
+            for _pM in self.headers.get("Cookie", "").split(";"):
+                if "alfred_session=" in _pM:
+                    _tokM = _pM.split("=", 1)[1].strip()
+            _uidM = None
+            if _tokM:
+                con = _sqM.connect(os.path.join(HERE, "alfred.db"), timeout=10)
+                try:
+                    row = con.execute("SELECT user_id FROM sessions WHERE token_hash IN (?,?) AND expires>?",
+                                      (_tokM, _hlM.sha256(_tokM.encode()).hexdigest(), _tM.time())).fetchone()
+                    if row: _uidM = row[0]
+                finally:
+                    con.close()
+            if not _uidM:
+                self._json(401, {"ok": False, "error": "sign in first"})
+                return True
+            import memory2 as _m2
+            if path == "/api/memory/list":
+                rows = _m2.listing(_uidM)
+                self._json(200, {"ok": True, "memories": rows, "items": rows})
+                return True
+            n = int(self.headers.get("Content-Length", 0) or 0)
+            try:
+                b = _jsM.loads(self.rfile.read(n) or b"{}")
+            except Exception:
+                self._json(400, {"ok": False, "error": "bad json"})
+                return True
+            try:
+                mid = int(b.get("id", 0))
+            except Exception:
+                mid = 0
+            if mid <= 0:
+                self._json(400, {"ok": False, "error": "bad id"})
+                return True
+            if not _m2.forget(_uidM, mid):
+                self._json(404, {"ok": False, "error": "no such memory"})
+                return True
+            self._json(200, {"ok": True, "deleted": mid})
+            return True
+        except Exception:
+            self._json(500, {"ok": False, "error": "memory route failed"})
+            return True
+
     def _json(self, code, obj):
         b = json.dumps(obj).encode()
         self.send_response(code)
@@ -53,6 +103,7 @@ class H(SimpleHTTPRequestHandler):
         self.end_headers(); self.wfile.write(b)
 
     def do_GET(self):
+        if self.mem_route(): return
         if self.path == "/api/health":
             return self._json(200, {"ok": True, "status": "online", "brain": "ready"})
         if self.path.startswith("/api/image"):      # v77: cached + retried
@@ -137,6 +188,7 @@ class H(SimpleHTTPRequestHandler):
         return super().do_GET()                          # static frontend
 
     def do_POST(self):
+        if self.mem_route(): return
         if self.path == "/api/explore":                 # v78: share with everyone
             n = int(self.headers.get("Content-Length", 0) or 0)
             try:
@@ -166,32 +218,6 @@ class H(SimpleHTTPRequestHandler):
                 open(tmp, "w").write(json.dumps(data[-60:]))
                 os.replace(tmp, fp)
             return self._json(200, item)
-        if self.path.split("?")[0] in ("/api/memory/list", "/api/memory/delete"):
-            import hashlib as _hl9, sqlite3 as _sq9
-            _tok9 = (self.headers.get("X-Alfred-Token") or "").strip()
-            for _p9 in self.headers.get("Cookie", "").split(";"):
-                if "alfred_session=" in _p9:
-                    _tok9 = _p9.split("=", 1)[1].strip()
-            _uid9 = None
-            if _tok9:
-                _c9 = [_tok9] + [_hl9.sha256(_tok9.encode()).hexdigest()]
-                _con9 = _sq9.connect(os.path.join(HERE, "alfred.db"), timeout=10)
-                try:
-                    _r9 = _con9.execute("SELECT user_id FROM sessions WHERE token_hash IN (%s) AND expires>?" % ",".join("?" * len(_c9)), _c9 + [_t.time()]).fetchone()
-                    if _r9: _uid9 = _r9[0]
-                finally:
-                    _con9.close()
-            if not _uid9:
-                return self._json(401, {"ok": False, "error": "sign in first"})
-            import memory2 as _m29
-            if self.path.endswith("/delete"):
-                try:
-                    _b9 = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0) or 0)) or b"{}")
-                except Exception:
-                    return self._json(400, {"ok": False, "error": "bad json"})
-                _ok9 = _m29.forget(_uid9, int(_b9.get("id", 0) or 0))
-                return self._json(200, {"ok": bool(_ok9)})
-            return self._json(200, {"ok": True, "memories": _m29.listing(_uid9)})
         if self.path == "/api/memory":
             n = int(self.headers.get("Content-Length", 0) or 0)
             try:
