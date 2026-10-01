@@ -1345,7 +1345,7 @@ window.__v152 = "1"; /* v154 retires v152 */
   var LIST = [], SEL = 0, nodesEl, linksEl;
   function build() {
     var real = read();
-    LIST = real.concat(DEMO.slice(0, Math.max(0, 7 - real.length)));
+    LIST = real.slice(0, 7);    /* v363: real chats only */
     nodesEl = $("#const-nodes"); linksEl = $("#const-links");
     if (!nodesEl) return;
     nodesEl.innerHTML = "";
@@ -1386,7 +1386,7 @@ window.__v152 = "1"; /* v154 retires v152 */
   }
   function select() {
     $$(".const-node", nodesEl).forEach(function (n, i) { n.classList.toggle("sel", i === SEL); });
-    var it = LIST[SEL] || DEMO[0];
+    var it = LIST[SEL] || { t: "No conversations yet", ts: Date.now(), cat: "General", prev: "Start a chat with Alfred - it will appear here.", n: 0 };
     $("#hc-title").textContent = it.t;
     $("#hc-time").textContent = timeLabel(it.ts);
     $("#hc-prev").textContent = (it.prev || "").slice(0, 60) + ((it.prev || "").length > 60 ? "..." : "");
@@ -1423,6 +1423,7 @@ window.__v152 = "1"; /* v154 retires v152 */
     scroll.scrollTop = scroll.scrollHeight;
   }
 
+  window.__v26build = build;
   build();
 
   /* save every finished answer as a history node */
@@ -6427,6 +6428,7 @@ try { /* v163proc: native thinking card */
           var cur = []; try { cur = JSON.parse(localStorage.getItem("alfred_history") || "[]"); } catch (e) {}
           var local = cur.filter(function (r) { return r && !r._sid; });
           try { localStorage.setItem("alfred_history", JSON.stringify(out.concat(local).slice(0, 12))); } catch (e) {}
+          try { window.__v26build && window.__v26build(); } catch (e) {}
         }
         list.forEach(function (ch) {
           fetch(API + "/api/chat/" + ch.id, { credentials: "include" })
@@ -7094,11 +7096,13 @@ try { /* v163proc: native thinking card */
     if (busy) return; busy = true;
     get("/api/chats").then(function (j) {
       busy = false;
-      if (!j || !j.ok) return;
       var h = host(); if (!h) return;
       var list = ensure(h).querySelector(".v155list");
       list.innerHTML = "";
-      (j.chats || []).slice(0, 30).forEach(function (c) {
+      if (!j || !j.ok) { var er = document.createElement("div"); er.className = "v155empty"; er.textContent = "Couldn't load your chats - tap to retry."; er.onclick = render; list.appendChild(er); return; }
+      var chs = j.chats || [];
+      if (!chs.length) { var em = document.createElement("div"); em.className = "v155empty"; em.textContent = "No conversations yet - start a chat with Alfred."; list.appendChild(em); return; }
+      chs.slice(0, 30).forEach(function (c) {
         var row = document.createElement("div"); row.className = "v155row";
         row.innerHTML = "<div class='v155t'><b>" + esc(c.title) + "</b><i>" +
           when(c.updated) + " · " + (c.msgcount || 0) + " messages</i></div>" +
@@ -7106,11 +7110,19 @@ try { /* v163proc: native thinking card */
         row.querySelector(".v155t").onclick = function () { openChat(c.id); };
         row.querySelector(".v155del").onclick = function (ev) {
           ev.stopPropagation();
-          fetch(API + "/api/chat/" + c.id, { method: "DELETE", credentials: "include",
-            headers: { "X-Alfred-Token": tok() } })
-            .then(function (r) { return r.json(); })
-            .then(function (d) { if (d && d.ok) { row.remove(); render(); } })
-            .catch(function () {});
+          window.__v155ask("Delete this chat? This can\u2019t be undone.", function () {
+            fetch(API + "/api/chat/" + c.id, { method: "DELETE", credentials: "include",
+              headers: { "X-Alfred-Token": tok() } })
+              .then(function (r) { return r.json(); })
+              .then(function (d) {
+                if (d && d.ok) {
+                  try { var cur = JSON.parse(localStorage.getItem("alfred_history") || "[]");
+                    localStorage.setItem("alfred_history", JSON.stringify(cur.filter(function (r0) { return r0 && r0._sid !== c.id; }))); } catch (e0) {}
+                  try { window.__v26build && window.__v26build(); } catch (e1) {}
+                  row.remove(); render();
+                }
+              }).catch(function () {});
+          })
         };
         list.appendChild(row);
       });
@@ -13666,4 +13678,38 @@ try { /* v163proc: native thinking card */
         window.__v362planReady = true; done = true;
       } else fin();                              /* signed out / bad token: default plan is honest */
     }).catch(fin);
+})();
+
+/* ===== v363: history v1 - confirm modal, states, single list (mirror retired) ===== */
+(function () {
+  if (window.__v363h) return; window.__v363h = "1";
+  var st = document.createElement("style");
+  st.textContent =
+    ".gal-list{display:none !important}" +
+    ".v155list:empty::after{content:'Loading your conversations...';display:block;padding:10px 4px;" +
+    "font:12.5px system-ui;color:#7e97b8}" +
+    ".v155empty{padding:12px 6px;font:12.5px system-ui;color:#7e97b8;cursor:default}" +
+    ".v363modal{position:fixed;inset:0;z-index:2147483000;background:rgba(3,8,20,.6);" +
+    "display:flex;align-items:center;justify-content:center}" +
+    ".v363mc{width:min(88vw,340px);background:rgba(12,22,44,.96);border:1px solid rgba(140,190,255,.28);" +
+    "border-radius:18px;padding:20px;box-shadow:0 18px 60px rgba(0,0,0,.5)}" +
+    ".v363mt{font:14px system-ui;color:#eaf4ff;margin-bottom:16px}" +
+    ".v363mr{display:flex;gap:10px;justify-content:flex-end}" +
+    ".v363mr button{border-radius:10px;padding:8px 16px;font:600 13px system-ui;cursor:pointer;" +
+    "background:rgba(255,255,255,.06);border:1px solid rgba(160,200,255,.25);color:#dceaff}" +
+    ".v363mr button.danger{background:rgba(255,90,90,.14);border-color:rgba(255,120,120,.45);color:#ffb3b3}";
+  document.head.appendChild(st);
+  window.__v155ask = function (msg, cb) {
+    var m = document.createElement("div"); m.className = "v363modal";
+    var c = document.createElement("div"); c.className = "v363mc";
+    var p = document.createElement("div"); p.className = "v363mt"; p.textContent = msg;
+    var r = document.createElement("div"); r.className = "v363mr";
+    var no = document.createElement("button"); no.type = "button"; no.textContent = "Keep it";
+    var yes = document.createElement("button"); yes.type = "button"; yes.className = "danger"; yes.textContent = "Delete";
+    no.onclick = function () { m.remove(); };
+    yes.onclick = function () { m.remove(); cb(); };
+    m.onclick = function (e) { if (e.target === m) m.remove(); };
+    r.appendChild(no); r.appendChild(yes); c.appendChild(p); c.appendChild(r); m.appendChild(c);
+    document.body.appendChild(m);
+  };
 })();
