@@ -1,0 +1,68 @@
+/* v404: effort toggle + council dots + reasoning stream + engine chooser */
+.v404-toggle {
+  display: flex; gap: 6px; justify-content: center;
+  padding: 6px 16px 10px; max-width: 900px; margin: 0 auto;
+}
+.v404-eff {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(16,28,52,.6);
+  border: 1px solid rgba(120,180,255,.22);
+  border-radius: 999px;
+  padding: 6px 12px; color: #cfe2ff;
+  font: 500 12px system-ui; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s, border-color .15s;
+}
+.v404-eff:hover { background: rgba(30,55,100,.7); }
+.v404-eff.on {
+  background: linear-gradient(120deg, rgba(60,150,255,.6), rgba(140,220,255,.4));
+  border-color: rgba(170,235,255,.65);
+  color: #fff;
+}
+.v404-ef-i { font-size: 13px; }
+
+.v404-council {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; color: #b6c8e2; font-size: 12.5px;
+}
+.v404-dots { display: inline-flex; gap: 4px; margin-left: 4px; }
+.v404-dots i {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(120,180,255,.25);
+  transition: background .3s;
+}
+.v404-dots i.ok { background: #7fc4ff; box-shadow: 0 0 8px rgba(127,196,255,.8); }
+.v404-dots i.fail { background: #ff7a9d; }
+
+.v404-reason {
+  margin: 6px 0 0 26px; padding: 8px 10px;
+  background: rgba(10,18,40,.7);
+  border-left: 3px solid rgba(120,180,255,.5);
+  border-radius: 6px;
+  color: #c7d6e8;
+  font: 12px/1.55 ui-monospace, Menlo, monospace;
+  white-space: pre-wrap; word-break: break-word;
+  max-height: 220px; overflow-y: auto;
+  animation: v404fade .25s ease-out;
+}
+@keyframes v404fade { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+
+.v404-engine-sec {
+  border-top: 1px solid rgba(120,180,255,.15);
+  margin-top: 6px; padding-top: 6px;
+}
+.v404-engine-h {
+  font: 600 10.5px system-ui; color: #7fc4ff;
+  letter-spacing: .8px; text-transform: uppercase;
+  padding: 6px 12px 4px;
+}
+.v404-engine {
+  display: flex; flex-direction: column; gap: 1px;
+  width: 100%; text-align: left;
+  background: transparent; border: 0;
+  color: #cfe4ff; padding: 8px 12px;
+  border-radius: 8px; cursor: pointer;
+}
+.v404-engine:hover { background: rgba(127,196,255,.1); }
+.v404-engine b { font: 600 13px system-ui; }
+.v404-engine i { font: 11px system-ui; font-style: normal; color: #8ea8cc; }

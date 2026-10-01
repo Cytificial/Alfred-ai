@@ -6,8 +6,10 @@ import os
 import sqlite3
 try:
     import react_pipeline, tools_web, router_local, file_upload, chat_extras
+    import council, retry, engine_names
 except Exception:
     react_pipeline = None; tools_web = None
+    council = None; retry = None; engine_names = None
 import time
 import traceback
 import urllib.error
@@ -441,6 +443,15 @@ class Handler(BaseHTTPRequestHandler):
                 except Exception as _e:
                     handler.json_out(500, {"ok": False, "error": str(_e)[:120]})
                 return
+            if method == "GET" and path == "/api/engines":
+                try:
+                    user = handler.require_user()
+                    if not user: return
+                    plan = user.get("plan") or "Free"
+                    handler.json_out(200, {"ok": True, "engines": engine_names.engines_for(plan)})
+                except Exception as _e:
+                    handler.json_out(500, {"ok": False, "error": str(_e)[:120]})
+                return
             if method == "POST" and path == "/api/chat":
                 self.chat(user)
                 return
@@ -474,6 +485,10 @@ class Handler(BaseHTTPRequestHandler):
     def chat(self, user):
         data = self.body()
         message = str(data.get("message") or "").strip()
+        _effort = str(data.get("effort") or "balanced").lower()
+        if _effort not in ("fast", "balanced", "deep"):
+            _effort = "balanced"
+        _engine_id = str(data.get("engine") or "").lower()
         # v401: load any attached files as prompt context
         try:
             _att_ids = data.get("attachments") or []
@@ -526,6 +541,8 @@ class Handler(BaseHTTPRequestHandler):
         today, now = day_utc(), time.time()
         limit = max(1, int(cfg.get("minute_limit", 6)))
         context_count = max(2, min(40, int(cfg.get("context_messages", 12))))
+        if _effort == "fast":  context_count = min(context_count, 6)
+        elif _effort == "deep": context_count = min(40, context_count + 8)
         chat_id = data.get("chat_id")
         if chat_id not in (None, ""):
             try:
@@ -587,6 +604,41 @@ class Handler(BaseHTTPRequestHandler):
 
             try: _sse_out(handler, {"phase": "answering", "label": "Writing the answer"})
             except Exception: pass
+            # v404: council for Pro/Ultra complex queries
+            _council_cap = {"Free": 1, "Pro": 2, "Ultra": 3}.get(plan, 1)
+            _want_council = (
+                _council_cap > 1
+                and _route_decision.get("complex")
+                and _effort != "fast"
+                and len(chain) >= _council_cap
+            )
+            if _want_council:
+                try: _sse_out(handler, {"phase": "council", "label": "Gathering perspectives", "count": _council_cap})
+                except Exception: pass
+                _cmodels = chain[:_council_cap]
+                def _c_call(m, sysp, t):
+                    return retry.with_backoff(lambda: _direct(m, key, sysp, t), attempts=2, base=0.8, cap=3.0) or ""
+                _results = council.run_council(_cmodels, _c_call, _tier_persona(user, plan) + _memblock + _sklblock, turns, timeout=60)
+                for _i, _r in enumerate(_results):
+                    _ok = bool(_r.get("answer"))
+                    try: _sse_out(handler, {"council_result": _i, "ok": _ok})
+                    except Exception: pass
+                    print("[v404 council] slot %d: %s" % (_i, "ok" if _ok else "fail"), flush=True)
+                try: _sse_out(handler, {"phase": "synthesizing", "label": "Merging into one answer"})
+                except Exception: pass
+                _synth_prompt = council.build_synth_prompt(message, _results)
+                try:
+                    _final = _direct(chain[0], key, council.SYNTH_SYS, [("user", _synth_prompt)]) or ""
+                except Exception:
+                    _final = ""
+                if _final:
+                    try: _sse_out(handler, {"t": _final})
+                    except Exception: pass
+                    try: _sse_out(handler, {"done": True, "chat_id": chat_id, "model": "Council", "remaining": max(0, cap - used - 1)})
+                    except Exception: pass
+                    return
+                print("[v404 council] synthesis failed — falling back", flush=True)
+
             for model in chain:
                 try:
                     answer = _direct(model, key, (_tier_persona(user, plan) + _research_txt + _memblock + _sklblock), turns)
@@ -718,6 +770,8 @@ def _v130_install():
         h.wfile.flush()
 
     def _chat_stream(handler, user):
+        _effort = "balanced"    # v404e: forced default
+        _engine_id = ""          # v404e: forced default
         data = handler.body()
         message = str(data.get("message") or "").strip()
         # v390: SAFE route_decision — always defined
@@ -743,6 +797,27 @@ def _v130_install():
                     }
                     print("[v401 router-local] %s" % _local, flush=True)
 
+                # v401e: quick-reply short-circuit (greetings + math)
+                _qr = _local.get("quick_reply")
+                _is_math = _local.get("math")
+                if _qr or _is_math:
+                    _a = _qr
+                    if _is_math:
+                        _a = None
+                        try:
+                            _v = router_local.safe_math(message)
+                            if _v is not None:
+                                _a = "That comes to " + str(_v) + "."
+                        except Exception:
+                            _a = None
+                    if _a:
+                        try: _sse_out(handler, {"phase": "answering", "label": "Writing the answer"})
+                        except Exception: pass
+                        try: _sse_out(handler, {"t": _a})
+                        except Exception: pass
+                        try: _sse_out(handler, {"done": True, "chat_id": chat_id, "remaining": max(0, cap - used - 1)})
+                        except Exception: pass
+                        return
                 else:
                     _route_decision = react_pipeline.route(message, _probe_model, _probe_chain) or _route_decision
                     _route_decision["source"] = "llm"
@@ -827,28 +902,6 @@ def _v130_install():
         handler.end_headers()
         handler.close_connection = True
         _sse_out(handler, {"chat_id": chat_id})
-        # v401f: quick-reply short-circuit (post-headers, safe)
-        _qr = _route_decision.get("quick_reply")
-        _math = _route_decision.get("math")
-        if _qr or _math:
-            _a = _qr
-            if _math:
-                _a = None
-                try:
-                    _v = router_local.safe_math(message)
-                    if _v is not None:
-                        _a = "That comes to " + str(_v) + "."
-                except Exception:
-                    _a = None
-            if _a:
-                try: _sse_out(handler, {"phase": "answering", "label": "Writing the answer"})
-                except Exception: pass
-                try: _sse_out(handler, {"t": _a})
-                except Exception: pass
-                try: _sse_out(handler, {"done": True, "chat_id": chat_id, "remaining": max(0, cap - used - 1)})
-                except Exception: pass
-                return
-
 
         full, broken = [], False
 
@@ -856,7 +909,7 @@ def _v130_install():
         _reasoning = ""
         try: _route_decision
         except NameError: _route_decision = {"search": False, "complex": False}
-        if react_pipeline and _route_decision.get("complex"):
+        if react_pipeline and _route_decision.get("complex") and _effort != "fast":
             try:
                 def _reason_model(m, sysp, turns):
                     try: return _direct(m, key, sysp, turns) or ""
@@ -864,10 +917,56 @@ def _v130_install():
                 _reasoning = react_pipeline.reason(message, _research_txt, _memblock, _sklblock,
                                                    _reason_model, chain)
                 if _reasoning:
-                    _sse_out(handler, {"think": _reasoning})
-                    print("[v390 reason] %d chars" % len(_reasoning), flush=True)
+                    try:
+                        _sse_out(handler, {"think_start": True})
+                        _words = _reasoning.split(" ")
+                        _buf = []
+                        for _i, _w in enumerate(_words):
+                            _buf.append(_w)
+                            if len(_buf) >= 5 or _i == len(_words) - 1:
+                                _sse_out(handler, {"think": " ".join(_buf) + " "})
+                                time.sleep(0.035)
+                                _buf = []
+                        _sse_out(handler, {"think_end": True})
+                    except Exception: pass
+                    print("[v404 reason] %d chars (streamed)" % len(_reasoning), flush=True)
             except Exception as _e:
                 print("[v390 reason] fail-open:", _e, flush=True)
+
+        # v404: council for Pro/Ultra complex queries
+        _council_cap = {"Free": 1, "Pro": 2, "Ultra": 3}.get(plan, 1)
+        _want_council = (
+            _council_cap > 1
+            and _route_decision.get("complex")
+            and _effort != "fast"
+            and len(chain) >= _council_cap
+        )
+        if _want_council:
+            try: _sse_out(handler, {"phase": "council", "label": "Gathering perspectives", "count": _council_cap})
+            except Exception: pass
+            _cmodels = chain[:_council_cap]
+            def _c_call(m, sysp, t):
+                return retry.with_backoff(lambda: _direct(m, key, sysp, t), attempts=2, base=0.8, cap=3.0) or ""
+            _results = council.run_council(_cmodels, _c_call, _tier_persona(user, plan) + _memblock + _sklblock, turns, timeout=60)
+            for _i, _r in enumerate(_results):
+                _ok = bool(_r.get("answer"))
+                try: _sse_out(handler, {"council_result": _i, "ok": _ok})
+                except Exception: pass
+                print("[v404 council] slot %d: %s" % (_i, "ok" if _ok else "fail"), flush=True)
+            try: _sse_out(handler, {"phase": "synthesizing", "label": "Merging into one answer"})
+            except Exception: pass
+            _synth_prompt = council.build_synth_prompt(message, _results)
+            try:
+                _final = _direct(chain[0], key, council.SYNTH_SYS, [("user", _synth_prompt)]) or ""
+            except Exception:
+                _final = ""
+            if _final:
+                try: _sse_out(handler, {"t": _final})
+                except Exception: pass
+                try: _sse_out(handler, {"done": True, "chat_id": chat_id, "model": "Council", "remaining": max(0, cap - used - 1)})
+                except Exception: pass
+                return
+            print("[v404 council] synthesis failed — falling back", flush=True)
 
         for model in chain:
             if "/" in model and not model.startswith("models/"):
