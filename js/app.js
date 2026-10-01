@@ -7273,7 +7273,7 @@ try { /* v163proc: native thinking card */
     }
     return pill;
   }
-  function setCr(n) { var p = ensurePill(); if (p) p.textContent = "⚡ " + n; }
+  function setCr(n) { var L = window.__v160last; if (!L) return; var p = document.getElementById("v160cr"); if (!p) return; var t = p.querySelector(".v160t"); if (t) t.textContent = "\u26a1 " + n + " \u00b7 " + L.plan; p.classList.toggle("low", n <= 5); }
   function setPlan(plan) {
     if (!plan) return;
     var n, els = document.querySelectorAll("b,div,span,h1,h2,h3,p");
@@ -7631,7 +7631,7 @@ try { /* v163proc: native thinking card */
       })
       .then(function (j) {
         if (!(j && j.ok)) return;
-        var t = "⚡ " + j.remaining + " · " + j.plan;
+        var t = "⚡ " + j.remaining + " · " + j.plan; window.__v160last = { remaining: j.remaining, plan: j.plan, cap: j.cap };
         if (t !== lastTxt) {
           lastTxt = t;
           pill.querySelector(".v160t").textContent = t;
