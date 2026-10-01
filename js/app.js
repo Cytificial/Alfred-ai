@@ -3644,6 +3644,8 @@ window.__v152 = "1"; /* v154 retires v152 */
     try { window.scrollTo(0, 0); } catch (e) {}
   }
   window.__openPlans = openPlans;
+  var _op361 = openPlans;
+  openPlans = function () { _op361.apply(this, arguments); try { document.body.dataset.v361plans = "1"; } catch (e) {} };
   if (plansRow) plansRow.addEventListener("click", function (e) { e.stopPropagation(); openPlans(); });
   var freeBadge = null;
   document.querySelectorAll("*").forEach(function (el) {
@@ -3661,11 +3663,13 @@ window.__v152 = "1"; /* v154 retires v152 */
         payMode = false; pay.style.display = "none";
         payHidden.forEach(function (h) { try { h.el.style.display = h.d; } catch (e) {} });
         setView.style.display = "";
+        try { document.body.dataset.v361plans = "0"; } catch (e) {}
       }
     }, true);
   }
   setInterval(function () {
     if (!payMode) return;
+    if (document.body.dataset.v361plans === "1") return;
     if (getComputedStyle(setView).display !== "none") { setView.style.display = "none"; pay.style.display = ""; }
     payHidden.forEach(function (h) { try { if (getComputedStyle(h.el).display !== "none") h.el.style.display = "none"; } catch (e) {} });
   }, 250);
@@ -13594,3 +13598,54 @@ try { /* v163proc: native thinking card */
     } catch (e) {}
   }, 2000);
 })();
+
+/* ===== v361: memory card in settings (after v80's one-time build) ===== */
+(function () {
+  if (window.__v361mem) return; window.__v361mem = "1";
+  var tries = 0;
+  (function wait() {
+    var sv = document.getElementById("view-settings");
+    if (!sv || !sv.children.length) { if (++tries < 60) setTimeout(wait, 500); return; }
+    if (sv.dataset.v361mem) return; sv.dataset.v361mem = "1";
+    var API = "http://" + location.hostname + ":8082";
+    function tok() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
+    var card = document.createElement("div");
+    card.style.cssText = "margin:18px 0;padding:14px;border:1px solid rgba(120,170,255,.18);border-radius:14px;background:rgba(10,20,44,.5)";
+    var h = document.createElement("h3"); h.textContent = "What Alfred remembers"; card.appendChild(h);
+    var p = document.createElement("p"); p.style.cssText = "font-size:12px;opacity:.7;margin:4px 0 10px";
+    p.textContent = "Facts Alfred picked up from your chats. He uses them to personalize answers - you stay in control.";
+    card.appendChild(p);
+    var list = document.createElement("div"); card.appendChild(list);
+    var foot = document.createElement("div"); foot.style.cssText = "margin-top:8px";
+    var rf = document.createElement("button"); rf.type = "button"; rf.textContent = "Refresh";
+    rf.style.cssText = "background:rgba(120,170,255,.12);border:1px solid rgba(120,170,255,.25);color:#cfe6ff;border-radius:9px;padding:5px 12px;font:12px system-ui;cursor:pointer";
+    rf.onclick = load; foot.appendChild(rf); card.appendChild(foot);
+    function load() {
+      list.textContent = "Loading...";
+      fetch(API + "/api/memory/list", { headers: { "X-Alfred-Token": tok() } })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          list.textContent = "";
+          if (!j || !j.ok) { list.textContent = "Sign in to see your memories."; return; }
+          var ms = j.memories || [];
+          if (!ms.length) { list.textContent = "Nothing yet - chat with Alfred and he will remember what matters."; return; }
+          ms.forEach(function (m) {
+            var row = document.createElement("div");
+            row.style.cssText = "display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(120,170,255,.08)";
+            var t = document.createElement("span"); t.style.cssText = "flex:1;font-size:13px"; t.textContent = m.text; row.appendChild(t);
+            var d = document.createElement("button"); d.type = "button"; d.textContent = "Forget";
+            d.style.cssText = "background:rgba(255,120,140,.1);border:1px solid rgba(255,120,140,.3);color:#ffc9d2;border-radius:9px;padding:4px 10px;font:12px system-ui;cursor:pointer";
+            d.onclick = function () {
+              fetch(API + "/api/memory/delete", { method: "POST",
+                headers: { "X-Alfred-Token": tok(), "Content-Type": "application/json" },
+                body: JSON.stringify({ id: m.id }) }).then(load);
+            };
+            row.appendChild(d); list.appendChild(row);
+          });
+        }).catch(function () { list.textContent = "Could not reach Alfred's memory."; });
+    }
+    load();
+    sv.appendChild(card);
+  })();
+})();
+

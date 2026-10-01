@@ -152,3 +152,15 @@ def _extract_worker(uid, m, r, call):
             pass
 
 init()
+
+def listing(uid):
+    """v361: user's own memories, newest first, capped 50."""
+    try:
+        c = _conn()
+        try:
+            return [{"id": r[0], "text": r[1], "ts": r[2]} for r in
+                    c.execute("SELECT id,text,ts FROM memories_v2 WHERE user_id=? ORDER BY id DESC LIMIT 50", (uid,)).fetchall()]
+        finally:
+            c.close()
+    except Exception:
+        return []

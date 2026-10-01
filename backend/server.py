@@ -166,6 +166,32 @@ class H(SimpleHTTPRequestHandler):
                 open(tmp, "w").write(json.dumps(data[-60:]))
                 os.replace(tmp, fp)
             return self._json(200, item)
+        if self.path.split("?")[0] in ("/api/memory/list", "/api/memory/delete"):
+            import hashlib as _hl9, sqlite3 as _sq9
+            _tok9 = (self.headers.get("X-Alfred-Token") or "").strip()
+            for _p9 in self.headers.get("Cookie", "").split(";"):
+                if "alfred_session=" in _p9:
+                    _tok9 = _p9.split("=", 1)[1].strip()
+            _uid9 = None
+            if _tok9:
+                _c9 = [_tok9] + [_hl9.sha256(_tok9.encode()).hexdigest()]
+                _con9 = _sq9.connect(os.path.join(HERE, "alfred.db"), timeout=10)
+                try:
+                    _r9 = _con9.execute("SELECT user_id FROM sessions WHERE token_hash IN (%s) AND expires>?" % ",".join("?" * len(_c9)), _c9 + [_t.time()]).fetchone()
+                    if _r9: _uid9 = _r9[0]
+                finally:
+                    _con9.close()
+            if not _uid9:
+                return self._json(401, {"ok": False, "error": "sign in first"})
+            import memory2 as _m29
+            if self.path.endswith("/delete"):
+                try:
+                    _b9 = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0) or 0)) or b"{}")
+                except Exception:
+                    return self._json(400, {"ok": False, "error": "bad json"})
+                _ok9 = _m29.forget(_uid9, int(_b9.get("id", 0) or 0))
+                return self._json(200, {"ok": bool(_ok9)})
+            return self._json(200, {"ok": True, "memories": _m29.listing(_uid9)})
         if self.path == "/api/memory":
             n = int(self.headers.get("Content-Length", 0) or 0)
             try:
