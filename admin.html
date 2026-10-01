@@ -146,7 +146,58 @@ function vCred2(m){
   if(!total&&msg)msg.textContent="nothing valid to save";
  };
 }
-var TABS=[["Overview",vOver],["Users",vUsers],["Credits",vCred2],["Brain",vBrain],["Providers",vProv],["Memory",vMem],["Showcase",vShow]];
+
+function vSkillsS2(m){
+  if(window.__vS2u===undefined)window.__vS2u=0;
+  var wrap=document.createElement("div");wrap.className="card";
+  var h=document.createElement("h4");h.textContent="Alfred Skills (SKILL.md)";wrap.appendChild(h);
+  var list=document.createElement("div");wrap.appendChild(list);
+  var sep=document.createElement("hr");wrap.appendChild(sep);
+  var fh=document.createElement("h4");fh.textContent="Add a skill";wrap.appendChild(fh);
+  var f=document.createElement("div");
+  function inp(ph){var i=document.createElement("input");i.placeholder=ph;i.style.width="100%";i.style.margin="3px 0";f.appendChild(i);return i;}
+  var inN=inp("name (lowercase-dashes, e.g. deep-dive)");
+  var inD=inp("description (shown to Alfred always)");
+  var inT=inp("triggers (comma-separated, e.g. teach me, step by step)");
+  var inB=document.createElement("textarea");inB.placeholder="SKILL.md body - instructions Alfred follows when triggered";inB.rows=6;inB.style.width="100%";f.appendChild(inB);
+  var add=document.createElement("button");add.type="button";add.textContent="Create skill";f.appendChild(add);
+  var msg=document.createElement("div");f.appendChild(msg);
+  wrap.appendChild(f);
+  function req(path,body){
+    var o={method:"GET",headers:{"X-Alfred-Token":(sessionStorage.getItem("ac_tok")||"")}};
+    if(body){o.method="POST";o.headers["Content-Type"]="application/json";o.body=JSON.stringify(body);}
+    return fetch(path,o).then(function(r){return r.json();});
+  }
+  function load(){
+    list.textContent="Loading...";
+    req("/api/admin/skills").then(function(j){
+      list.textContent="";
+      var sk=(j&&j.skills)||[];
+      if(!sk.length){var e=document.createElement("div");e.textContent="No skills yet - add one below.";list.appendChild(e);}
+      sk.forEach(function(s){
+        var row=document.createElement("div");row.style.margin="6px 0";
+        var b=document.createElement("b");b.textContent=s.name;row.appendChild(b);
+        var d=document.createElement("span");d.textContent=" - "+s.description+"  [triggers: "+s.trigger+"]";row.appendChild(d);
+        var del=document.createElement("button");del.type="button";del.textContent=" Delete";
+        del.onclick=function(){
+          if(!window.confirm("Delete skill "+s.name+"?"))return;
+          req("/api/admin/skills/delete",{name:s.name}).then(load);
+        };
+        row.appendChild(del);list.appendChild(row);
+      });
+    }).catch(function(){list.textContent="Failed to load skills.";});
+  }
+  add.onclick=function(){
+    msg.textContent="";
+    req("/api/admin/skills/add",{name:inN.value.trim(),description:inD.value.trim(),trigger:inT.value.trim(),body:inB.value}).then(function(j){
+      if(j&&j.ok){msg.textContent="Created.";inN.value=inD.value=inT.value=inB.value="";load();}
+      else{msg.textContent="Error: "+((j&&j.error)||"unknown");}
+    }).catch(function(){msg.textContent="Network error.";});
+  };
+  m.appendChild(wrap);load();
+}
+
+var TABS=[["Overview",vOver],["Users",vUsers],["Credits",vCred2],["Brain",vBrain],["Providers",vProv],["Memory",vMem],["Showcase",vShow],['Skills',vSkillsS2]];
 function nav(i){
  var t=document.getElementById("tabs");t.innerHTML="";
  TABS.forEach(function(x,k){var b=el("button","",x[0]);if(k==i)b.className="on";b.onclick=function(){nav(k)};t.appendChild(b)});

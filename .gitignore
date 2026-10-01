@@ -34,3 +34,5 @@ backend/engine_state.json
 backend/providers_keys.json
 backend/*.broken*
 _backups/
+bandit-report.txt
+backups/
