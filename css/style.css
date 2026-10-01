@@ -3725,3 +3725,49 @@ header[data-lvl="Ultra"] .lvl-chip,#view-chat[data-lvl="Ultra"] .lvl-chip{backgr
 .msg .bubble{border-top-left-radius:16px!important}
 .msg:not(.fx-user):not(.user) .bubble{background:linear-gradient(180deg,rgba(17,30,58,.97),rgba(11,21,42,.97))!important;border:1px solid rgba(84,120,200,.30)!important;border-left:3px solid #3d7bff!important}
 .msg.fx-user .bubble,.msg.user .bubble{background:linear-gradient(180deg,#2e2110,#241a09)!important;border:1px solid rgba(255,166,66,.45)!important}
+
+/* ===== v364: Deep-space design system (tokens + atmosphere + surfaces) ===== */
+:root{
+  --a-bg-0:#04070f; --a-bg-1:#0a1220; --a-bg-2:#0e1a30;
+  --a-surface:rgba(12,22,44,.55); --a-surface-2:rgba(16,30,58,.62);
+  --a-line:rgba(120,180,255,.16); --a-line-soft:rgba(120,180,255,.10);
+  --a-txt:#eaf3ff; --a-txt-2:#b9cde8; --a-txt-3:#7e97b8;
+  --a-accent:#6cc8ff; --a-accent-2:#b18cff;
+  --a-good:#5fe8b0; --a-warn:#ffb46b; --a-bad:#ff7a8a;
+  --a-r-md:14px; --a-r-lg:20px; --a-dur:.18s; --a-ease:cubic-bezier(.4,0,.2,1);
+}
+/* cosmic backdrop: static stars + aurora glows on deep navy.
+   world scenes painted inline by JS always win over this default. */
+.bg{
+  background-color:var(--a-bg-1);
+  background-image:
+    radial-gradient(circle 1px at 12% 22%, rgba(255,255,255,.50), transparent 2.4px),
+    radial-gradient(circle 1px at 78% 14%, rgba(255,255,255,.40), transparent 2.4px),
+    radial-gradient(circle 1.5px at 64% 68%, rgba(255,255,255,.35), transparent 3px),
+    radial-gradient(circle 1px at 28% 82%, rgba(255,255,255,.40), transparent 2.4px),
+    radial-gradient(circle 1px at 88% 52%, rgba(255,255,255,.30), transparent 2.4px),
+    radial-gradient(circle 1.5px at 42% 38%, rgba(255,255,255,.28), transparent 3px),
+    radial-gradient(circle 1px at 8% 56%, rgba(177,140,255,.45), transparent 2.6px),
+    radial-gradient(1100px 620px at 84% -8%, rgba(108,200,255,.16), transparent 62%),
+    radial-gradient(900px 560px at -12% 106%, rgba(177,140,255,.15), transparent 64%),
+    radial-gradient(1300px 900px at 50% 44%, rgba(22,46,88,.38), transparent 72%),
+    linear-gradient(180deg, var(--a-bg-0) 0%, var(--a-bg-1) 52%, var(--a-bg-2) 100%);
+}
+/* one motion + surface language for every button and bar */
+.btn-main,.newchat,.send,.navin,.ab{
+  transition:transform var(--a-dur) var(--a-ease),box-shadow var(--a-dur) var(--a-ease),
+    background-color var(--a-dur) var(--a-ease),border-color var(--a-dur) var(--a-ease),
+    filter var(--a-dur) var(--a-ease);
+}
+.btn-main:hover,.newchat:hover{box-shadow:0 6px 22px rgba(108,200,255,.18);}
+.send:hover{filter:brightness(1.12);}
+.btn-main:active,.newchat:active,.send:active{transform:scale(.97);}
+/* bars share one hairline */
+.topbar,.side-foot,.composer{border-color:var(--a-line-soft);}
+/* keyboard focus is always visible */
+:focus-visible{outline:2px solid rgba(108,200,255,.85);outline-offset:2px;}
+/* users who ask for calm, get calm */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;scroll-behavior:auto !important;}
+}
