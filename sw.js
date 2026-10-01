@@ -1,4 +1,4 @@
-const CACHE = "alfred-v102";
+const CACHE = "alfred-v103";
 self.addEventListener("install", function (e) { self.skipWaiting(); });
 self.addEventListener("activate", function (e) {
   e.waitUntil(

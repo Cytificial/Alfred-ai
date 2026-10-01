@@ -270,7 +270,7 @@ try { window.__v170 = "1"; window.__v171 = "1"; window.__v170b = "1"; window.__v
     signed=true;
     try{ localStorage.setItem("alfred_authed","1"); }catch(e){}
     try{ if(u&&u.name) localStorage.setItem("alfred_name",u.name); }catch(e){}
-    try{ localStorage.setItem("alfred_plan", JSON.stringify({id:((u&&u.plan)||"free").toLowerCase()})); }catch(e){}
+    try{ localStorage.setItem("alfred_plan", JSON.stringify({id:((u&&u.plan)||"free").toLowerCase()})); }catch(e){} window.__v362planReady = true;
 try{ localStorage.setItem("alfred_plan_server","1"); }catch(e){}
     hideGate();
     var h = String(location.hash || "").toLowerCase();
@@ -5108,7 +5108,7 @@ window.__v152 = "1"; /* v154 retires v152 */
       if (/^(free|pro|ultra)\s+plan$/i.test((el.textContent||"").trim()) &&
           ![].slice.call(el.children).some(function (c) {
             return /^(free|pro|ultra)\s+plan$/i.test((c.textContent||"").trim());
-          })) el.textContent = "Selected: " + tier();
+          })) el.textContent = window.__v362planReady ? ("Selected: " + tier()) : "\u00b7 \u00b7 \u00b7";
     });
   }
   update();
@@ -13649,3 +13649,21 @@ try { /* v163proc: native thinking card */
   })();
 })();
 
+
+/* ===== v362: instant plan truth - badge skeleton resolves in ms, not 10s ===== */
+(function () {
+  if (window.__v362pt) return; window.__v362pt = "1";
+  function tk() { try { return localStorage.getItem("alfred_token") || ""; } catch (e) { return ""; } }
+  var done = false;
+  function fin() { if (!done) { done = true; window.__v362planReady = true; } }
+  setTimeout(fin, 10000);                        /* failsafe: skeleton can never stick */
+  fetch("http://" + location.hostname + ":8082/api/auth/me",
+    { credentials: "include", headers: { "X-Alfred-Token": tk() } })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (j) {
+      if (j && j.ok && j.user && j.user.plan) {
+        try { localStorage.setItem("alfred_plan", JSON.stringify({ id: (j.user.plan || "free").toLowerCase(), name: j.user.plan })); } catch (e) {}
+        window.__v362planReady = true; done = true;
+      } else fin();                              /* signed out / bad token: default plan is honest */
+    }).catch(fin);
+})();
