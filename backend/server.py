@@ -126,7 +126,7 @@ class H(SimpleHTTPRequestHandler):
             raw = q.get("prompt", ["nebula"])[0]
             sd = q.get("seed", ["7"])[0]
             w = q.get("width", ["768"])[0]; h = q.get("height", ["1024"])[0]
-            import hashlib, time as _t
+            import hashlib  # v367fix: _t shadow removed
             cdir = os.path.join(HERE, "cache"); os.makedirs(cdir, exist_ok=True)
             fn = os.path.join(cdir, hashlib.md5((raw + "|" + sd).encode()).hexdigest() + ".jpg")
             if os.path.exists(fn):
@@ -172,7 +172,7 @@ class H(SimpleHTTPRequestHandler):
                 data = json.load(open(fp))
             except Exception:
                 data = []
-            import time as _t
+            pass  # v367fix: _t shadow removed
             now_ms = int(_t.time() * 1000)
             keep = [q for q in data if isinstance(q, dict) and now_ms - int(q.get("ts", 0) or 0) <= 30*24*3600*1000]
             if len(keep) != len(data):
@@ -393,5 +393,53 @@ try:
             print("[admin] wired into", _c.__name__)
 except Exception as _e:
     print("[admin] init failed:", _e)
+
+
+# ---- v367 HARD-WIRE: force auth+admin middleware to run first ----
+try:
+    import auth as _v367_a
+    _v367_orig_post = H.do_POST
+    _v367_orig_get = H.do_GET
+    def _v367_post(self):
+        try:
+            if _v367_a.maybe_handle(self, "POST"): return
+        except Exception as e:
+            print("[v367 auth POST]", e, flush=True)
+        return _v367_orig_post(self)
+    def _v367_get(self):
+        try:
+            if _v367_a.maybe_handle(self, "GET"): return
+        except Exception as e:
+            print("[v367 auth GET]", e, flush=True)
+        return _v367_orig_get(self)
+    H.do_POST = _v367_post
+    H.do_GET = _v367_get
+    print("[v367] auth HARD-WIRED onto H", flush=True)
+except Exception as e:
+    import traceback
+    print("[v367] auth hard-wire FAILED:", e, flush=True)
+    traceback.print_exc()
+try:
+    import admin as _v367_ad
+    _v367_o2p = H.do_POST
+    _v367_o2g = H.do_GET
+    def _v367_p2(self):
+        try:
+            if _v367_ad.maybe_handle(self, "POST"): return
+        except Exception as e:
+            print("[v367 admin POST]", e, flush=True)
+        return _v367_o2p(self)
+    def _v367_g2(self):
+        try:
+            if _v367_ad.maybe_handle(self, "GET"): return
+        except Exception as e:
+            print("[v367 admin GET]", e, flush=True)
+        return _v367_o2g(self)
+    H.do_POST = _v367_p2
+    H.do_GET = _v367_g2
+    print("[v367] admin HARD-WIRED onto H", flush=True)
+except Exception as e:
+    print("[v367] admin hard-wire FAILED:", e, flush=True)
+# ---- /v367 HARD-WIRE ----
 
 ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever()

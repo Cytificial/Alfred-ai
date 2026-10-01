@@ -10544,9 +10544,9 @@ try { /* v163proc: native thinking card */
       '<details class="rv"><summary>Which devices work?</summary><p>Any modern browser \u2014 and on your phone he installs as a full-screen app.</p></details></div></div></section>' +
       '<section class="inv"><div class="in"><div class="kick rv">For investors & partners</div><h2 class="rv">Building a more useful kind of AI.</h2>' +
       '<p class="lede rv" style="margin:0 auto 0;max-width:420px">Alfred is the consumer face of multi-mind intelligence. Talk to us.</p>' +
-      '<a class="mail rv" href="mailto:cyberartificial1@gmail.com?subject=Alfred%20AI%20%E2%80%94%20Investor%20inquiry">cyberartificial1@gmail.com</a></div></section>' +
+      '<a class="mail rv" href="mailto:support@alfredai.com?subject=Alfred%20AI%20%E2%80%94%20Investor%20inquiry">support@alfredai.com</a></div></section>' +
       '<footer><div class="in frow"><div class="foot-l"><img src="/assets/logo-dark.svg" alt="">ALFRED AI</div>' +
-      '<div class="foot-r">\u00a9 Alfred AI \u00b7 Your Mind, Amplified \u00b7 <a href="mailto:cyberartificial1@gmail.com">contact</a></div></div></footer>';
+      '<div class="foot-r">\u00a9 Alfred AI \u00b7 Your Mind, Amplified \u00b7 <a href="mailto:support@alfredai.com">contact</a></div></div></footer>';
     document.body.appendChild(L);
     var io = new IntersectionObserver(function (es) {
       es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("on"); io.unobserve(e.target); } });
@@ -11055,7 +11055,7 @@ try { /* v163proc: native thinking card */
     }
     /* honest footer */
     var fr = L.querySelector(".foot-r");
-    if (fr) fr.innerHTML = '\u00a9 Alfred AI \u00b7 Your Mind, Amplified \u00b7 <a href="mailto:cyberartificial1@gmail.com">contact</a> \u00b7 Privacy & Terms ship with public launch';
+    if (fr) fr.innerHTML = '\u00a9 Alfred AI \u00b7 Your Mind, Amplified \u00b7 <a href="mailto:support@alfredai.com">contact</a> \u00b7 Privacy & Terms ship with public launch';
   }, 1000);
 })();
 
@@ -11150,7 +11150,7 @@ try { /* v163proc: native thinking card */
       [].slice.call(sec.querySelectorAll(".rv")).forEach(function (e) { e.classList.add("on"); });
     }
     var fr = L.querySelector(".foot-r");
-    if (fr) fr.innerHTML = '\u00a9 Alfred AI \u00b7 Your Mind, Amplified \u00b7 <a href="mailto:cyberartificial1@gmail.com">contact</a> \u00b7 Privacy & Terms ship with public launch';
+    if (fr) fr.innerHTML = '\u00a9 Alfred AI \u00b7 Your Mind, Amplified \u00b7 <a href="mailto:support@alfredai.com">contact</a> \u00b7 Privacy & Terms ship with public launch';
   }, 1000);
 
   /* retry + thumbs on Alfred replies */
@@ -11958,7 +11958,7 @@ try { /* v163proc: native thinking card */
     inv: '<div class="vsec vinv"><div class="vk">FOR INVESTORS &amp; PARTNERS</div>'
       + '<div class="vh" style="font-size:clamp(1.7rem,6vw,2.6rem)">Building a more useful kind of AI.</div>'
       + '<p class="vsub" style="margin:14px auto 0;max-width:480px">Alfred is the consumer face of multi-mind intelligence. Talk to us.</p>'
-      + '<a href="mailto:cyberartificial1@gmail.com?subject=Alfred%20AI">cyberartificial1@gmail.com</a></div>',
+      + '<a href="mailto:support@alfredai.com?subject=Alfred%20AI">support@alfredai.com</a></div>',
     foot: '<div class="vfoot"><img src="/assets/land-mark-320.png?v=5" alt=""><b style="letter-spacing:2px;color:#EAF3FF">ALFRED AI</b><span>\u00a9 Alfred AI \u00b7 Your Mind, Amplified \u00b7 V1</span></div>'
   };
 
@@ -12076,7 +12076,7 @@ try { /* v163proc: native thinking card */
       + '<section><div class="vsec vinv"><div class="vk">FOR INVESTORS &amp; PARTNERS</div>'
       + '<div class="vh" style="font-size:clamp(1.7rem,6vw,2.6rem)">Building a more useful kind of AI.</div>'
       + '<p class="vsub" style="margin:14px auto 0;max-width:480px">Alfred is the consumer face of multi-mind intelligence. Talk to us.</p>'
-      + '<a href="mailto:cyberartificial1@gmail.com?subject=Alfred%20AI">cyberartificial1@gmail.com</a></div></section>'
+      + '<a href="mailto:support@alfredai.com?subject=Alfred%20AI">support@alfredai.com</a></div></section>'
       + '<div class="vfoot"><img src="/assets/land-mark-320.png?v=5" alt=""><b style="letter-spacing:2px;color:#EAF3FF">ALFRED AI</b><span>\u00a9 Alfred AI \u00b7 Your Mind, Amplified \u00b7 V1</span></div>';
     /* typing demo */
     var t0 = null;

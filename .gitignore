@@ -60,3 +60,30 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# ---------- Cache (regenerable, huge) ----------
+backend/cache/
+cache/
+**/cache/
+
+# ---------- DB backups (contain user data) ----------
+backups/
+**/backups/
+*.db.gz
+
+# ---------- Scans & reports ----------
+bandit-report.txt
+*-report.txt
+*-audit.txt
+
+# ---------- Test/dev artifacts ----------
+.auth_target
+nuke.html
+login.html.old
+
+# ---------- Corrupt DB fragments (belt and suspenders) ----------
+*.db-shm.corrupt.*
+*.db-wal.corrupt.*
+
+# ---------- User-configurable prompt overrides (runtime state) ----------
+backend/prompt_override*.md
