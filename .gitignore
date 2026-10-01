@@ -1,38 +1,47 @@
-backend/alfred.db
-backend/*.db
-backend/backups/
-backend/keys.env
-backend/.env
-backend/mail_config.json
-backend/cache/
-backend/engine.log
-backend/doctor.log
-backend/explore.json
-backend/__pycache__/
+# Python
+__pycache__/
 *.pyc
-backend.bak-auth/
-backend/alfred.db.bak-*
-backend/server.log
-backend/oauth_config.json
-tools/warm.log
-backend/engine.lock
-backend/.doctor.lock
-backend/.auth_target
-backend.bak-auth/
-backend/alfred.db.bak-*
-backend/server.log
-backend/oauth_config.json
-tools/warm.log
-backend/engine.lock
-backend/.doctor.lock
-backend/.auth_target
-backend/oauth_config.json.*
-backend/brain_config.json
-backend/engine_state.json
-*.bak*
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Secrets — NEVER COMMIT
+keys.env
+providers_keys.json
+*_keys.json
+mail_config.json
+oauth_config.json
+*.pem
+*.key
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Backups
+*.bak-*
+*.bak
 *.pre-v*
-backend/providers_keys.json
-backend/*.broken*
-_backups/
-bandit-report.txt
-backups/
+*.part-*
+
+# Logs & PID
+*.log
+*.pid
+*.lock
+
+# Runtime state
+engine_state.json
+brain_config.json
+providers.json
+catalog.json
+explore.json
+
+# OS / Editor
+.DS_Store
+*.swp
