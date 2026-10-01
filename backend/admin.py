@@ -8,7 +8,7 @@ import json, os, sqlite3, time, urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 DBP  = os.path.join(HERE, "alfred.db")
 CFG  = os.path.join(HERE, "brain_config.json")
-ADMIN = "support@alfredai.com"
+ADMIN = __import__("os").environ.get("ALFRED_ADMIN_EMAIL", "fred@test.com").split(",")[0].strip()
 PLANS = ("Free", "Pro", "Ultra")
 
 def _send(h, code, obj):

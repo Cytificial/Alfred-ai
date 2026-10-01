@@ -21,6 +21,23 @@ def load_keys():
     return keys
 KEYS = load_keys()
 import threading, time as _t, uuid as _u
+# v371: load keys.env into environment at startup
+def _load_keys_env():
+    import os as _os
+    _p = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "keys.env")
+    try:
+        with open(_p) as _f:
+            for _line in _f:
+                _line = _line.strip()
+                if not _line or _line.startswith("#") or "=" not in _line:
+                    continue
+                _k, _v = _line.split("=", 1)
+                _v = _v.strip().strip("'").strip('"')
+                if _k and _k not in _os.environ:
+                    _os.environ[_k] = _v
+    except Exception as _e:
+        print("[env] load failed:", _e)
+_load_keys_env()
 _EXLOCK = threading.Lock()
 _RATE = {}
 
