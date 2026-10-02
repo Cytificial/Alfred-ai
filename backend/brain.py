@@ -489,6 +489,14 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError as e:
             self.json_out(400, {"ok": False, "error": str(e)})
         except Exception:
+            try:
+                with db() as _rc:
+                    _rc.execute("DELETE FROM messages WHERE chat_id=? AND role='user' AND ts=?", (chat_id, now))
+                    _rc.execute("UPDATE usage SET count=MAX(0,count-1) WHERE user_id=? AND day=?", (uid, today))
+                    _rc.commit()
+                print("[quota] refunded - no answer produced", flush=True)
+            except Exception as _e:
+                print("[quota] refund failed: %s" % str(_e)[:120], flush=True)
             traceback.print_exc()
             self.json_out(500, {"ok": False, "error": "Alfred hit a snag. Please try again."})
 
@@ -696,6 +704,14 @@ class Handler(BaseHTTPRequestHandler):
                     answer += "\n\nSources:\n" + "\n".join("- " + _u for _u in _research_src[:3])
             except Exception:
                 pass
+            try:
+                with db() as _rc:
+                    _rc.execute("DELETE FROM messages WHERE chat_id=? AND role='user' AND ts=?", (chat_id, now))
+                    _rc.execute("UPDATE usage SET count=MAX(0,count-1) WHERE user_id=? AND day=?", (uid, today))
+                    _rc.commit()
+                print("[quota] refunded - no answer produced", flush=True)
+            except Exception as _e:
+                print("[quota] refund failed: %s" % str(_e)[:120], flush=True)
             if answer is None:
                 self.json_out(502, {"ok": False,
                     "error": "My engines are catching their breath - try again in a moment."})
