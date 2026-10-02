@@ -3771,3 +3771,27 @@ header[data-lvl="Ultra"] .lvl-chip,#view-chat[data-lvl="Ultra"] .lvl-chip{backgr
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;
     transition-duration:.01ms !important;scroll-behavior:auto !important;}
 }
+
+/* v430: password reveal div matches input exactly */
+.pw-visible-div {
+  display: block;
+  position: relative;
+  z-index: 1;
+  min-height: 48px;
+  cursor: text;
+}
+.pw-visible-div:empty::before {
+  content: attr(data-placeholder);
+  color: rgba(232,242,255,.45);
+}
+
+/* v433: reveal overlay */
+.pw-visible-div {
+  z-index: 2;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.pw-visible-div:empty::before {
+  content: 'Enter your password';
+  color: rgba(232,242,255,.35);
+}

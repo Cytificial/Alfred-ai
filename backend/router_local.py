@@ -39,7 +39,41 @@ SMALL = re.compile(
     re.I)
 
 
-def classify(message):
+TIER_GREETINGS = {
+    "Free": [
+        "Good {part}. Ready when you are.",
+        "Good {part}. What can I help with?",
+        "Good {part}. I'm listening.",
+    ],
+    "Pro": [
+        "Good {part}, {name}. Your full toolkit is standing by.",
+        "Good {part}, {name}. What are we building today?",
+        "Good {part}, {name}. All six minds are ready — where do we start?",
+        "Welcome back, {name}. The engines are warmed up.",
+    ],
+    "Ultra": [
+        "Good {part}, {name}. Every apex mind is aligned.",
+        "Good {part}, {name}. The Deep-think Council is standing by.",
+        "At your service, {name}. The council awaits your question.",
+        "Good {part}, {name}. All capabilities unlocked — what shall we tackle?",
+    ],
+}
+
+
+def tier_greeting(plan, name, part):
+    """Return a greeting tailored to the user's tier."""
+    import random as _r
+    p = (plan or "Free").capitalize()
+    if p not in TIER_GREETINGS: p = "Free"
+    n = (name or "").strip().split(" ")[0] or "friend"
+    tmpl = _r.choice(TIER_GREETINGS[p])
+    try:
+        return tmpl.format(part=part, name=n)
+    except Exception:
+        return f"Good {part}."
+
+
+def classify(message, plan="Free", name=""):
     """Returns {level, search, confidence, quick_reply?, math?}
     level: no_llm | small | large"""
     m = (message or '').strip()
@@ -51,13 +85,8 @@ def classify(message):
     if GREETING.match(m) and len(m) < 50:
         hour = datetime.datetime.now().hour
         part = "morning" if hour < 12 else "afternoon" if hour < 18 else "evening"
-        canned = random.choice([
-            f"Good {part}. How may I help you?",
-            f"Good {part}. What's on your mind?",
-            f"Good {part}. Ready when you are.",
-        ])
         return {"level": "no_llm", "search": False, "confidence": "high",
-                "quick_reply": canned}
+                "quick_reply": tier_greeting(plan, name, part)}
 
     # percent math — highest priority (before generic math)
     if PERCENT.match(m) and len(m) < 80:

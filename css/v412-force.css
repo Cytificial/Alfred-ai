@@ -1,0 +1,28 @@
+/* v412-force: bulletproof visibility for the active view. Loads LAST. */
+
+/* ensure the active view is always visible */
+section.view.show,
+#view-chat.show,
+.view.show {
+  display: flex !important;
+  flex-direction: column !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: none !important;
+}
+
+/* ensure the chat-scroll area fills */
+#view-chat .chat-scroll {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
+/* ensure composer is visible */
+#view-chat .composer {
+  display: flex !important;
+  visibility: visible !important;
+}

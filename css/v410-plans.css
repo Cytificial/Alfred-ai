@@ -1,0 +1,51 @@
+/* v410: clean plan cards */
+.v410-plans { display: flex; flex-direction: column; gap: 14px; padding: 8px 0 40px; }
+.v410-plan {
+  background: linear-gradient(180deg, rgba(16,28,52,.7), rgba(12,22,42,.7));
+  border: 1px solid rgba(120,180,255,.2);
+  border-radius: 16px; padding: 16px 18px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.v410-plan[data-plan="Pro"] { box-shadow: 0 0 0 1px rgba(127,196,255,.35), 0 6px 24px rgba(60,150,255,.12); }
+.v410-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.v410-badge {
+  width: 42px; height: 42px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font: 700 18px system-ui; color: #fff; flex-shrink: 0;
+  background: radial-gradient(circle at 40% 35%, rgba(140,200,255,.5), rgba(40,80,160,.4));
+}
+.v410-badge.pro { background: radial-gradient(circle at 40% 35%, rgba(90,160,255,.6), rgba(30,60,120,.5)); }
+.v410-badge.ultra { background: radial-gradient(circle at 40% 35%, rgba(255,210,120,.6), rgba(140,90,20,.5)); }
+.v410-tx { flex: 1; }
+.v410-name {
+  font: 700 17px system-ui; color: #eaf2ff;
+  display: flex; align-items: center; gap: 8px;
+}
+.v410-tag {
+  font: 600 9.5px system-ui; letter-spacing: 1px;
+  background: linear-gradient(120deg, rgba(60,150,255,.7), rgba(140,220,255,.55));
+  color: #fff; padding: 3px 8px; border-radius: 999px;
+  display: none;
+}
+.v410-plan.current .v410-tag { display: inline-block; }
+.v410-sub { font: 400 12.5px system-ui; color: #8ea8cc; margin-top: 2px; }
+.v410-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.v410-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(40,80,140,.3);
+  border: 1px solid rgba(120,180,255,.3);
+  border-radius: 999px;
+  padding: 5px 12px 5px 6px;
+  font: 500 12.5px system-ui; color: #cfe4ff;
+}
+.v410-chip.extra {
+  background: rgba(120,80,180,.2);
+  border-color: rgba(180,140,255,.35);
+  color: #dcc9ff;
+}
+.v410-chip i {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #7fc4ff; box-shadow: 0 0 8px rgba(127,196,255,.7);
+  flex-shrink: 0; display: inline-block;
+}
+.v410-chip.extra i { background: #c9a4ff; box-shadow: 0 0 8px rgba(200,160,255,.7); }

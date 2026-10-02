@@ -365,6 +365,17 @@ class Handler(BaseHTTPRequestHandler):
         return user
 
     def route(self):
+        # v405b: whitelist public endpoints before auth gate
+        _p405 = (self.path or "").split("?")[0]
+        if _p405 == "/api/plan-display" and self.command == "GET":
+            try:
+                out = {}
+                for _p in ("Free", "Pro", "Ultra"):
+                    out[_p] = engine_names.plan_display(_p)
+                self.json_out(200, {"ok": True, "plans": out})
+            except Exception as _e:
+                self.json_out(500, {"ok": False, "error": str(_e)[:120]})
+            return
         if not self.origin_ok():
             return
         try:
@@ -440,6 +451,16 @@ class Handler(BaseHTTPRequestHandler):
                     handler.send_header("Cache-Control", "no-store")
                     handler.end_headers()
                     handler.wfile.write(md.encode("utf-8"))
+                except Exception as _e:
+                    handler.json_out(500, {"ok": False, "error": str(_e)[:120]})
+                return
+            if method == "GET" and path == "/api/plan-display":
+                try:
+                    # public — no auth needed for display
+                    out = {}
+                    for p in ("Free", "Pro", "Ultra"):
+                        out[p] = engine_names.plan_display(p)
+                    handler.json_out(200, {"ok": True, "plans": out})
                 except Exception as _e:
                     handler.json_out(500, {"ok": False, "error": str(_e)[:120]})
                 return
@@ -784,7 +805,7 @@ def _v130_install():
                     try: return _direct(m, _k or api_key(config()), sysp, turns) or ""
                     except Exception: return ""
                 # v401: try local heuristic router first (0ms, zero cost)
-                _local = router_local.classify(message)
+                _local = router_local.classify(message, plan=_pl2 if "_pl2" in dir() else "Free", name=(user.get("name") or ""))
                 if _local.get("confidence") == "high" or _local.get("level") == "no_llm":
                     _route_decision = {
                         "search": _local.get("search", False),

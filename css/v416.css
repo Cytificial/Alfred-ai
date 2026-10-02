@@ -1,0 +1,17 @@
+/* v416: FINAL override. Loads LAST. Beats everything. */
+section.view { display: none !important; }
+section.view.show { 
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  position: relative !important;
+  inset: auto !important;
+}
+#view-chat.show .chat-scroll { flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important; display: flex !important; flex-direction: column !important; }
+#view-chat.show .composer { flex: 0 0 auto !important; display: flex !important; }
+.eye { position: absolute !important; right: 12px !important; top: 50% !important; transform: translateY(-50%) !important; width: 32px !important; height: 32px !important; background: transparent !important; border: 0 !important; cursor: pointer !important; z-index: 3 !important; opacity: .7 !important; }
+.eye:hover, .eye.on { opacity: 1 !important; }

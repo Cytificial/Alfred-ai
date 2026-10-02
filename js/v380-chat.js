@@ -110,6 +110,10 @@
   function scan() {
     var list = document.querySelectorAll('.msg.ai .bubble, .msg.assistant .bubble');
     list.forEach(function (b) {
+      // v414: NEVER touch the welcome bubble — app.js owns its structure
+      if (b.querySelector('#welcome-msg') || b.querySelector('#welcome-time')) return;
+      // Also skip any bubble that already contains a rendered markdown block
+      if (b._v380Rendered) return;
       var s = bubbles.get(b);
       if (!s) { s = { raw: '', changed: Date.now(), rendered: false }; bubbles.set(b, s); }
       if (s.rendered) return;

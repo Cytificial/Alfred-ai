@@ -7,7 +7,7 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 _rate, RLOCK = {}, threading.Lock()
 
 def _conn():
-    c = sqlite3.connect(DB, timeout=10)
+    c = sqlite3.connect(DB, timeout=3)
     c.execute("""CREATE TABLE IF NOT EXISTS users(
       id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE, pw_hash TEXT NOT NULL, salt TEXT NOT NULL,
@@ -178,22 +178,28 @@ def maybe_handle(handler, method):
                 if row:
                     uid, uname, plan = row[0], row[1], row[4]
                     if not hmac.compare_digest(row[2], _hash_pw(pw, row[3])):
+                        # v442: release outer write lock BEFORE egate check (prevents 10s stall)
+                        try: c.rollback()
+                        except Exception: pass
+                        try: c.close()
+                        except Exception: pass
                         try: _eb = bool(email) and _egate_failed(email)
                         except Exception: _eb = False
                         if _eb:
-                            try: c.close()
-                            except Exception: pass
                             _json(handler, 429, {"ok": False, "error": "Too many attempts for this account. Wait 15 minutes."}); return True
-                        c.close(); _json(handler, 401, {"ok": False, "error": "Email or password is incorrect."}); return True
+                        _json(handler, 401, {"ok": False, "error": "Email or password is incorrect."}); return True
                 else:
                     _hash_pw(pw, secrets.token_hex(16))  # timing equalizer
+                    # v442: release outer write lock BEFORE egate check
+                    try: c.rollback()
+                    except Exception: pass
+                    try: c.close()
+                    except Exception: pass
                     try: _eb = bool(email) and _egate_failed(email)
                     except Exception: _eb = False
                     if _eb:
-                        try: c.close()
-                        except Exception: pass
                         _json(handler, 429, {"ok": False, "error": "Too many attempts for this account. Wait 15 minutes."}); return True
-                    c.close(); _json(handler, 401, {"ok": False, "error": "Email or password is incorrect."}); return True
+                    _json(handler, 401, {"ok": False, "error": "Email or password is incorrect."}); return True
             tok = secrets.token_urlsafe(32)
             days = 90 if (body.get("remember") or register) else 1
             exp = time.time() + days * 86400

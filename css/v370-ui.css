@@ -1,6 +1,6 @@
-/* v370o-ui: eye toggle + pay modal. NO view display rules (app.js owns that). */
+/* v370-ui (fixed): eye toggle + view switching WITHOUT absolute positioning */
 
-/* eye button */
+/* password eye */
 .eye {
   position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
   width: 32px; height: 32px; border: 0; background-color: transparent;
@@ -14,28 +14,16 @@
   opacity: 1;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237fc4ff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22'/></svg>");
 }
-
-/* reveal — required Chrome override */
 input.pw-revealed {
   -webkit-text-security: none !important;
   text-security: none !important;
-  font-family: inherit !important;
-  letter-spacing: normal !important;
 }
 
-/* plans back button */
-.pay-back {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: rgba(30,60,120,.35);
-  border: 1px solid rgba(120,180,255,.35);
-  color: #cfe4ff; font: 600 13px/1 system-ui, sans-serif;
-  padding: 8px 14px; border-radius: 10px; cursor: pointer;
-  margin-bottom: 18px;
-}
-.pay-back:hover { background: rgba(40,90,170,.5); border-color: rgba(160,220,255,.6); }
+/* CRITICAL: use DISPLAY toggle, never absolute positioning */
+.views { position: relative; flex: 1; min-height: 0; display: flex; }
+.view { display: none; flex: 1; min-height: 0; flex-direction: column; }
+.view.show { display: flex; }
 
-/* v370o: view transitions — opacity only, app.js controls display */
-.views { position: relative; }
-.view { opacity: 0; visibility: hidden; transition: opacity .16s ease, visibility 0s linear .16s; }
-.view.show { opacity: 1; visibility: visible; transition: opacity .16s ease, visibility 0s; }
-@media (prefers-reduced-motion: reduce) { .view { transition: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .view { transition: none !important; transform: none !important; }
+}
