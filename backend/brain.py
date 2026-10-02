@@ -712,7 +712,7 @@ class Handler(BaseHTTPRequestHandler):
                 print("[quota] refunded - no answer produced", flush=True)
             except Exception as _e:
                 print("[quota] refund failed: %s" % str(_e)[:120], flush=True)
-            if answer is None:
+            if not answer:
                 self.json_out(502, {"ok": False,
                     "error": "My engines are catching their breath - try again in a moment."})
                 return
