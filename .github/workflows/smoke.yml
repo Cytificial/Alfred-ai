@@ -11,17 +11,24 @@ jobs:
       - run: pip install pytest
       - name: compile check
         run: python -m py_compile backend/*.py
-      - name: start brain
+      - name: write minimal config
+        run: |
+          printf '{"chain": [], "minute_limit": 60}\n' > backend/brain_config.json
+      - name: start both servers
         run: |
           cd backend
-          nohup python brain.py > ../brain.log 2>&1 &
-          for i in $(seq 1 25); do
-            curl -sf localhost:8082/health >/dev/null && break
-            sleep 1
+          nohup python server.py > ../server.log 2>&1 &
+          nohup python brain.py  > ../brain.log  2>&1 &
+          cd ..
+          for p in 8080 8082; do
+            for i in $(seq 1 25); do
+              curl -sf localhost:$p/health >/dev/null && break
+              sleep 1
+            done
+            curl -sf localhost:$p/health || { echo "server on $p failed"; cat server.log brain.log; exit 1; }
           done
-          curl -s localhost:8082/health || (cat ../brain.log; exit 1)
       - name: route smoke tests
         run: python -m pytest tests/ -v
-      - name: dump brain log
+      - name: dump logs
         if: always()
-        run: cat brain.log
+        run: cat server.log brain.log || true
