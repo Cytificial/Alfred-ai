@@ -402,7 +402,7 @@ class Handler(BaseHTTPRequestHandler):
                     data = self.body()
                     name = data.get("name", "")
                     b64 = data.get("data", "")
-                    r = file_upload.save_file(name, b64, uid=(user or {}).get("_uid",""))
+                    r = file_upload.save_file(name, b64)
                     self.json_out(200 if r.get("ok") else 400, r)
                 except Exception as _e:
                     self.json_out(500, {"ok": False, "error": str(_e)[:120]})
@@ -514,7 +514,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             _att_ids = data.get("attachments") or []
             if _att_ids:
-                _att_txt = file_upload.load_for_prompt(_att_ids, uid=(user or {}).get("_uid",""))
+                _att_txt = file_upload.load_for_prompt(_att_ids)
                 if _att_txt:
                     message = message + _att_txt
         except Exception as _e:
@@ -552,9 +552,7 @@ class Handler(BaseHTTPRequestHandler):
         try: _IMG["list"] = [x for x in (data.get("images") or []) if isinstance(x, dict) and x.get("data")][-2:]
         except Exception: _IMG["list"] = []
         chain = chain_for(cfg, _pl)
-        _key_ok = bool(key) or bool(_or_key()) or all(
-            (m or "").split("/")[0] == "pollinations" for m in (chain or []))
-        if not _key_ok or not chain:
+        if not key or not chain:
             self.json_out(503, {"ok": False,
                 "error": "No engine key configured yet - add GOOGLE_API_KEY or brain_config.json gemini_key."})
             return
@@ -1222,10 +1220,3 @@ if __name__ == "__main__":
     init_db()
     print("brain up - port 8082", flush=True)
     ThreadingHTTPServer(("127.0.0.1", 8082), Handler).serve_forever()
-
-
-try:
-    import tokbudget
-    tokbudget.install(globals())
-except Exception as _tbe:
-    print("[tokbudget] off:", _tbe, flush=True)

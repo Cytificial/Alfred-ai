@@ -23,13 +23,17 @@ def run_council(models, call_fn, system, turns, timeout=60):
             results[i] = {"index": i, "answer": a or "", "error": None}
         except Exception as e:
             results[i] = {"index": i, "answer": "", "error": str(e)[:120]}
-    with ThreadPoolExecutor(max_workers=len(models)) as ex:
-        futs = [ex.submit(job, i, m) for i, m in enumerate(models)]
-        try:
-            for f in as_completed(futs, timeout=timeout):
-                f.result()
-        except Exception:
-            pass
+    ex = ThreadPoolExecutor(max_workers=len(models))
+    futs = [ex.submit(job, i, m) for i, m in enumerate(models)]
+    try:
+        for f in as_completed(futs, timeout=timeout):
+            f.result()
+    except Exception:
+        pass
+    finally:
+        for f in futs:
+            f.cancel()
+        ex.shutdown(wait=False)
     return [r for r in results if r]
 
 

@@ -87,3 +87,4 @@ login.html.old
 
 # ---------- User-configurable prompt overrides (runtime state) ----------
 backend/prompt_override*.md
+backend/upload_owners.json

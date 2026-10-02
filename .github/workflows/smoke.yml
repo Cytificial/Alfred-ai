@@ -1,0 +1,27 @@
+name: smoke
+on: [push, pull_request]
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pytest
+      - name: compile check
+        run: python -m py_compile backend/*.py
+      - name: start brain
+        run: |
+          cd backend
+          nohup python brain.py > ../brain.log 2>&1 &
+          for i in $(seq 1 25); do
+            curl -sf localhost:8082/health >/dev/null && break
+            sleep 1
+          done
+          curl -s localhost:8082/health || (cat ../brain.log; exit 1)
+      - name: route smoke tests
+        run: python -m pytest tests/ -v
+      - name: dump brain log
+        if: always()
+        run: cat brain.log

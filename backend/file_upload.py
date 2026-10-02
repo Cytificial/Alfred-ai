@@ -54,3 +54,35 @@ def load_for_prompt(attachment_ids):
         except Exception as e:
             print("[upload] load fail:", e, flush=True)
     return "\n".join(parts)
+
+# --- ownership hardening (appended) ---
+import json as _js, threading as _th2
+_OWNF = os.path.join(os.path.dirname(os.path.abspath(__file__)), "upload_owners.json")
+_olock = _th2.Lock()
+_OWN = {}
+try:
+    with open(_OWNF) as _f: _OWN = _js.load(_f)
+except Exception: _OWN = {}
+_save0, _load0 = save_file, load_for_prompt
+
+def _fid(r):
+    if isinstance(r, str): return r
+    if isinstance(r, dict):
+        for k in ("id","fid","file_id","attachment_id"):
+            if r.get(k): return str(r[k])
+    return ""
+
+def save_file(filename, content_b64, uid=""):
+    r = _save0(filename, content_b64)
+    f = _fid(r)
+    if f and uid:
+        with _olock:
+            _OWN[f] = uid
+            _js.dump(_OWN, open(_OWNF, "w"))
+    return r
+
+def load_for_prompt(attachment_ids, uid=""):
+    ids = attachment_ids if isinstance(attachment_ids, (list, tuple)) else ([attachment_ids] if attachment_ids else [])
+    if uid:
+        ids = [a for a in ids if _OWN.get(str(a), uid) == uid]
+    return _load0(ids)

@@ -175,13 +175,13 @@ class H(SimpleHTTPRequestHandler):
                 except BrokenPipeError: pass
                 return
             got = None
-            for att in range(3):
+            for att in range(2):
                 try:
                     u = ("https://image.pollinations.ai/prompt/"
                          + quote(raw + ", photorealistic, cinematic, no text")
                          + "?width=" + w + "&height=" + h + "&nologo=true&seed="
                          + str(int(sd) + att * 377))
-                    d = urllib.request.urlopen(u, timeout=120).read()
+                    d = urllib.request.urlopen(u, timeout=45).read(15*1024*1024)
                     if d and len(d) > 5000: got = d; break
                 except Exception:
                     pass
@@ -228,7 +228,7 @@ class H(SimpleHTTPRequestHandler):
                     try:
                         u = ("https://image.pollinations.ai/prompt/" + quote(raw + ", photorealistic, cinematic, no text")
                              + "?width=768&height=1024&nologo=true&seed=" + str(int(sd) + att * 377))
-                        d = urllib.request.urlopen(u, timeout=120).read()
+                        d = urllib.request.urlopen(u, timeout=45).read(15*1024*1024)
                         if d and len(d) > 5000:
                             open(fn, "wb").write(d); break
                     except Exception: pass

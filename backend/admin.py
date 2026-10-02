@@ -8,7 +8,7 @@ import json, os, sqlite3, time, urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 DBP  = os.path.join(HERE, "alfred.db")
 CFG  = os.path.join(HERE, "brain_config.json")
-ADMIN = __import__("os").environ.get("ALFRED_ADMIN_EMAIL", "fred@test.com").split(",")[0].strip()
+ADMIN = frozenset(e.strip().lower() for e in os.environ.get("ALFRED_ADMIN_EMAIL","").split(",") if e.strip())
 PLANS = ("Free", "Pro", "Ultra")
 
 def _send(h, code, obj):
@@ -112,7 +112,7 @@ def maybe_handle(handler, method):
     me = _me(handler)
     if not me:
         _send(handler, 403, {"ok": False, "error": "admin only"}); return True
-    if (me[0] or "").lower() not in (ADMIN, "admin@alfred.ai"):
+    if not ADMIN or (me[0] or "").lower() not in ADMIN:
         print("[admin] deny: valid session, not admin (%s***)" % (me[0] or "")[:2], flush=True)
         _send(handler, 403, {"ok": False, "error": "admin only"}); return True
 
