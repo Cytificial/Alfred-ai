@@ -1072,6 +1072,15 @@ def _v130_install():
                 continue
 
         answer = "".join(full).strip()
+        if not answer:
+            try:
+                with db() as _rc:
+                    _rc.execute("DELETE FROM messages WHERE chat_id=? AND role='user' AND ts=?", (chat_id, now))
+                    _rc.execute("UPDATE usage SET count=MAX(0,count-1) WHERE user_id=? AND day=?", (uid, today))
+                    _rc.commit()
+                print("[quota] refunded (stream) - no answer produced", flush=True)
+            except Exception as _e:
+                print("[quota] refund failed: %s" % str(_e)[:120], flush=True)
         try:
             if _research_src and answer and "Sources:" not in answer:
                 answer += "\n\nSources:\n" + "\n".join("- " + _u for _u in _research_src[:3])
