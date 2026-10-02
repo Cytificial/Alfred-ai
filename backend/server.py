@@ -158,9 +158,17 @@ class H(SimpleHTTPRequestHandler):
             return self._json(200, {"ok": True, "status": "online", "brain": "ready"})
         if self.path.startswith("/api/image"):      # v77: cached + retried
             q = parse_qs(urlparse(self.path).query)
-            raw = q.get("prompt", ["nebula"])[0]
-            sd = q.get("seed", ["7"])[0]
-            w = q.get("width", ["768"])[0]; h = q.get("height", ["1024"])[0]
+            raw = (q.get("prompt", ["nebula"])[0] or "nebula")[:300]
+            try:
+                sd = str(int(float(q.get("seed", ["7"])[0])))
+            except (TypeError, ValueError):
+                sd = "7"
+            def _dim(k, d):
+                try:
+                    return max(64, min(2048, int(float(q.get(k, [str(d)])[0]))))
+                except (TypeError, ValueError):
+                    return d
+            w = _dim("width", 768); h = _dim("height", 1024)
             import hashlib  # v367fix: _t shadow removed
             cdir = os.path.join(HERE, "cache"); os.makedirs(cdir, exist_ok=True)
             fn = os.path.join(cdir, hashlib.md5((raw + "|" + sd).encode()).hexdigest() + ".jpg")
