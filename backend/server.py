@@ -246,148 +246,148 @@ class H(SimpleHTTPRequestHandler):
         return super().do_GET()                          # static frontend
 
     def do_POST(self):
-        if self.mem_route(): return
-        if self.path == "/api/explore":                 # v78: share with everyone
-            n = int(self.headers.get("Content-Length", 0) or 0)
+    if self.mem_route(): return
+    if self.path == "/api/explore":                 # v78: share with everyone
+        n = int(self.headers.get("Content-Length", 0) or 0)
+        try:
+            b = json.loads(self.rfile.read(n) or b"{}")
+        except Exception:
+            return self._json(400, {"error": "bad json"})
+        pr = str(b.get("prompt", ""))[:300].strip()
+        kd = b.get("kind") if b.get("kind") in ("image", "video") else "image"
+        if not pr:
+            return self._json(400, {"error": "empty prompt"})
+        nowt = _t.time(); ip = self.client_address[0]
+        if nowt - _RATE.get(ip, 0) < 3:
+            return self._json(429, {"error": "slow down"})
+        _RATE[ip] = nowt
+        item = {"id": "u" + _u.uuid4().hex[:10], "ts": int(nowt * 1000), "kind": kd,
+                "prompt": pr, "seed": int(b.get("seed") or 7) % 100000,
+                "by": str(b.get("by") or "Guest")[:24], "authorId": str(b.get("authorId") or "")[:40],
+                "origin": "user", "likes": 0}
+        fp = os.path.join(HERE, "explore.json")
+        with _EXLOCK:
             try:
-                b = json.loads(self.rfile.read(n) or b"{}")
+                data = json.load(open(fp))
             except Exception:
-                return self._json(400, {"error": "bad json"})
-            pr = str(b.get("prompt", ""))[:300].strip()
-            kd = b.get("kind") if b.get("kind") in ("image", "video") else "image"
-            if not pr:
-                return self._json(400, {"error": "empty prompt"})
-            nowt = _t.time(); ip = self.client_address[0]
-            if nowt - _RATE.get(ip, 0) < 3:
-                return self._json(429, {"error": "slow down"})
-            _RATE[ip] = nowt
-            item = {"id": "u" + _u.uuid4().hex[:10], "ts": int(nowt * 1000), "kind": kd,
-                    "prompt": pr, "seed": int(b.get("seed") or 7) % 100000,
-                    "by": str(b.get("by") or "Guest")[:24], "authorId": str(b.get("authorId") or "")[:40],
-                    "origin": "user", "likes": 0}
-            fp = os.path.join(HERE, "explore.json")
-            with _EXLOCK:
-                try:
-                    data = json.load(open(fp))
-                except Exception:
-                    data = []
-                data.append(item)
-                tmp = fp + ".tmp"
-                open(tmp, "w").write(json.dumps(data[-60:]))
-                os.replace(tmp, fp)
-            return self._json(200, item)
-        if self.path == "/api/memory":
-            n = int(self.headers.get("Content-Length", 0) or 0)
+                data = []
+            data.append(item)
+            tmp = fp + ".tmp"
+            open(tmp, "w").write(json.dumps(data[-60:]))
+            os.replace(tmp, fp)
+        return self._json(200, item)
+    if self.path == "/api/memory":
+        n = int(self.headers.get("Content-Length", 0) or 0)
+        try:
+            b = json.loads(self.rfile.read(n) or b"{}")
+        except Exception:
+            return self._json(400, {"error": "bad json"})
+        import hashlib as _hl, sqlite3 as _sq
+        tok = (self.headers.get("X-Alfred-Token") or "").strip()
+        for part in self.headers.get("Cookie", "").split(";"):
+            if "alfred_session=" in part:
+                tok = part.split("=", 1)[1].strip()
+        nowt = _t.time()
+        ip = self.client_address[0]
+        if nowt - globals().setdefault("_MRATE", {}).get(ip, 0) < 1:
+            return self._json(429, {"error": "slow down"})
+        globals().setdefault("_MRATE", {})[ip] = nowt
+        con = _sq.connect(os.path.join(HERE, "alfred.db"), timeout=10)
+        con.execute("CREATE TABLE IF NOT EXISTS memories(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, text TEXT, ts REAL)")
+        uid = None
+        if tok:
+            cands = [tok]
+            for _al in ['sha256']:
+                cands.append(getattr(_hl, _al)(tok.encode()).hexdigest())
             try:
-                b = json.loads(self.rfile.read(n) or b"{}")
-            except Exception:
-                return self._json(400, {"error": "bad json"})
-            import hashlib as _hl, sqlite3 as _sq
-            tok = (self.headers.get("X-Alfred-Token") or "").strip()
-            for part in self.headers.get("Cookie", "").split(";"):
-                if "alfred_session=" in part:
-                    tok = part.split("=", 1)[1].strip()
-            nowt = _t.time()
-            ip = self.client_address[0]
-            if nowt - globals().setdefault("_MRATE", {}).get(ip, 0) < 1:
-                return self._json(429, {"error": "slow down"})
-            globals().setdefault("_MRATE", {})[ip] = nowt
-            con = _sq.connect(os.path.join(HERE, "alfred.db"), timeout=10)
-            con.execute("CREATE TABLE IF NOT EXISTS memories(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, text TEXT, ts REAL)")
-            uid = None
-            if tok:
-                cands = [tok]
-                for _al in ['sha256']:
-                    cands.append(getattr(_hl, _al)(tok.encode()).hexdigest())
-                try:
-                    _qm = ",".join("?" * len(cands))
-                    r = con.execute("SELECT user_id FROM sessions WHERE token_hash IN (%s) AND expires>?" % _qm, cands + [nowt]).fetchone()
-                    if r: uid = r[0]
-                except Exception:
-                    uid = None
-            if not uid:
-                con.close()
-                return self._json(401, {"error": "sign in first"})
-            txt = str(b.get("text", "")).strip()[:200]
-            if not txt:
-                con.close()
-                return self._json(400, {"error": "empty"})
-            cnt = con.execute("SELECT COUNT(*) FROM memories WHERE user_id=?", (uid,)).fetchone()[0]
-            if cnt >= 40:
-                con.execute("DELETE FROM memories WHERE id=(SELECT MIN(id) FROM memories WHERE user_id=?)", (uid,))
-            con.execute("INSERT INTO memories(user_id,text,ts) VALUES(?,?,?)", (uid, txt, nowt))
-            con.commit()
-            con.close()
-            return self._json(200, {"ok": True})
-        if self.path == "/api/feedback":
-            n = int(self.headers.get(
-                "Content-Length", 0) or 0)
-            try:
-                b = json.loads(self.rfile.read(n)
-                               or b"{}")
-            except Exception:
-                return self._json(400,
-                    {"error": "bad json"})
-            v = b.get("vote")
-            if v not in ("up", "down"):
-                return self._json(400,
-                    {"error": "vote?"})
-            nowt = _t.time()
-            ip = self.client_address[0]
-            if nowt - _RATE.get(ip, 0) < 2:
-                return self._json(429,
-                    {"error": "slow down"})
-            _RATE[ip] = nowt
-            import sqlite3 as _sq
-            con = _sq.connect(
-                os.path.join(HERE, "alfred.db"),
-                timeout=10)
-            con.execute("CREATE TABLE IF NOT EXISTS"
-                " feedback(id INTEGER PRIMARY KEY"
-                " AUTOINCREMENT, user_id INTEGER,"
-                " chat_id INTEGER, vote TEXT,"
-                " snippet TEXT, ts REAL)")
-            uid = None
-            try:
-                tok = ""
-                for part in self.headers.get(
-                        "Cookie", "").split(";"):
-                    if "alfred_session=" in part:
-                        tok = part.split("=", 1)[1]
-                cols = [r[1] for r in con.execute(
-                    "PRAGMA table_info(sessions)")]
-                if tok and "token" in cols:
-                    r = con.execute("SELECT user_id"
-                        " FROM sessions WHERE token=?",
-                        (tok.strip(),)).fetchone()
-                    if r: uid = r[0]
+                _qm = ",".join("?" * len(cands))
+                r = con.execute("SELECT user_id FROM sessions WHERE token_hash IN (%s) AND expires>?" % _qm, cands + [nowt]).fetchone()
+                if r: uid = r[0]
             except Exception:
                 uid = None
-            con.execute("INSERT INTO feedback(user_id,"
-                "chat_id,vote,snippet,ts)"
-                " VALUES(?,?,?,?,?)",
-                (uid, b.get("chat_id"), v,
-                 str(b.get("snippet", ""))[:300],
-                 nowt))
-            con.commit(); con.close()
-            return self._json(200, {"ok": True})
-        if self.path == "/api/chat-v217b-retired":  # v217b: dead duplicate — frontend uses :8082 only                     # the brain (Gemini)
-            n = int(self.headers.get("Content-Length", 0) or 0)
-            body = json.loads(self.rfile.read(n) or b"{}")
-            key = KEYS.get("GOOGLE_API_KEY")
-            if not key: return self._json(500, {"error": "add GOOGLE_API_KEY to backend/keys.env"})
-            contents = [{"role": "user" if m.get("role") == "user" else "model",
-                         "parts": [{"text": m.get("content", "")}]} for m in body.get("messages", [])]
-            req = urllib.request.Request(
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + key,
-                data=json.dumps({"contents": contents}).encode(),
-                headers={"Content-Type": "application/json"})
-            try:
-                d = json.load(urllib.request.urlopen(req, timeout=120))
-                return self._json(200, {"reply": d["candidates"][0]["content"]["parts"][0]["text"]})
-            except Exception as e:
-                return self._json(502, {"error": str(e)[:200]})
-        return self._json(404, {"error": "unknown api"})
+        if not uid:
+            con.close()
+            return self._json(401, {"error": "sign in first"})
+        txt = str(b.get("text", "")).strip()[:200]
+        if not txt:
+            con.close()
+            return self._json(400, {"error": "empty"})
+        cnt = con.execute("SELECT COUNT(*) FROM memories WHERE user_id=?", (uid,)).fetchone()[0]
+        if cnt >= 40:
+            con.execute("DELETE FROM memories WHERE id=(SELECT MIN(id) FROM memories WHERE user_id=?)", (uid,))
+        con.execute("INSERT INTO memories(user_id,text,ts) VALUES(?,?,?)", (uid, txt, nowt))
+        con.commit()
+        con.close()
+        return self._json(200, {"ok": True})
+    if self.path == "/api/feedback":
+        n = int(self.headers.get(
+            "Content-Length", 0) or 0)
+        try:
+            b = json.loads(self.rfile.read(n)
+                           or b"{}")
+        except Exception:
+            return self._json(400,
+                {"error": "bad json"})
+        v = b.get("vote")
+        if v not in ("up", "down"):
+            return self._json(400,
+                {"error": "vote?"})
+        nowt = _t.time()
+        ip = self.client_address[0]
+        if nowt - _RATE.get(ip, 0) < 2:
+            return self._json(429,
+                {"error": "slow down"})
+        _RATE[ip] = nowt
+        import sqlite3 as _sq
+        con = _sq.connect(
+            os.path.join(HERE, "alfred.db"),
+            timeout=10)
+        con.execute("CREATE TABLE IF NOT EXISTS"
+            " feedback(id INTEGER PRIMARY KEY"
+            " AUTOINCREMENT, user_id INTEGER,"
+            " chat_id INTEGER, vote TEXT,"
+            " snippet TEXT, ts REAL)")
+        uid = None
+        try:
+            tok = ""
+            for part in self.headers.get(
+                    "Cookie", "").split(";"):
+                if "alfred_session=" in part:
+                    tok = part.split("=", 1)[1]
+            cols = [r[1] for r in con.execute(
+                "PRAGMA table_info(sessions)")]
+            if tok and "token" in cols:
+                r = con.execute("SELECT user_id"
+                    " FROM sessions WHERE token=?",
+                    (tok.strip(),)).fetchone()
+                if r: uid = r[0]
+        except Exception:
+            uid = None
+        con.execute("INSERT INTO feedback(user_id,"
+            "chat_id,vote,snippet,ts)"
+            " VALUES(?,?,?,?,?)",
+            (uid, b.get("chat_id"), v,
+             str(b.get("snippet", ""))[:300],
+             nowt))
+        con.commit(); con.close()
+        return self._json(200, {"ok": True})
+    if self.path == "/api/chat-v217b-retired":  # v217b: dead duplicate — frontend uses :8082 only                     # the brain (Gemini)
+        n = int(self.headers.get("Content-Length", 0) or 0)
+        body = json.loads(self.rfile.read(n) or b"{}")
+        key = KEYS.get("GOOGLE_API_KEY")
+        if not key: return self._json(500, {"error": "add GOOGLE_API_KEY to backend/keys.env"})
+        contents = [{"role": "user" if m.get("role") == "user" else "model",
+                     "parts": [{"text": m.get("content", "")}]} for m in body.get("messages", [])]
+        req = urllib.request.Request(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + key,
+            data=json.dumps({"contents": contents}).encode(),
+            headers={"Content-Type": "application/json"})
+        try:
+            d = json.load(urllib.request.urlopen(req, timeout=120))
+            return self._json(200, {"reply": d["candidates"][0]["content"]["parts"][0]["text"]})
+        except Exception as e:
+            return self._json(502, {"error": str(e)[:200]})
+    return self._json(404, {"error": "unknown api"})
 
 ThreadingHTTPServer.allow_reuse_address = True
 print("ALFRED backend  ->  http://127.0.0.1:%d   (web root: %s)" % (PORT, ROOT))

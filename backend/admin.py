@@ -227,6 +227,75 @@ def maybe_handle(handler, method):
         return _send(handler, 200, {"ok": True, "users": users, "byPlan": by,
                                     "logs": logs, "engine": _engine(), "brain": _cfg()})
 
+    # v474: the handler hard-codes "POST"/"GET" at some call sites, so a
+    # PATCH can arrive labelled either way. Accept all three; the path is
+    # specific enough that this cannot catch a POST meant for something else.
+    if method in ("PATCH", "POST", "PUT") and p.startswith("/api/admin/tiers/"):
+        tid = p.rsplit("/", 1)[-1].strip().lower()
+        if not tid:
+            return _send(handler, 400, {"ok": False, "error": "need a tier id"})
+        b = _body(handler)
+        ALLOWED = ("daily_cap", "council", "refine", "theme", "greeting")
+        unknown = [k for k in b if k not in ALLOWED]
+        if unknown:
+            return _send(handler, 400, {"ok": False,
+                    "error": "cannot change: %s" % ", ".join(map(str, unknown[:6]))})
+        import tiers as _t
+        _t.ensure()
+        db = sqlite3.connect(DBP); db.row_factory = sqlite3.Row
+        try:
+            row = db.execute("SELECT * FROM tiers WHERE lower(id)=?", (tid,)).fetchone()
+        finally:
+            db.close()
+        if not row:
+            return _send(handler, 404, {"ok": False, "error": "no such tier"})
+        before = dict(row)
+        sets, vals = [], []
+        if "daily_cap" in b:
+            v = int(b["daily_cap"])
+            if not (1 <= v <= 1000000):
+                return _send(handler, 400, {"ok": False, "error": "cap must be 1..1000000"})
+            sets.append("daily_cap=?"); vals.append(v)
+        if "council" in b:
+            v = int(b["council"])
+            if not (1 <= v <= 8):
+                return _send(handler, 400, {"ok": False, "error": "council must be 1..8"})
+            sets.append("council=?"); vals.append(v)
+        if "refine" in b:
+            if not isinstance(b["refine"], bool):
+                return _send(handler, 400, {"ok": False, "error": "refine must be true/false"})
+            sets.append("refine=?"); vals.append(1 if b["refine"] else 0)
+        if "greeting" in b:
+            sets.append("greeting=?"); vals.append(str(b["greeting"])[:300])
+        if "theme" in b:
+            th = b["theme"]
+            if not isinstance(th, dict):
+                return _send(handler, 400, {"ok": False, "error": "theme must be an object"})
+            extra = [k for k in th if k not in ("accent", "glow", "surface")]
+            if extra:
+                return _send(handler, 400, {"ok": False,
+                        "error": "theme accepts only accent, glow, surface"})
+            import json as _j
+            sets.append("theme=?"); vals.append(_j.dumps(th))
+        if not sets:
+            return _send(handler, 400, {"ok": False, "error": "nothing to change"})
+        db = sqlite3.connect(DBP)
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("UPDATE tiers SET %s WHERE lower(id)=?" % ", ".join(sets), vals + [tid])
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            return _send(handler, 500, {"ok": False, "error": repr(e)[:160]})
+        finally:
+            db.close()
+        _t.reload()
+        after = _t.get(tid)
+        _audit(handler, "tier.update", "tier", tid,
+               before={k: before.get(k) for k in ALLOWED},
+               after={k: after.get(k) for k in ALLOWED})
+        return _send(handler, 200, {"ok": True, "tier": after})
+
     if method == "GET" and p == "/api/admin/audit":
         try:
             import json as _j

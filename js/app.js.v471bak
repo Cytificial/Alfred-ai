@@ -9018,6 +9018,7 @@ try { /* v163proc: native thinking card */
   var CSS = ".adm-wrap{padding:18px;max-width:920px;margin:0 auto;color:#eaf4ff}" +
     /* v471: standalone portal is the only admin surface. Reversible:
        set window.__ADMIN_PORTAL_ONLY__ = false to bring this back. */
+    if (window.__ADMIN_PORTAL_ONLY__) return;
     ".adm-tabs{display:flex;gap:8px;margin:10px 0 14px}" +
     ".adm-tab{padding:8px 14px;border-radius:18px;border:1px solid rgba(120,180,255,.3);background:rgba(255,255,255,.05);color:#dce9ff;cursor:pointer;font-size:13px}" +
     ".adm-tab.on{background:linear-gradient(90deg,#3b82f6,#06b6d4);border:0;color:#fff;font-weight:700}" +
@@ -12560,6 +12561,7 @@ try { /* v163proc: native thinking card */
   function loadChains(cb) { api("/api/admin/providers").then(function (j) { CHAINS = (j && j.chains) || {}; cb && cb(); }); }
     /* v471: standalone portal is the only admin surface. Reversible:
        set window.__ADMIN_PORTAL_ONLY__ = false to bring this back. */
+    if (window.__ADMIN_PORTAL_ONLY__) return;
   function setChain(t, models, note) {
     api("/api/admin/providers/chains", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan: t, models: models }) })
       .then(function (j) { if (note) note.textContent = j.ok ? "saved ✓" : (j.error || "failed"); if (j.ok) CHAINS[t] = models; });
