@@ -12,7 +12,52 @@ ADMIN = frozenset(e.strip().lower() for e in os.environ.get("ALFRED_ADMIN_EMAIL"
 PLANS = ("Free", "Pro", "Ultra")
 
 def _send(h, code, obj):
-    b = json.dumps(obj).encode()
+    # v466: any mutating admin call is recorded, route name + outcome
+    try:
+        if (getattr(h, "command", "") == "POST"
+                and getattr(h, "_audit_todo", None)
+                and not getattr(h, "_audit_done", False)):
+            h._audit_done = True
+            _tid = ""
+            try:
+                _tid = str((obj or {}).get("email") or "")
+            except Exception:
+                pass
+            _audit(h, str(h._audit_todo), "route", _tid,
+                   outcome=("ok" if int(code) < 400 else "error"),
+                   after={"status": int(code)})
+    except Exception:
+        pass
+# ===== v469: no admin response may ever carry a secret =====
+_REDACT = "[REDACTED]"
+_SECRET_FIELDS = frozenset(("key", "apikey", "api_key", "gemini_key",
+  "google_key", "openai_key", "anthropic_key", "openrouter_key", "groq_key",
+  "mistral_key", "deepseek_key", "xai_key", "secret", "client_secret",
+  "password", "passwd", "authorization", "auth", "access_token",
+  "refresh_token", "private_key", "admin_pass", "owner_pass"))
+
+
+def _safe(v):
+    if isinstance(v, dict):
+        out = {}
+        for k, val in v.items():
+            n = str(k).strip().lower().replace("-", "_")
+            bad = (n in _SECRET_FIELDS or n.endswith("_api_key")
+                   or n.endswith("_key") or n.endswith("_secret")
+                   or n.endswith("_token") or n.endswith("_pass"))
+            out[k] = _REDACT if bad else _safe(val)
+        return out
+    if isinstance(v, (list, tuple)):
+        return [_safe(x) for x in v]
+    if isinstance(v, str) and v.lstrip()[:1] in ("{", "["):
+        try:
+            return json.dumps(_safe(json.loads(v)))
+        except Exception:
+            return v
+    return v
+
+
+    b = json.dumps(_safe(obj)).encode()
     h.send_response(code); h.send_header("Content-Type", "application/json")
     h.send_header("Content-Length", str(len(b))); h.end_headers(); h.wfile.write(b)
 
@@ -106,6 +151,54 @@ def _engine():
     try: return json.load(urllib.request.urlopen("http://127.0.0.1:8082/health", timeout=3))
     except Exception as e: return {"ok": False, "error": str(e)[:80]}
 
+# ===== v466: admin audit trail - every mutation, with before/after =====
+_ACTOR = ""
+_AUDIT_SCHEMA = """
+CREATE TABLE IF NOT EXISTS admin_audit(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  at REAL NOT NULL, actor TEXT NOT NULL DEFAULT "",
+  action TEXT NOT NULL, target_type TEXT NOT NULL DEFAULT "",
+  target_id TEXT NOT NULL DEFAULT "", ip TEXT NOT NULL DEFAULT "",
+  outcome TEXT NOT NULL DEFAULT "ok", reason TEXT NOT NULL DEFAULT "",
+  before TEXT NOT NULL DEFAULT "", after TEXT NOT NULL DEFAULT "")"""
+
+
+try:
+    _db0 = sqlite3.connect(DBP)
+    _db0.execute(_AUDIT_SCHEMA)
+    _db0.commit()
+    _db0.close()
+except Exception:
+    pass
+
+
+def _audit(handler, action, target_type="", target_id="", outcome="ok",
+            reason="", before=None, after=None):
+    """Never raises, never records secrets."""
+    try:
+        import json as _j, time as _t
+        ip = ""
+        try:
+            ip = handler.client_address[0] if handler.client_address else ""
+        except Exception:
+            pass
+        db = sqlite3.connect(DBP)
+        try:
+            db.execute(_AUDIT_SCHEMA)
+            db.execute(
+                "INSERT INTO admin_audit(at,actor,action,target_type,target_id,ip,"
+                "outcome,reason,before,after) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                (_t.time(), _ACTOR, str(action)[:60], str(target_type)[:40],
+                 str(target_id)[:120], ip, str(outcome)[:20], str(reason)[:200],
+                 _j.dumps(before)[:2000] if before is not None else "",
+                 _j.dumps(after)[:2000] if after is not None else ""))
+            db.commit()
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+
 def maybe_handle(handler, method):
     p = handler.path.split("?")[0]
     if not p.startswith("/api/admin/"): return False
@@ -116,6 +209,14 @@ def maybe_handle(handler, method):
         print("[admin] deny: valid session, not admin (%s***)" % (me[0] or "")[:2], flush=True)
         _send(handler, 403, {"ok": False, "error": "admin only"}); return True
 
+    global _ACTOR
+    _ACTOR = (me[0] or "")
+    try:
+        handler._audit_todo = p
+        handler._audit_done = False
+    except Exception:
+        pass
+
     if method == "GET" and p == "/api/admin/overview":
         db = sqlite3.connect(DBP); db.row_factory = sqlite3.Row
         users = [dict(r) for r in db.execute("SELECT id,email,name,plan FROM users ORDER BY id")]
@@ -125,6 +226,26 @@ def maybe_handle(handler, method):
         for u in users: by[u["plan"]] = by.get(u["plan"], 0) + 1
         return _send(handler, 200, {"ok": True, "users": users, "byPlan": by,
                                     "logs": logs, "engine": _engine(), "brain": _cfg()})
+
+    if method == "GET" and p == "/api/admin/audit":
+        try:
+            import json as _j
+            _n = 200
+            try:
+                _n = max(1, min(500, int(_body(handler).get("limit") or 100)))
+            except Exception:
+                pass
+            db = sqlite3.connect(DBP); db.row_factory = sqlite3.Row
+            _rows = [dict(r) for r in db.execute(
+                "SELECT * FROM admin_audit ORDER BY id DESC LIMIT ?", (_n,))]
+            db.close()
+            for _r in _rows:
+                for _k in ("before", "after"):
+                    try: _r[_k] = _j.loads(_r[_k]) if _r[_k] else None
+                    except Exception: pass
+            return _send(handler, 200, {"ok": True, "rows": _rows})
+        except Exception as e:
+            return _send(handler, 500, {"ok": False, "error": repr(e)[:160]})
 
     if method == "GET" and p == "/api/admin/tiers":
         try:
@@ -154,6 +275,10 @@ def maybe_handle(handler, method):
         if t is None:
             return _send(handler, 400, {"ok": False,
                 "error": "unknown tier or user - pick Free, Pro or Ultra"})
+        handler._audit_done = True
+        _audit(handler, "tier.change", "user", email,
+               before={"plan": b.get("_old")},
+               after={"plan": t["name"], "tier": t["id"]})
         return _send(handler, 200, {"ok": True, "plan": t["name"], "tier": t["id"],
                                     "greeting": t["greeting"], "theme": t["theme"]})
 

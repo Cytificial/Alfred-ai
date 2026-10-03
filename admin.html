@@ -1,590 +1,269 @@
-<!doctype html><html lang=en><head><meta charset=utf-8>
-<meta name=viewport content="width=device-width,initial-scale=1">
-<title>Alfred · Console</title>
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Alfred · Admin</title>
 <style>
-:root{color-scheme:dark}
+:root{--bg:#080D17;--panel:#0E1729;--line:rgba(255,255,255,.09);--txt:#E7EFF8;
+--dim:rgba(231,239,248,.55);--acc:#7CC4FF;--ok:#9BE7C4;--bad:#FF9DB0;--warn:#FFD37A}
 *{box-sizing:border-box}
-body{margin:0;background:#0b0f14;color:#e8eef5;font:14px/1.5 system-ui,-apple-system,sans-serif}
-#login{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 50% -8%,#11253e 0%,#070b11 58%) #070b11;z-index:50}
-.lg-mark{width:86px;height:86px;border-radius:50%;border:2px solid rgba(127,196,255,.4);display:flex;align-items:center;justify-content:center;font-size:34px;color:#7fc4ff;box-shadow:0 0 44px rgba(46,127,214,.28),inset 0 0 26px rgba(46,127,214,.14)}
-.lg-kick{letter-spacing:.34em;font-size:10px;color:#6f8aa3;margin-top:20px}
-.lg-card{width:min(360px,88vw);margin-top:20px;background:rgba(13,20,29,.92);border:1px solid #1d2a38;border-radius:16px;padding:22px}
-.lg-card h3{margin:0 0 2px;font-size:16px;letter-spacing:.06em}
-.lg-card p{margin:0 0 14px;font-size:11px;color:#7d93a8}
-.lg-card input{width:100%;margin:0 0 10px;padding:12px 13px;font-size:14px;background:#0a0f16;border:1px solid #24313f;border-radius:10px;color:#e8eef5}
-.lg-card button{width:100%;padding:12px;font:600 12px system-ui;letter-spacing:.14em;background:#2e7fd6;color:#fff;border:0;border-radius:10px;cursor:pointer}
-.lg-foot{font-size:10px;color:#4f6478;margin-top:14px;text-align:center;line-height:1.6}
-.hdr{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #1c2733;position:sticky;top:0;background:#0b0f14;z-index:5}
-.hdr b{letter-spacing:.14em;font-size:13px}
-.v1{font:10px system-ui;color:#8fb8d8;border:1px solid rgba(159,216,255,.35);border-radius:99px;padding:1px 8px}
-.tabs{display:flex;gap:6px;padding:10px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.tabs button{flex:0 0 auto;background:transparent;border:1px solid #24313f;color:#9fb4c8;border-radius:99px;padding:7px 14px;font:12px system-ui;cursor:pointer}
-.tabs button.on{background:#2e7fd6;border-color:#2e7fd6;color:#fff}
-main{padding:14px 16px 60px;max-width:1080px;margin:0 auto}
-.card{background:#101720;border:1px solid #1c2733;border-radius:14px;padding:13px;margin-bottom:12px;overflow-x:auto}
-.card h4{margin:0 0 9px;font-size:13px;color:#cfe4f5}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
-.kpi{background:#101720;border:1px solid #1c2733;border-radius:14px;padding:13px}
-.kpi b{display:block;font-size:24px;color:#7fc4ff}
-.kpi span{font-size:11px;color:#8ba1b5}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th,td{text-align:left;padding:7px 8px;border-bottom:1px solid #1c2733;white-space:nowrap}
-th{color:#8ba1b5;font-weight:600}
-input,select,textarea{background:#0b0f14;border:1px solid #24313f;color:#e8eef5;border-radius:9px;padding:8px 10px;font:12px system-ui}
-textarea{width:100%;min-height:84px;resize:vertical}
-.act{background:#2e7fd6;color:#fff;border:0;border-radius:9px;padding:8px 14px;font:12px system-ui;cursor:pointer}
-.ghost{background:transparent;color:#9fb4c8;border:1px solid #24313f;border-radius:9px;padding:8px 12px;font:12px system-ui;cursor:pointer}
-.mut{color:#8ba1b5;font-size:11px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
-.hide{display:none!important}
-</style><script>
-try {
-  if (sessionStorage.getItem("__v353ah") !== "1") {
-    sessionStorage.setItem("__v353ah", "1");
-    if (window.caches && caches.keys) caches.keys().then(function (ks) {
-      ks.filter(function (k) { return /^alfred-v/.test(k); }).forEach(function (k) { caches.delete(k); });
-    });
-    setTimeout(function () { location.reload(); }, 350);
-  }
-} catch (e) {}
-</script>
-</head><body>
-<div id=login>
- <div class=lg-mark>◈</div>
- <div class=lg-kick>ALFRED</div>
- <div class=lg-card>
-  <h3>Owner Console</h3>
-  <p>Private control surface — authorized access only</p>
-  <input id=em type=email placeholder="Owner email" autocomplete=username>
-  <input id=pw type=password placeholder="Password" autocomplete=current-password onkeydown="if(event.key=='Enter')go()">
-  <button onclick="go()">UNLOCK CONSOLE</button>
-  <p class=mut id=lmsg style="margin-top:10px"></p>
- </div>
- <div class=lg-foot>Credentials live in <code>backend/keys.env</code> on the host.<br>Rotate anytime — rerun the key section or edit the file.</div>
+body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.55 system-ui,-apple-system,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--line);
+position:relative;background:rgba(8,13,23,.96);backdrop-filter:blur(12px);z-index:5;flex-wrap:wrap}
+header h1{margin:0;font-size:15px;font-weight:650;letter-spacing:.3px}
+.pill{font:11px system-ui;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
+.pill.bad{color:var(--bad);border-color:rgba(255,157,176,.4)}
+.pill.ok{color:var(--ok);border-color:rgba(155,231,196,.4)}
+nav{display:flex;gap:6px;padding:11px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap;
+position:sticky;top:var(--bar);background:rgba(8,13,23,.96);z-index:4}
+nav button{background:transparent;border:1px solid var(--line);color:var(--dim);padding:8px 13px;
+border-radius:999px;font:600 12.5px system-ui;cursor:pointer}
+nav button.on{background:rgba(124,196,255,.14);border-color:rgba(124,196,255,.45);color:var(--acc)}
+main{padding:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:1200px;margin:0 auto}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:10px 0 8px}
+table{width:max-content;min-width:100%;border-collapse:collapse;margin:10px 0 8px;font-size:12.5px}
+th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:600;font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;
+position:sticky;top:0;background:var(--bg)}
+td.wrap{max-width:340px;overflow-wrap:anywhere;color:var(--dim);font-size:11.5px}
+select,input,button.act{background:#111C31;color:var(--txt);border:1px solid var(--line);
+border-radius:9px;padding:6px 10px;font:12.5px system-ui}
+button.act{cursor:pointer;background:rgba(124,196,255,.14);border-color:rgba(124,196,255,.4);
+color:var(--acc);font-weight:600}
+.cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px}
+.card h3{margin:0 0 3px;font-size:14.5px}
+.card .sub{color:var(--dim);font-size:12px;margin-bottom:11px}
+.card dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:12px}
+.card dt{color:var(--dim)}
+.card dd{margin:0;overflow-wrap:anywhere}
+.greet{margin-top:11px;padding-top:11px;border-top:1px solid var(--line);color:var(--dim);
+font-style:italic;font-size:12px}
+.msg{padding:9px 12px;border-radius:10px;margin-bottom:13px;font-size:12.5px;display:none}
+.msg.ok{display:block;background:rgba(155,231,196,.12);border:1px solid rgba(155,231,196,.35);color:var(--ok)}
+.msg.err{display:block;background:rgba(255,157,176,.12);border:1px solid rgba(255,157,176,.35);color:var(--bad)}
+.empty{color:var(--dim);padding:22px 0;font-size:12.5px}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;
+overflow:auto;font:11.5px ui-monospace,monospace;color:var(--dim);max-height:60vh}
+/* login */
+#gate{max-width:380px;margin:12vh auto;padding:0 18px}
+#gate .card{padding:24px}
+#gate h2{margin:0 0 4px;font-size:19px}
+#gate p.sub{margin:0 0 18px}
+#gate input{width:100%;margin-bottom:11px;padding:11px 12px;font-size:14px}
+#gate button{width:100%;margin-top:6px;padding:12px;font-size:14px;font-weight:650;
+background:linear-gradient(90deg,#3B82F6,#06B6D4);border:0;border-radius:11px;color:#fff;cursor:pointer}
+</style></head><body>
+
+<div id="gate"><div class="card">
+  <h2>Alfred · Admin</h2>
+  <p class="sub">Manager sign-in</p>
+  <input id="em" type="email" placeholder="admin@alfred.ai" autocomplete="username">
+  <input id="pw" type="password" placeholder="Password" autocomplete="current-password">
+  <button id="go">Sign in</button>
+  <div class="msg" id="gmsg"></div>
+</div></div>
+
+<div id="app" style="display:none">
+<header><h1>ALFRED · ADMIN</h1>
+  <span class="pill" id="who">—</span>
+  <span class="pill" id="eng">—</span>
+  <span style="flex:1"></span>
+  <button class="act" id="refresh">Refresh</button>
+  <button class="act" id="out">Sign out</button>
+</header>
+<nav id="tabs"></nav>
+<main><div class="msg" id="msg"></div><div id="out2"></div></main>
 </div>
-<div id=app class=hide>
- <div class=hdr><b>ALFRED CONSOLE</b><span class=v1>V1</span>
-  <button class=ghost style="margin-left:auto" onclick="try{sessionStorage.removeItem('ac_tok')}catch(e){};location.reload()">Lock</button></div>
- <div class=tabs id=tabs></div>
- <main id=main></main>
-</div>
+
 <script>
-var TOK="";
-try{TOK=sessionStorage.getItem("ac_tok")||""}catch(e){}
-function api(p,o){o=o||{};o.headers=Object.assign({"X-Alfred-Token":TOK,"Content-Type":"application/json"},o.headers||{});
- if(o.body&&typeof o.body!="string")o.body=JSON.stringify(o.body);
- return fetch(p,o).then(function(r){return r.json().catch(function(){return{}})})}
-function el(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e}
-function go(){
- var em=document.getElementById("em").value.trim(), p=document.getElementById("pw").value;
- var lm=document.getElementById("lmsg"); lm.textContent="";
- api("/api/auth/login",{method:"POST",body:{email:em,password:p}}).then(function(j){
-  if(!j.ok||!j.token){lm.textContent=j.error||"wrong email or password";return}
-  TOK=j.token;
-  api("/api/admin/metrics").then(function(m){
-   if(m.ok){try{sessionStorage.setItem("ac_tok",TOK)}catch(e){}boot()}
-   else{lm.textContent="this account is not the owner";TOK=""}
-  })})}
-function boot(){
- document.getElementById("login").classList.add("hide");
- document.getElementById("app").classList.remove("hide");
- nav(0);
- api("/api/admin/metrics").then(function(j){if(!j.ok){try{sessionStorage.removeItem("ac_tok")}catch(e){}location.reload()}})}
-function esc2(x){return String(x==null?"":x).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]})}
-function vCred2(m){
- var wrap=el("div","card");
- wrap.innerHTML="<h4>Credits - live control</h4><p class=mut>Base = plan daily credits. Extra = your top-ups. Left = spendable today.</p>";
- m.appendChild(wrap);
- var tb=el("div","card"); m.appendChild(tb);
- function load(){
-  api("/api/admin/credits/full").then(function(j){
-   if(!j.ok){tb.innerHTML="<p class=mut>"+esc2(j.error||"auth needed")+"</p>";return}
-   var caps=j.caps||{};
-   var rows=(j.rows||[]).map(function(r){
-    var base=caps[r.plan]||0, left=Math.max(0,base+(r.extra||0)-(r.used||0));
-    return "<tr><td>"+esc2(r.email)+"</td><td>"+esc2(r.plan)+"</td><td>"+(r.used||0)+"</td><td>"+base+"</td><td>"+(r.extra||0)+"</td><td><b>"+left+"</b></td>"
-     +"<td><button data-a=10 data-e=\""+esc2(r.email)+"\">+10</button> <button data-a=25 data-e=\""+esc2(r.email)+"\">+25</button> <button data-a=100 data-e=\""+esc2(r.email)+"\">+100</button> <button data-a=reset data-e=\""+esc2(r.email)+"\">reset</button></td></tr>";
-   }).join("");
-   tb.innerHTML="<h4>Users - day "+esc2(j.day)+"</h4><table><tr><th>Email</th><th>Plan</th><th>Used</th><th>Base</th><th>Extra</th><th>Left</th><th>Top up</th></tr>"+rows+"</table>"
-    +"<p class=mut>Base caps: Free "+esc2(caps.Free)+" / Pro "+esc2(caps.Pro)+" / Ultra "+esc2(caps.Ultra)+"</p>";
-   [].slice.call(tb.querySelectorAll("button")).forEach(function(b){
-    b.onclick=function(){
-     var em=b.getAttribute("data-e"), a=b.getAttribute("data-a");
-     b.disabled=true;
-     var p2=(a==="reset")?api("/api/admin/credits/set",{method:"POST",body:{email:em,extra:0}})
-       :api("/api/admin/credits/add",{method:"POST",body:{email:em,add:parseInt(a,10)}});
-     p2.then(function(){load()});
-    };
-   });
-  });
- }
- load();
- var ce=el("div","card");
- ce.innerHTML="<h4>Base credits per level</h4><p class=mut>Applies from the next message - no restart needed.</p>"
-  +"<label>Free <input id=capFree type=number min=1 max=100000 style=width:90px></label> "
-  +"<label>Pro <input id=capPro type=number min=1 max=100000 style=width:90px></label> "
-  +"<label>Ultra <input id=capUltra type=number min=1 max=100000 style=width:90px></label> "
-  +"<button id=capSave>Save caps</button> <span id=capMsg class=mut></span>";
- m.appendChild(ce);
- api("/api/admin/credits/full").then(function(j){
-  if(!j.ok)return; var c=j.caps||{};
-  var f=document.getElementById("capFree"),p=document.getElementById("capPro"),u=document.getElementById("capUltra");
-  if(f)f.value=c.Free||60; if(p)p.value=c.Pro||120; if(u)u.value=c.Ultra||500;
- });
- var sb=document.getElementById("capSave");
- if(sb)sb.onclick=function(){
-  var msg=document.getElementById("capMsg"), done=0, total=0;
-  ["Free","Pro","Ultra"].forEach(function(k){
-   var v=parseInt((document.getElementById("cap"+k)||{}).value,10);
-   if(v>=1&&v<=100000){
-    total++;
-    api("/api/admin/caps/set",{method:"POST",body:{plan:k,cap:v}}).then(function(j){
-     done++; if(msg)msg.textContent="saved "+done+"/"+total+(j&&j.ok?"":" ERROR");
-    });
-   }
-  });
-  if(!total&&msg)msg.textContent="nothing valid to save";
- };
+var OUT=document.getElementById("out2"), MSG=document.getElementById("msg"),
+    GATE=document.getElementById("gate"), APP=document.getElementById("app"),
+    TABS=document.getElementById("tabs"), WHO=document.getElementById("who");
+
+function tok(){try{return localStorage.getItem("alfred_admin_token")||""}catch(e){return ""}}
+function say(t,ok){MSG.className="msg "+(ok?"ok":"err");MSG.textContent=t;
+  setTimeout(function(){MSG.className="msg"},3200)}
+function gsay(t,ok){var m=document.getElementById("gmsg");m.className="msg "+(ok?"ok":"err");m.textContent=t}
+
+function api(path,body){
+  var o={credentials:"include",headers:{}};
+  var t=tok(); if(t) o.headers["X-Alfred-Token"]=t;
+  if(body){o.method="POST";o.headers["Content-Type"]="application/json";o.body=JSON.stringify(body)}
+  return fetch(path,o).then(function(r){
+    return r.json().catch(function(){return {ok:false,error:"non-json ("+r.status+")"}});
+  },function(){return {ok:false,error:"network error"}});
 }
 
-function vSkillsS2(m){
-  if(window.__vS2u===undefined)window.__vS2u=0;
-  var wrap=document.createElement("div");wrap.className="card";
-  var h=document.createElement("h4");h.textContent="Alfred Skills (SKILL.md)";wrap.appendChild(h);
-  var list=document.createElement("div");wrap.appendChild(list);
-  var sep=document.createElement("hr");wrap.appendChild(sep);
-  var fh=document.createElement("h4");fh.textContent="Add a skill";wrap.appendChild(fh);
-  var f=document.createElement("div");
-  function inp(ph){var i=document.createElement("input");i.placeholder=ph;i.style.width="100%";i.style.margin="3px 0";f.appendChild(i);return i;}
-  var inN=inp("name (lowercase-dashes, e.g. deep-dive)");
-  var inD=inp("description (shown to Alfred always)");
-  var inT=inp("triggers (comma-separated, e.g. teach me, step by step)");
-  var inB=document.createElement("textarea");inB.placeholder="SKILL.md body - instructions Alfred follows when triggered";inB.rows=6;inB.style.width="100%";f.appendChild(inB);
-  var add=document.createElement("button");add.type="button";add.textContent="Create skill";f.appendChild(add);
-  var msg=document.createElement("div");f.appendChild(msg);
-  wrap.appendChild(f);
-  function req(path,body){
-    var o={method:"GET",headers:{"X-Alfred-Token":(sessionStorage.getItem("ac_tok")||"")}};
-    if(body){o.method="POST";o.headers["Content-Type"]="application/json";o.body=JSON.stringify(body);}
-    return fetch(path,o).then(function(r){return r.json();});
-  }
-  function load(){
-    list.textContent="Loading...";
-    req("/api/admin/skills").then(function(j){
-      list.textContent="";
-      var sk=(j&&j.skills)||[];
-      if(!sk.length){var e=document.createElement("div");e.textContent="No skills yet - add one below.";list.appendChild(e);}
-      sk.forEach(function(s){
-        var row=document.createElement("div");row.style.margin="6px 0";
-        var b=document.createElement("b");b.textContent=s.name;row.appendChild(b);
-        var d=document.createElement("span");d.textContent=" - "+s.description+"  [triggers: "+s.trigger+"]";row.appendChild(d);
-        var del=document.createElement("button");del.type="button";del.textContent=" Delete";
-        del.onclick=function(){
-          if(!window.confirm("Delete skill "+s.name+"?"))return;
-          req("/api/admin/skills/delete",{name:s.name}).then(load);
-        };
-        row.appendChild(del);list.appendChild(row);
-      });
-    }).catch(function(){list.textContent="Failed to load skills.";});
-  }
-  add.onclick=function(){
-    msg.textContent="";
-    req("/api/admin/skills/add",{name:inN.value.trim(),description:inD.value.trim(),trigger:inT.value.trim(),body:inB.value}).then(function(j){
-      if(j&&j.ok){msg.textContent="Created.";inN.value=inD.value=inT.value=inB.value="";load();}
-      else{msg.textContent="Error: "+((j&&j.error)||"unknown");}
-    }).catch(function(){msg.textContent="Network error.";});
-  };
-  m.appendChild(wrap);load();
+
+function tierText(v){
+  if (v == null) return "—";
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  var o = v.plan || v.tier || v;
+  if (o && typeof o === "object") return o.name || o.tier || o.id || o.label || "Free";
+  return String(o);
 }
 
-var TABS=[["Overview",vOver],["Users",vUsers],["Credits",vCred2],["Brain",vBrain],["Providers",vProv],["Memory",vMem],["Showcase",vShow],['Skills',vSkillsS2]];
-function nav(i){
- var t=document.getElementById("tabs");t.innerHTML="";
- TABS.forEach(function(x,k){var b=el("button","",x[0]);if(k==i)b.className="on";b.onclick=function(){nav(k)};t.appendChild(b)});
- var m=document.getElementById("main");m.innerHTML="";TABS[i][1](m)}
-function kpi(v,l){return '<div class=kpi><b>'+(v==null?"—":v)+"</b><span>"+l+"</span></div>"}
-function vOver(m){
- api("/api/admin/metrics").then(function(j){var x=j.metrics||{};
-  m.appendChild(el("div","kpis",kpi(x.msgs_24h,"Messages 24h")+kpi(x.chats_total,"Chats")+kpi(x.active_sessions,"Active sessions")+kpi(x.failed_24h,"Failed 24h")))});
- api("/api/admin/overview").then(function(j){
-  var rows=(j.users||[]).map(function(u){return "<tr><td>"+u.id+"</td><td>"+(u.email||"")+"</td><td>"+(u.name||"")+"</td><td>"+(u.plan||"")+"</td></tr>"}).join("");
-  m.appendChild(el("div","card","<h4>Users</h4><table><tr><th>ID</th><th>Email</th><th>Name</th><th>Plan</th></tr>"+rows+"</table>"))})}
-function vUsers(m){
- api("/api/admin/overview").then(function(j){
-  var c=el("div","card");c.appendChild(el("h4","","Plan control"));
-  var tb=document.createElement("table");
-  tb.innerHTML="<tr><th>Email</th><th>Plan</th><th></th></tr>";
-  (j.users||[]).forEach(function(u){
-   var tr=document.createElement("tr");
-   var d1=document.createElement("td");d1.textContent=u.email;
-   var d2=document.createElement("td");var s=document.createElement("select");
-   ["Free","Pro","Ultra"].forEach(function(p){var o=document.createElement("option");o.value=p;o.textContent=p;if(p===u.plan)o.selected=true;s.appendChild(o)});
-   d2.appendChild(s);
-   var d3=document.createElement("td");var b=document.createElement("button");b.className="act";b.textContent="Apply";
-   b.onclick=function(){api("/api/admin/users/plan",{method:"POST",body:{email:u.email,plan:s.value}}).then(function(r){b.textContent=r.ok?"✓":"✗";setTimeout(function(){b.textContent="Apply"},1500)})};
-   d3.appendChild(b);tr.appendChild(d1);tr.appendChild(d2);tr.appendChild(d3);tb.appendChild(tr)});
-  c.appendChild(tb);m.appendChild(c)})}
-function vCred(m){
- api("/api/admin/metrics").then(function(j){var x=j.metrics||{};
-  m.appendChild(el("div","kpis",kpi(x.msgs_24h,"Messages today")+kpi(x.chats_total,"Total chats")+kpi(x.failed_24h,"Failed today")+kpi(x.active_sessions,"Sessions")))});
- api("/api/admin/brain").then(function(j){
-  if(!j.ok){m.appendChild(el("div","card","Brain API: "+(j.error||"?")));return}
-  var c=j.config||{},caps=c.daily_caps||{};
-  var card=el("div","card","<h4>Plan caps — messages per user per day</h4>");
-  var row=el("div","row");
-  ["Free","Pro","Ultra"].forEach(function(p){
-   var i=document.createElement("input");i.placeholder=p+" cap";i.style.width="110px";i.value=caps[p]!=null?caps[p]:"";i.id="cr-"+p;row.appendChild(i)});
-  var m2=document.createElement("input");m2.placeholder="per-minute limit";m2.style.width="130px";m2.value=c.minute_limit!=null?c.minute_limit:"";m2.id="cr-min";row.appendChild(m2);
-  var sv=document.createElement("button");sv.className="act";sv.textContent="Save caps";
-  sv.onclick=function(){var nc={};["Free","Pro","Ultra"].forEach(function(p){var e=document.getElementById("cr-"+p);if(e&&e.value!=="")nc[p]=parseInt(e.value,10)||1});
-   var ml=document.getElementById("cr-min").value;
-   var body={daily_caps:nc,caps:nc};if(ml!=="")body.minute_limit=parseInt(ml,10)||1;
-   api("/api/admin/brain",{method:"POST",body:body}).then(function(r){sv.textContent=r.ok?"Saved ✓":(r.error||"failed");setTimeout(function(){sv.textContent="Save caps"},1800)})};
-  row.appendChild(sv);card.appendChild(row);
-  card.appendChild(el("div","mut","Caps reset at midnight UTC. Free users see the upgrade prompt when they hit the wall."));
-  m.appendChild(card)})}
-function vBrain(m){
- api("/api/admin/brain").then(function(j){
-  if(!j.ok){m.appendChild(el("div","card","Brain API: "+(j.error||"?")));return}
-  var c=j.config||{};
-  var card=el("div","card","<h4>Engine</h4><p class=mut>key: "+(c.gemini_key||"—")+" · context msgs: "+(c.context_messages!=null?c.context_messages:"—")+"</p>");
-  card.appendChild(el("div","","<h4>Default model chain (first = best, one per line)</h4>"));
-  var ta=document.createElement("textarea");ta.value=(c.chain||[]).join("\n");card.appendChild(ta);
-  var sv=document.createElement("button");sv.className="act";sv.textContent="Save chain";
-  sv.onclick=function(){api("/api/admin/brain",{method:"POST",body:{chain:ta.value.split("\n").map(function(x){return x.trim()}).filter(Boolean)}}).then(function(r){sv.textContent=r.ok?"Saved ✓":"failed";setTimeout(function(){sv.textContent="Save chain"},1500)})};
-  card.appendChild(sv);m.appendChild(card);
-  m.appendChild(el("div","card mut","After saving, restart the brain in Termux:<br><code>pkill -f backend/brain.py; nohup python3 backend/brain.py &amp;</code>"))})}
-function vProv(m){
- api("/api/admin/providers").then(function(j){
-  if(!j.ok){m.appendChild(el("div","card","Providers API: "+(j.error||"?")));return}
-  var ps=j.providers||j.list||[];
-  var c=el("div","card","<h4>Registered providers</h4>");
-  var html="";
-  ps.forEach(function(p){
-    var k=p.api_key||p.key||"";
-    var mask=k?(k.slice(0,6)+"••••••••"):"—";
-    html+="<b>"+(p.id||p.name||"?")+"</b> · "+(p.base_url||p.base||"")+" · key: "+mask+"<br>"});
-  c.appendChild(el("div","mut",ps.length?html:"—"));
-  var ch=j.chains||{},cl="";for(var k2 in ch)cl+="<b>"+k2+"</b>: "+(ch[k2]||[]).join(" → ")+"<br>";
-  c.appendChild(el("div","mut",cl||""));
-  c.appendChild(el("div","mut","Catalog scan + per-model assign lands in the next console round."));
-  m.appendChild(c);
-  var t=el("div","card","<h4>Test a model live</h4>");
-  var r1=el("div","row");var mi=document.createElement("input");mi.placeholder="model id (e.g. pollinations/openai)";mi.style.flex="1";r1.appendChild(mi);
-  var tb=document.createElement("button");tb.className="act";tb.textContent="Test";
-  tb.onclick=function(){tb.textContent="…";api("/api/admin/providers/test",{method:"POST",body:{model:mi.value}}).then(function(r){tb.textContent=r.alive?("alive ✓ "+(r.ms||"")+"ms"):(r.error||"dead");setTimeout(function(){tb.textContent="Test"},2500)})};
-  r1.appendChild(tb);t.appendChild(r1);m.appendChild(t);
-  var a=el("div","card","<h4>Add a provider</h4>");
-  var r2=el("div","row");
-  var ii=document.createElement("input");ii.placeholder="id (groq)";ii.style.width="90px";
-  var bi=document.createElement("input");bi.placeholder="base_url";bi.style.flex="1";
-  var ki=document.createElement("input");ki.placeholder="api_key (stored server-side, masked here)";ki.style.flex="1";ki.type="password";
-  var ab=document.createElement("button");ab.className="act";ab.textContent="Add";
-  ab.onclick=function(){api("/api/admin/providers/add",{method:"POST",body:{id:ii.value,type:"openai",base_url:bi.value,api_key:ki.value}}).then(function(r){ab.textContent=r.ok?"✓ added":(r.error||"failed");setTimeout(function(){ab.textContent="Add"},2000)})};
-  r2.appendChild(ii);r2.appendChild(bi);r2.appendChild(ki);r2.appendChild(ab);a.appendChild(r2);m.appendChild(a);
-  var sc=el("div","card","<h4>Level chains (one model per line)</h4>");
-  ["Free","Pro","Ultra"].forEach(function(p){
-   sc.appendChild(el("div","","<b>"+p+"</b>"));
-   var ta2=document.createElement("textarea");ta2.value=(ch[p]||[]).join("\n");ta2.style.minHeight="54px";sc.appendChild(ta2);
-   var sv2=document.createElement("button");sv2.className="act";sv2.textContent="Set "+p;
-   sv2.onclick=function(){api("/api/admin/providers/chains",{method:"POST",body:{plan:p,models:ta2.value.split("\n").map(function(x){return x.trim()}).filter(Boolean)}}).then(function(r){sv2.textContent=r.ok?"✓":"failed";setTimeout(function(){sv2.textContent="Set "+p},1500)})};
-   sc.appendChild(sv2)});
-  m.appendChild(sc)})}
-function vMem(m){
- var c=el("div","card","<h4>Memory pins</h4>");
- var r=el("div","row");var ei=document.createElement("input");ei.placeholder="user email";ei.style.flex="1";r.appendChild(ei);
- var lb=document.createElement("button");lb.className="act";lb.textContent="Load";
- var list=el("div","");
- lb.onclick=function(){api("/api/admin/memory/list",{method:"POST",body:{email:ei.value}}).then(function(j){
-  list.innerHTML="";(j.items||[]).forEach(function(it){
-   var row=el("div","row");var s=el("span","mut",it.text||"");s.style.flex="1";row.appendChild(s);
-   var x=document.createElement("button");x.className="ghost";x.textContent="×";
-   x.onclick=function(){api("/api/admin/memory/delete",{method:"POST",body:{id:it.id}}).then(function(){lb.click()})};
-   row.appendChild(x);list.appendChild(row)});
-  if(!(j.items||[]).length)list.appendChild(el("div","mut","none"))})};
- r.appendChild(lb);c.appendChild(r);c.appendChild(list);m.appendChild(c)}
-function vShow(m){
- var c=el("div","card","<h4>Modules showcase (Name | Description | Tier — one per line)</h4>");
- var ta=document.createElement("textarea");ta.placeholder="Nano Vision | Sees and reasons about your images | Pro";
- c.appendChild(ta);
- var r=el("div","row");
- var pb=document.createElement("button");pb.className="act";pb.textContent="Publish";
- pb.onclick=function(){var items=ta.value.split("\n").map(function(l){var p=l.split("|");if(!p[0]||!p[0].trim())return null;return{name:(p[0]||"").trim(),desc:(p[1]||"").trim(),tier:(p[2]||"Pro").trim()}}).filter(Boolean);
-  api("/api/admin/showcase",{method:"POST",body:{items:items}}).then(function(j){pb.textContent=j.ok?("Published ✓ "+j.count):(j.error||"failed");setTimeout(function(){pb.textContent="Publish"},2000)})};
- var ld=document.createElement("button");ld.className="ghost";ld.textContent="Load current";
- ld.onclick=function(){fetch("/showcase.json").then(function(x){return x.ok?x.json():{items:[]}}).then(function(j){ta.value=(j.items||[]).map(function(i){return i.name+" | "+i.desc+" | "+i.tier}).join("\n")})};
- r.appendChild(pb);r.appendChild(ld);c.appendChild(r);m.appendChild(c)}
-if(TOK){api("/api/admin/metrics").then(function(m){if(m.ok)boot();else{try{sessionStorage.removeItem("ac_tok")}catch(e){}TOK=""}})}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function short(v){
+  if(v==null) return "—";
+  if(typeof v==="object"){try{return JSON.stringify(v)}catch(e){return String(v)}}
+  var s=String(v); return s.length>120?s.slice(0,118)+"…":s;
+}
 
-var _p318 = vProv;
-vProv = function(m){ _p318(m); catCard(m); };
-function catCard(m){
- var c=el("div","card","<h4>Model catalog — scan providers, assign to a level</h4>");
- var r=el("div","row");var rb=document.createElement("button");rb.className="act";rb.textContent="Refresh models";
- var out=el("div","");
- rb.onclick=function(){rb.textContent="scanning…";out.innerHTML="";
-  api("/api/admin/models/catalog").then(function(j){
-   rb.textContent="Refresh models";
-   if(!j.ok){out.appendChild(el("div","mut",j.error||"scan failed"));return}
-   var pv=j.providers||{};
-   Object.keys(pv).forEach(function(pid){
-    var x=pv[pid]||{};
-    var head=el("div","","<b>"+pid+"</b> "+(x.err?("· <span class=mut>"+x.err+"</span>"):("· "+(x.total||0)+" models")));
-    out.appendChild(head);
-    (x.models||[]).slice(0,80).forEach(function(mid){
-     var row=el("div","row");
-     var s1=document.createElement("span");s1.className="mut";s1.textContent=mid;s1.style.flex="1";s1.style.overflow="hidden";
-     var s2=document.createElement("select");["Free","Pro","Ultra"].forEach(function(p){var o=document.createElement("option");o.value=p;o.textContent=p;s2.appendChild(o)});
-     var ab=document.createElement("button");ab.className="ghost";ab.textContent="+ level";
-     ab.onclick=function(){api("/api/admin/models/assign",{method:"POST",body:{model:mid,level:s2.value,pid:pid}}).then(function(r2){ab.textContent=r2.ok?("✓ "+s2.value):(r2.error||"✗");setTimeout(function(){ab.textContent="+ level"},1600)})};
-     row.appendChild(s1);row.appendChild(s2);row.appendChild(ab);out.appendChild(row);
-    });
-   });
-  })};
- r.appendChild(rb);c.appendChild(r);c.appendChild(out);m.appendChild(c);
- var note=el("div","card mut","Keys live server-side (masked). Rotate anytime: re-add the provider with a new key — it overwrites. Catalog snapshot also saved to backend/catalog.json.");
- m.appendChild(note);}
-var _c318 = vCred;
-vCred = function(m){ _c318(m); credRows(m); };
-function credRows(m){
- var c=el("div","card","<h4>Per-user usage today</h4>");
- var tb=el("div","mut","loading…");c.appendChild(tb);m.appendChild(c);
- api("/api/admin/credits").then(function(j){
-  if(!j.ok){tb.textContent=j.error||"failed";return}
-  var rows=(j.rows||[]).map(function(r){
-   var cap=(j.caps||{})[r.plan]||"—";
-   return "<tr><td>"+(r.email||"")+"</td><td>"+(r.plan||"")+"</td><td>"+r.used+"</td><td>"+cap+"</td></tr>"}).join("");
-  tb.innerHTML="<table><tr><th>Email</th><th>Plan</th><th>Used today</th><th>Cap</th></tr>"+rows+"</table><p class=mut>day: "+(j.day||"")+" (UTC)</p>"})}
-</script><script id="v330panel">
-(function () {
-  function tok() {
-    try { var v = localStorage.getItem("alfred_admin_token") || localStorage.getItem("alfred_token") || ""; if (v) return v; } catch (e) {}
-    var m = document.cookie.match(/(?:^|;\s*)(?:alfred_token|token)=([^;]+)/);
-    return m ? decodeURIComponent(m[1]) : "";
+/* generic renderer - works whatever shape the endpoint returns */
+function auto(data){
+  if(data==null) return '<div class="empty">no data</div>';
+  if(Array.isArray(data)){
+    if(!data.length) return '<div class="empty">empty</div>';
+    if(typeof data[0]!=="object") return "<pre>"+esc(JSON.stringify(data,null,2))+"</pre>";
+    var keys=[]; data.forEach(function(r){Object.keys(r).forEach(function(k){
+      if(keys.indexOf(k)<0) keys.push(k)})});
+    return "<table><thead><tr>"+keys.map(function(k){return "<th>"+esc(k)+"</th>"}).join("")
+      +"</tr></thead><tbody>"+data.map(function(r){
+        return "<tr>"+keys.map(function(k){
+          return '<td class="wrap">'+esc(short(r[k]))+"</td>"}).join("")+"</tr>";
+      }).join("")+"</tbody></table>";
   }
-  function api(m, p, b) {
-    return fetch(p, { method: m, headers: { "Content-Type": "application/json", "X-Alfred-Token": tok() },
-      body: b ? JSON.stringify(b) : undefined }).then(function (r) { return r.json(); });
+  if(typeof data==="object"){
+    var ks=Object.keys(data);
+    var arrs=ks.filter(function(k){return Array.isArray(data[k])});
+    var scalars=ks.filter(function(k){return !Array.isArray(data[k])});
+    var h="";
+    if(scalars.length) h+="<dl class='card' style='margin:0 0 12px'>"+scalars.map(function(k){
+      return "<dt>"+esc(k)+"</dt><dd>"+esc(short(data[k]))+"</dd>"}).join("")+"</dl>";
+    arrs.forEach(function(k){ h+="<h3 style='font-size:13px;margin:14px 0 0'>"+esc(k)
+      +" ("+(data[k]||[]).length+")</h3>"+auto(data[k]); });
+    return h||"<div class='empty'>empty object</div>";
   }
-  function panel(id, title) {
-    var d = document.createElement("div"); d.id = id;
-    d.style.cssText = "display:none;position:fixed;right:14px;bottom:76px;width:min(420px,92vw);max-height:70vh;overflow:auto;z-index:9999;background:#0b1220;color:#e8eefc;border:1px solid #24314f;border-radius:14px;padding:14px;font:14px/1.5 system-ui,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.5)";
-    var h = document.createElement("div"); h.textContent = title;
-    h.style.cssText = "font-weight:700;margin-bottom:10px;color:#7fb2ff";
-    d.appendChild(h); document.body.appendChild(d); return d;
+  return "<pre>"+esc(String(data))+"</pre>";
+}
+
+function show(j,custom){
+  if(j && j.ok===false && j.error && !j.users && !j.tiers && !j.rows){
+    OUT.innerHTML="<div class='empty'>"+esc(j.error)+"</div>"; return;
   }
-  function btn(label, x, fn) {
-    var b = document.createElement("button"); b.type = "button"; b.textContent = label;
-    b.style.cssText = "display:none!important;position:fixed;right:" + x + "px;bottom:16px;z-index:9999;background:#14243f;color:#cfe2ff;border:1px solid #2b3f68;border-radius:999px;padding:10px 14px;font:600 13px system-ui;cursor:pointer";
-    b.onclick = fn; document.body.appendChild(b); return b;
-  }
-  var bp = panel("v330-brain", "\u{1F9E0} Alfred Brain Prompt"), cp = panel("v330-credits", "\u{1F4B0} Bonus credits (extra daily allowance, resets midnight UTC)");
-  if (!tok()) {
-    var w = document.createElement("input"); w.placeholder = "paste admin token here";
-    w.style.cssText = "width:100%;box-sizing:border-box;background:#0e1730;color:#e8eefc;border:1px solid #2b3f68;border-radius:8px;padding:8px;margin-bottom:8px";
-    w.onchange = function () { try { localStorage.setItem("alfred_admin_token", w.value.trim()); } catch (e) {} };
-    bp.appendChild(w);
-  }
-  var ta = document.createElement("textarea");
-  ta.placeholder = "Standing instructions for Alfred. Highest priority, applied to every chat, every level. Example: tone rules, formatting rules, topics to handle specially.";
-  ta.style.cssText = "width:100%;box-sizing:border-box;min-height:150px;background:#0e1730;color:#e8eefc;border:1px solid #2b3f68;border-radius:8px;padding:8px;resize:vertical";
-  bp.appendChild(ta);
-  var r1 = document.createElement("div"); r1.style.cssText = "display:flex;gap:8px;margin-top:8px";
-  var save = document.createElement("button"); save.type = "button"; save.textContent = "Save";
-  save.style.cssText = "flex:1;background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:9px;cursor:pointer";
-  save.onclick = function () { api("POST", "/api/admin/brain/prompt", { prompt: ta.value }).then(function (j) { save.textContent = j.ok ? "Saved \u2713" : (j.error || "fail"); setTimeout(function () { save.textContent = "Save"; }, 1600); }); };
-  var clr = document.createElement("button"); clr.type = "button"; clr.textContent = "Clear";
-  clr.style.cssText = "background:#24314f;color:#cfe2ff;border:0;border-radius:8px;padding:9px;cursor:pointer";
-  clr.onclick = function () { ta.value = ""; api("POST", "/api/admin/brain/prompt", { prompt: "" }); };
-  r1.appendChild(save); r1.appendChild(clr); bp.appendChild(r1);
-  var em = document.createElement("input"); em.placeholder = "user email";
-  em.style.cssText = "width:100%;box-sizing:border-box;background:#0e1730;color:#e8eefc;border:1px solid #2b3f68;border-radius:8px;padding:8px;margin-bottom:8px";
-  var ex = document.createElement("input"); ex.placeholder = "bonus credits to add (e.g. 100)";
-  ex.style.cssText = "width:100%;box-sizing:border-box;background:#0e1730;color:#e8eefc;border:1px solid #2b3f68;border-radius:8px;padding:8px;margin-bottom:8px";
-  cp.appendChild(em); cp.appendChild(ex);
-  var setb = document.createElement("button"); setb.type = "button"; setb.textContent = "Set bonus";
-  setb.style.cssText = "width:100%;background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:9px;cursor:pointer";
-  setb.onclick = function () { api("POST", "/api/admin/credits/set", { email: em.value.trim(), extra: parseInt(ex.value || "0", 10) }).then(function (j) { setb.textContent = j.ok ? "Set \u2713" : (j.error || "fail"); load(); setTimeout(function () { setb.textContent = "Set bonus"; }, 1600); }); };
-  cp.appendChild(setb);
-  var tbl = document.createElement("div"); tbl.style.cssText = "margin-top:10px;font-size:13px"; cp.appendChild(tbl);
-  function load() {
-    api("GET", "/api/admin/brain/prompt").then(function (j) { if (j.ok && !ta.value) ta.value = j.prompt || ""; });
-    api("GET", "/api/admin/credits").then(function (j) {
-      if (!j.ok) { tbl.textContent = j.error || "auth needed - paste token in Brain panel"; return; }
-      var h = "<table style=\"width:100%;border-collapse:collapse\"><tr style=\"color:#7fb2ff\"><td align=left>user</td><td>plan</td><td>used</td><td>bonus</td></tr>";
-      (j.rows || []).forEach(function (r) {
-        h += "<tr><td align=left style=\"padding:3px 0\">" + r.email + "</td><td align=center>" + r.plan + "</td><td align=center>" + (r.used || 0) + "</td><td align=center>" + (r.extra || 0) + "</td></tr>";
-      });
-      tbl.innerHTML = h + "</table>";
-    });
-  }
-  btn("\u{1F9E0} Brain", 96, function () { bp.style.display = bp.style.display === "none" ? "block" : "none"; if (bp.style.display === "block") load(); });
-  btn("\u{1F4B0} Credits", 14, function () { cp.style.display = cp.style.display === "none" ? "block" : "none"; if (cp.style.display === "block") load(); });
-})();
-</script><script id="v331panel">
-(function () {
-  function tok() {
-    try { var v = localStorage.getItem("alfred_admin_token") || localStorage.getItem("alfred_token") || ""; if (v) return v; } catch (e) {}
-    var m = document.cookie.match(/(?:^|;\s*)(?:alfred_token|token)=([^;]+)/);
-    return m ? decodeURIComponent(m[1]) : "";
-  }
-  function api(m, p, b) {
-    return fetch(p, { method: m, headers: { "Content-Type": "application/json", "X-Alfred-Token": tok() },
-      body: b ? JSON.stringify(b) : undefined }).then(function (r) { return r.json(); });
-  }
-  var oldP = document.getElementById("v330-brain"); if (oldP) oldP.remove();
-  [].slice.call(document.querySelectorAll("button")).forEach(function (b) {
-    if ((b.textContent || "").trim() === "\uD83E\uDDE0 Brain") b.remove();
+  OUT.innerHTML = custom ? custom(j) : auto(j);
+}
+
+/* ---------- tabs ---------- */
+var VIEWS = {
+  overview:{label:"Overview",get:function(){return api("/api/admin/overview")}},
+  users:{label:"Users",get:function(){return api("/api/admin/overview")},
+    render:function(j){
+      var rows=(j.users||[]).map(function(u){
+        return "<tr><td>"+esc(u.email)+"</td><td>"+esc(u.name)+"</td><td>"
+          +"<select data-e='"+esc(u.email)+"'>"+["Free","Pro","Ultra"].map(function(p){
+              return "<option"+(p===u.plan?" selected":"")+">"+p+"</option>"}).join("")
+          +"</select></td><td>"
+          +"<button class='act' data-save='"+esc(u.email)+"'>Save</button> "
+          +"<button class='act' data-revoke='"+esc(u.email)+"'>Revoke</button> "
+          +"<button class='act' data-del='"+esc(u.email)+"'>Delete</button></td></tr>";
+      }).join("");
+      return "<h3 style='font-size:13px'>Users ("+(j.users||[]).length+")</h3>"
+        +"<table><thead><tr><th>Email</th><th>Name</th><th>Tier</th><th>Actions</th></tr></thead>"
+        +"<tbody>"+(rows||"")+"</tbody></table>";
+    }},
+  tiers:{label:"Tiers",get:function(){return api("/api/admin/tiers")},
+    render:function(j){
+      return "<div class='cards'>"+(j.tiers||[]).map(function(t){
+        return "<div class='card'><h3>"+esc(t.name)+"</h3>"
+          +"<div class='sub'>"+esc(t.id)+" · rank "+esc(t.rank)+"</div><dl>"
+          +"<dt>daily cap</dt><dd>"+esc(t.daily_cap)+"</dd>"
+          +"<dt>council</dt><dd>"+esc(t.council)+"</dd>"
+          +"<dt>refine</dt><dd>"+(t.refine?"yes":"no")+"</dd>"
+          +"<dt>chain</dt><dd>"+esc(t.chain_key)+"</dd>"
+          +"<dt>prompt</dt><dd>"+esc(t.prompt_key)+"</dd>"
+          +"<dt>accent</dt><dd>"+esc((t.theme||{}).accent||"—")+"</dd>"
+          +"</dl><div class='greet'>"+esc(t.greeting)+"</div></div>";
+      }).join("")+"</div>";
+    }},
+  audit:{label:"Audit",get:function(){return api("/api/admin/audit")}},
+  brain:{label:"Brain",get:function(){return api("/api/admin/brain")}},
+  providers:{label:"Providers",get:function(){return api("/api/admin/providers")}},
+  billing:{label:"Billing",get:function(){return api("/api/admin/credits/full")}},
+  credits:{label:"Credits",get:function(){return api("/api/admin/credits")}},
+  lab:{label:"Lab",get:function(){return api("/api/admin/lab")}},
+  showcase:{label:"Showcase",get:function(){return api("/api/admin/showcase")}},
+  feedback:{label:"Feedback",get:function(){return api("/api/admin/feedback")}},
+  metrics:{label:"Metrics",get:function(){return api("/api/admin/metrics")}},
+  stats:{label:"Stats",get:function(){return api("/api/admin/stats")}}
+};
+var ORDER=["overview","users","tiers","audit","brain","providers","billing","credits",
+ "lab","showcase","feedback","metrics","stats"];
+var cur="overview";
+
+function buildTabs(){
+  TABS.innerHTML=ORDER.map(function(k){
+    return '<button data-k="'+k+'"'+(k===cur?' class="on"':"")+">"+VIEWS[k].label+"</button>";
+  }).join("");
+}
+function open(k){
+  cur=k;
+  TABS.querySelectorAll("button").forEach(function(b){b.classList.toggle("on",b.dataset.k===k)});
+  OUT.innerHTML="<div class='empty'>loading…</div>";
+  VIEWS[k].get().then(function(j){
+    if(j && j.engine) document.getElementById("eng").textContent=j.engine;
+    show(j, VIEWS[k].render);
   });
-  var cur = "Free", prompts = { Free: "", Pro: "", Ultra: "" };
-  var d = document.createElement("div"); d.id = "v331-brain";
-  d.style.cssText = "display:none;position:fixed;right:14px;bottom:76px;width:min(440px,92vw);max-height:74vh;overflow:auto;z-index:9999;background:#0b1220;color:#e8eefc;border:1px solid #24314f;border-radius:14px;padding:14px;font:14px/1.5 system-ui,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.5)";
-  var h = document.createElement("div"); h.textContent = "\uD83E\uDDE0 Alfred Brain Instructions - one per level";
-  h.style.cssText = "font-weight:700;margin-bottom:10px;color:#7fb2ff"; d.appendChild(h);
-  function inp(ph) {
-    var w = document.createElement("input"); w.placeholder = ph;
-    w.style.cssText = "width:100%;box-sizing:border-box;background:#0e1730;color:#e8eefc;border:1px solid #2b3f68;border-radius:8px;padding:8px;margin-bottom:8px";
-    return w;
-  }
-  var tw = inp("paste admin token here (if panels say auth needed)");
-  tw.value = tok(); tw.onchange = function () { try { localStorage.setItem("alfred_admin_token", tw.value.trim()); } catch (e) {} };
-  d.appendChild(tw);
-  var tabs = document.createElement("div"); tabs.style.cssText = "display:flex;gap:6px;margin-bottom:8px";
-  var tabBtns = {};
-  ["Free", "Pro", "Ultra"].forEach(function (pl) {
-    var b = document.createElement("button"); b.type = "button"; b.textContent = pl;
-    b.style.cssText = "flex:1;background:#14243f;color:#cfe2ff;border:1px solid #2b3f68;border-radius:8px;padding:7px;cursor:pointer;font:600 13px system-ui";
-    b.onclick = function () { prompts[cur] = ta.value; cur = pl; ta.value = prompts[pl]; paint(); };
-    tabBtns[pl] = b; tabs.appendChild(b);
-  });
-  d.appendChild(tabs);
-  var ta = document.createElement("textarea");
-  ta.placeholder = "Standing instructions for THIS level only. Highest priority, applied to every chat at this level.";
-  ta.style.cssText = "width:100%;box-sizing:border-box;min-height:150px;background:#0e1730;color:#e8eefc;border:1px solid #2b3f68;border-radius:8px;padding:8px;resize:vertical";
-  d.appendChild(ta);
-  var r1 = document.createElement("div"); r1.style.cssText = "display:flex;gap:8px;margin-top:8px;align-items:center";
-  var save = document.createElement("button"); save.type = "button"; save.textContent = "Save " + cur;
-  save.style.cssText = "flex:1;background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:9px;cursor:pointer";
-  save.onclick = function () { prompts[cur] = ta.value; api("POST", "/api/admin/brain/prompt", { plan: cur, prompt: ta.value }).then(function (j) { st.textContent = j.ok ? "Saved " + cur + " \u2713 (" + j.chars + " chars)" : (j.error || "fail"); }); };
-  var clr = document.createElement("button"); clr.type = "button"; clr.textContent = "Clear";
-  clr.style.cssText = "background:#24314f;color:#cfe2ff;border:0;border-radius:8px;padding:9px;cursor:pointer";
-  clr.onclick = function () { ta.value = ""; prompts[cur] = ""; api("POST", "/api/admin/brain/prompt", { plan: cur, prompt: "" }); st.textContent = "Cleared " + cur; };
-  var st = document.createElement("span"); st.style.cssText = "font-size:12px;color:#8fa8d8";
-  r1.appendChild(save); r1.appendChild(clr); d.appendChild(r1); d.appendChild(st);
-  function paint() {
-    ["Free", "Pro", "Ultra"].forEach(function (pl) {
-      var on = pl === cur;
-      tabBtns[pl].style.background = on ? "#1d4ed8" : "#14243f";
-      tabBtns[pl].style.color = on ? "#fff" : "#cfe2ff";
+}
+
+document.addEventListener("click",function(e){
+  var t=e.target;
+  if(t.tagName==="BUTTON"&&t.dataset.k){open(t.dataset.k);return}
+  if(t.id==="refresh"){open(cur);return}
+  if(t.id==="out"){try{localStorage.removeItem("alfred_admin_token")}catch(x){}
+    location.reload();return}
+  if(t.dataset.save){
+    var em=t.dataset.save, sel=document.querySelector("select[data-e='"+em+"']");
+    if(!sel)return;
+    api("/api/admin/users/plan",{email:em,plan:sel.value}).then(function(j){
+      say(j.ok?(em+" → "+j.plan):(j.error||"failed"),!!j.ok); open("users");
     });
-    save.textContent = "Save " + cur;
   }
-  var bt = document.createElement("button"); bt.type = "button"; bt.textContent = "\uD83E\uDDE0 Brain x3";
-  bt.style.cssText = "display:none!important;position:fixed;right:14px;bottom:16px;z-index:9999;background:#14243f;color:#cfe2ff;border:1px solid #2b3f68;border-radius:999px;padding:10px 14px;font:600 13px system-ui;cursor:pointer";
-  bt.onclick = function () {
-    d.style.display = d.style.display === "none" ? "block" : "none";
-    if (d.style.display === "block") api("GET", "/api/admin/brain/prompt").then(function (j) {
-      if (j.ok) { prompts = j.prompts; ta.value = prompts[cur]; paint(); }
-      else st.textContent = j.error || "auth needed - paste token above";
+  if(t.dataset.revoke){
+    api("/api/admin/users/revoke",{email:t.dataset.revoke}).then(function(j){
+      say(j.ok?("sessions revoked for "+t.dataset.revoke):(j.error||"failed"),!!j.ok)});
+  }
+  if(t.dataset.del){
+    if(!confirm("Delete "+t.dataset.del+"? This removes the account."))return;
+    api("/api/admin/users/delete",{email:t.dataset.del}).then(function(j){
+      say(j.ok?("deleted "+t.dataset.del):(j.error||"failed"),!!j.ok); open("users");
     });
-  };
-  document.body.appendChild(d); document.body.appendChild(bt);
-})();
-</script><script id="v332models">
-(function () {
-  var TSTR = "/api/admin/lab/test", CAT = "/api/admin/models/catalog", ASR = "/api/admin/models/assign";
-  function tok() {
-    try { var v = localStorage.getItem("alfred_admin_token") || localStorage.getItem("alfred_token") || ""; if (v) return v; } catch (e) {}
-    var m = document.cookie.match(/(?:^|;\s*)(?:alfred_token|token)=([^;]+)/);
-    return m ? decodeURIComponent(m[1]) : "";
   }
-  var d = document.createElement("div"); d.id = "v332-mod";
-  d.style.cssText = "display:none;position:fixed;right:14px;bottom:136px;width:min(460px,92vw);max-height:64vh;overflow:auto;z-index:9999;background:#0b1220;color:#e8eefc;border:1px solid #24314f;border-radius:14px;padding:14px;font:14px/1.5 system-ui,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.5)";
-  var h = document.createElement("div"); h.textContent = "\uD83D\uDEE1 Models - refresh, pick, assign to a level";
-  h.style.cssText = "font-weight:700;margin-bottom:10px;color:#7fb2ff"; d.appendChild(h);
-  var rf = document.createElement("button"); rf.type = "button"; rf.textContent = "\u21BB Refresh";
-  rf.style.cssText = "width:100%;background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:9px;cursor:pointer;margin-bottom:10px";
-  d.appendChild(rf);
-  var list = document.createElement("div"); d.appendChild(list);
-  function row(pid, mid) {
-    var r = document.createElement("div");
-    r.style.cssText = "display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #1b2745";
-    var n = document.createElement("span"); n.textContent = mid; n.style.cssText = "flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
-    r.appendChild(n);
-    ["Free", "Pro", "Ultra"].forEach(function (pl) {
-      var b = document.createElement("button"); b.type = "button"; b.textContent = pl[0];
-      b.title = "Assign to " + pl;
-      b.style.cssText = "width:30px;height:26px;border-radius:6px;border:1px solid #2b3f68;background:#14243f;color:#cfe2ff;cursor:pointer;font:600 11px system-ui";
-      b.onclick = function () {
-        if (!ASR) { b.textContent = "!"; return; }
-        fetch(ASR, { method: "POST", headers: { "Content-Type": "application/json", "X-Alfred-Token": tok() },
-          body: JSON.stringify({ plan: pl, models: [mid], provider: pid }) })
-          .then(function (x) { return x.json(); })
-          .then(function (j) { b.textContent = j.ok ? "\u2713" : "!"; setTimeout(function () { b.textContent = pl[0]; }, 1500); })
-          .catch(function () { b.textContent = "!"; });
-      };
-      var tb = document.createElement("button"); tb.type = "button"; tb.textContent = "\\u26A1"; tb.title = "Test model live";
-      tb.style.cssText = "width:30px;height:26px;border-radius:6px;border:1px solid #2b3f68;background:#0e2a1c;color:#8ff0b5;cursor:pointer;font:600 11px system-ui";
-      tb.onclick = function () {
-        if (!TSTR) { tb.textContent = "\\u2715"; return; }
-        tb.textContent = "\\u23F3";
-        fetch(TSTR, { method: "POST", headers: { "Content-Type": "application/json", "X-Alfred-Token": tok() }, body: JSON.stringify({ model: mid }) })
-          .then(function (x) { return x.json(); })
-          .then(function (j) { tb.textContent = j.alive ? ((j.ms || "?") + "ms") : "\\u2715"; setTimeout(function () { tb.textContent = "\\u26A1"; }, 2500); })
-          .catch(function () { tb.textContent = "\\u2715"; });
-      };
-      r.insertBefore(tb, r.firstChild);
-      r.appendChild(b);
-    });
-    return r;
-  }
-  function load() {
-    list.textContent = "";
-    if (!CAT) { var w = document.createElement("div"); w.textContent = "No catalog route found - use Model Lab in the app admin."; list.appendChild(w); return; }
-    fetch(CAT, { headers: { "X-Alfred-Token": tok() } }).then(function (x) { return x.json(); }).then(function (j) {
-      if (!j.ok) { var e = document.createElement("div"); e.textContent = j.error || "auth needed"; e.style.color = "#ff9d9d"; list.appendChild(e); return; }
-      var pv = j.providers || {};
-      Object.keys(pv).forEach(function (pid) {
-        var head = document.createElement("div"); head.textContent = pid + " (" + (pv[pid].count || (pv[pid].models || []).length) + ")";
-        head.style.cssText = "color:#7fb2ff;font-weight:700;margin-top:8px";
-        list.appendChild(head);
-        var ms = pv[pid].models || [];
-        if (!ms.length) {
-          var t = document.createElement("div"); t.textContent = "model list hidden by provider - open Model Lab to scan"; t.style.cssText = "font-size:12px;color:#8fa8d8";
-          list.appendChild(t);
-        } else {
-          ms.slice(0, 40).forEach(function (mm) { list.appendChild(row(pid, (pid === "google" ? "" : pid + "/") + mm)); });
-        }
-      });
-    }).catch(function () { list.textContent = "fetch failed"; });
-  }
-  rf.onclick = load;
-  var bt = document.createElement("button"); bt.type = "button"; bt.textContent = "\uD83D\uDEE1 Models";
-  bt.style.cssText = "display:none!important;position:fixed;right:96px;bottom:76px;z-index:9999;background:#14243f;color:#cfe2ff;border:1px solid #2b3f68;border-radius:999px;padding:10px 14px;font:600 13px system-ui;cursor:pointer";
-  bt.onclick = function () { d.style.display = d.style.display === "none" ? "block" : "none"; if (d.style.display === "block") load(); };
-  document.body.appendChild(d); document.body.appendChild(bt);
-})();
-</script>
-<script>
-/* ===== v347: floating panels only for a logged-in owner ===== */
-(function () {
-  if (window.__v347gate) return; window.__v347gate = "1";
-  setInterval(function () {
-    var lg = document.getElementById("login");
-    if (!lg) return;
-    var locked = !lg.classList.contains("hide");
-    [].slice.call(document.body.children).forEach(function (el) {
-      if (el === lg || el.id === "app") return;
-      var st = el.getAttribute("style") || "";
-      if (st.indexOf("z-index:9999") === -1) return;
-      var t = el.textContent || "";
-      if (el.tagName === "BUTTON" && /Models|Brain|Credits/.test(t)) {
-        el.style.display = locked ? "none" : "";
-      } else if (el.tagName === "DIV" && locked) {
-        el.style.display = "none";
-      }
-    });
-  }, 700);
-})();
-</script>
-</body></html>
+});
+
+/* ---------- gate ---------- */
+function enter(email){
+  GATE.style.display="none"; APP.style.display="block";
+  WHO.textContent=email; buildTabs(); open("overview");
+}
+document.getElementById("go").addEventListener("click",function(){
+  var em=document.getElementById("em").value.trim().toLowerCase();
+  var pw=document.getElementById("pw").value;
+  if(!em||!pw){gsay("email and password required",false);return}
+  fetch("/api/auth/login",{method:"POST",credentials:"include",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({email:em,password:pw})})
+   .then(function(r){return r.json()})
+   .then(function(j){
+     if(!j||!j.ok){gsay((j&&j.error)||"sign in failed",false);return}
+     try{localStorage.setItem("alfred_admin_token",j.token)}catch(x){}
+     try{localStorage.setItem("alfred_name",(j.user&&j.user.name)||em)}catch(x){}
+     enter(em);
+   }).catch(function(){gsay("network error",false)});
+});
+document.getElementById("pw").addEventListener("keydown",function(e){
+  if(e.key==="Enter") document.getElementById("go").click();
+});
+
+/* resume from a stored token */
+if(tok()){
+  api("/api/admin/overview").then(function(j){
+    if(j&&j.ok!==false) enter("(resumed)");
+    else GATE.style.display="block";
+  }).catch(function(){GATE.style.display="block"});
+} else {
+  var e0=document.getElementById("em"); if(e0) e0.focus();
+}
+</script></body></html>

@@ -111,6 +111,16 @@ def persona(name):
 
 TIER_RULES = ("ALFRED CORE: warm, precise butler. Admit uncertainty plainly; never invent facts, sources, or capabilities. Protect user privacy. Decline harmful requests briefly and kindly. Never mention providers, models, engines, or internal tools.")
 
+# v465: tier registry lookups. Never raises into the chat path.
+def _tier_field(plan, field, default):
+    try:
+        import tiers as _t
+        v = _t.resolve(plan).get(field)
+        return default if v is None else v
+    except Exception:
+        return default
+
+
 def _tier_persona(user, plan):
     """v272: the level you pay for is the mind you feel."""
     base = persona(user.get("name"))
@@ -509,7 +519,17 @@ class Handler(BaseHTTPRequestHandler):
         if plan not in ("Free", "Pro", "Ultra"):
             plan = "Free"
         caps = cfg.get("daily_caps") or {}
-        return plan, int(caps.get(plan, 20))
+        cap = int(caps.get(plan, 20))
+        # v465 shadow: config still wins, but log drift against the tier row
+        try:
+            import tiers as _t
+            tcap = int(_t.resolve(plan).get("daily_cap") or 0)
+            if tcap and tcap != cap:
+                print("[v465] cap drift %s: config=%d tier=%d"
+                      % (plan, cap, tcap), flush=True)
+        except Exception:
+            pass
+        return plan, cap
 
     def chat(self, user):
         data = self.body()
@@ -636,7 +656,7 @@ class Handler(BaseHTTPRequestHandler):
             try: _sse_out(handler, {"phase": "answering", "label": "Writing the answer"})
             except Exception: pass
             # v404: council for Pro/Ultra complex queries
-            _council_cap = {"Free": 1, "Pro": 2, "Ultra": 3}.get(plan, 1)
+            _council_cap = int(_tier_field(plan, "council", 1))
             _want_council = (
                 _council_cap > 1
                 and _route_decision.get("complex")
@@ -674,7 +694,7 @@ class Handler(BaseHTTPRequestHandler):
                 try:
                     answer = _direct(model, key, (_tier_persona(user, plan) + _research_txt + _memblock + _sklblock), turns)
                     used_model = model
-                    if plan == "Ultra" and answer:
+                    if _tier_field(plan, "refine", False) and answer:
                         try:
                             _crit = ("You are the second mind in Alfred's council. Review the draft answer above "
                                      "in context. Fix anything wrong, sharpen the reasoning, keep the warm butler voice. "
@@ -973,7 +993,7 @@ def _v130_install():
                 print("[v390 reason] fail-open:", _e, flush=True)
 
         # v404: council for Pro/Ultra complex queries
-        _council_cap = {"Free": 1, "Pro": 2, "Ultra": 3}.get(plan, 1)
+        _council_cap = int(_tier_field(plan, "council", 1))
         _want_council = (
             _council_cap > 1
             and _route_decision.get("complex")

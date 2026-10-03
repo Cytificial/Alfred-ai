@@ -74,6 +74,9 @@ def _shape(row):
         d["theme"] = json.loads(d.get("theme") or "{}")
     except Exception:
         d["theme"] = {}
+    d["refine"] = bool(d.get("refine"))
+    d["council"] = int(d.get("council") or 1)
+    d["daily_cap"] = int(d.get("daily_cap") or 0)
     return d
 
 
@@ -112,6 +115,9 @@ def all_tiers():
                 d["theme"] = json.loads(d.get("theme") or "{}")
             except Exception:
                 d["theme"] = {}
+            d["refine"] = bool(d.get("refine"))
+            d["council"] = int(d.get("council") or 1)
+            d["daily_cap"] = int(d.get("daily_cap") or 0)
             out.append(d)
         return out
     finally:
@@ -209,3 +215,51 @@ def entitlements_for(email):
         "theme": t["theme"],
         "greeting": t["greeting"],
     }
+
+
+# ===== v464: in-memory cache so the chat path never hits sqlite for tiers =====
+_CACHE = {"at": 0.0, "rows": {}}
+TTL = 30.0
+
+
+def reload():
+    """Call after any tier edit. Cheap and idempotent."""
+    with LOCK:
+        db = _c()
+        try:
+            rows = {}
+            for r in db.execute("SELECT * FROM tiers ORDER BY ord"):
+                d = dict(r)
+                try:
+                    d["theme"] = json.loads(d.get("theme") or "{}")
+                except Exception:
+                    d["theme"] = {}
+                d["refine"] = bool(d.get("refine"))
+                d["council"] = int(d.get("council") or 1)
+                d["daily_cap"] = int(d.get("daily_cap") or 0)
+                rows[d["id"].lower()] = d
+                rows[d["name"].lower()] = d
+            _CACHE["rows"] = rows
+            _CACHE["at"] = _time.time()
+        finally:
+            db.close()
+    return len(_CACHE["rows"])
+
+
+def _cached(key):
+    if not _CACHE["rows"] or (_time.time() - _CACHE["at"]) > TTL:
+        reload()
+    return _CACHE["rows"].get(key)
+
+
+def resolve(plan):
+    """Cached. Unknown -> free. Never touches sqlite on the hot path."""
+    d = _cached(str(plan).strip().lower()) if plan else None
+    if d is None:
+        d = _cached(FALLBACK)
+    return dict(d)
+
+
+def get(tid):
+    d = _cached(str(tid).strip().lower()) or _cached(FALLBACK)
+    return dict(d)
