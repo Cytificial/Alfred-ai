@@ -12,6 +12,7 @@ header h1{margin:0;font-size:15px;font-weight:650;letter-spacing:.3px}
 .pill{font:11px system-ui;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
 .pill.bad{color:var(--bad);border-color:rgba(255,157,176,.4)}
 .pill.ok{color:var(--ok);border-color:rgba(155,231,196,.4)}
+@media(max-width:760px){nav{flex-direction:column;align-items:stretch;gap:5px;padding:9px 12px;max-height:38vh;overflow-y:auto}nav button{text-align:left;padding:10px 14px}main{padding:12px}th{font-size:10px}td{padding:8px 7px;font-size:12px}}
 nav{display:flex;gap:6px;padding:11px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap;
 position:sticky;top:var(--bar);background:rgba(8,13,23,.96);z-index:4}
 nav button{background:transparent;border:1px solid var(--line);color:var(--dim);padding:8px 13px;
