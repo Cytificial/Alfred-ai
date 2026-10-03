@@ -3629,6 +3629,13 @@ window.__v152 = "1"; /* v154 retires v152 */
   var plansRow = null;
   if (setRow) {
     plansRow = setRow.cloneNode(true);
+    /* v455: the clone must not answer to data-view or id, or the router
+       resolves to it instead of the real Settings row */
+    plansRow.removeAttribute("data-view");
+    plansRow.classList.add("nav-item-plans");
+    plansRow.style.marginTop = "6px";
+    plansRow.removeAttribute("id");
+    plansRow.querySelectorAll("*").forEach(function (n) { n.removeAttribute("id"); });
     plansRow.querySelectorAll("*").forEach(function (n) {
       if (n.children.length === 0 && n.textContent.trim() === "Settings") n.textContent = "Plans";
     });
@@ -3636,7 +3643,8 @@ window.__v152 = "1"; /* v154 retires v152 */
     if (sv) { var ic = document.createElement("span"); ic.className = "pay-nav-ic"; ic.textContent = "\u25c8";
       ic.style.cssText = "display:inline-flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:17px;color:#9fd2ff;";
       sv.replaceWith(ic); }
-    setRow.parentElement.insertBefore(plansRow, setRow);
+    /* v456: appended last, not adjacent to Settings - stacked rows steal taps */
+    setRow.parentElement.appendChild(plansRow);
   }
   var payHidden = [];                            /* v92: every view we cover */
   function openPlans() {
@@ -3812,10 +3820,13 @@ window.__v152 = "1"; /* v154 retires v152 */
     }
   });
   var row = setRow.cloneNode(true);
-  row.querySelectorAll("*").forEach(function (n) {
-    if (n.children.length === 0 && n.textContent.trim() === "Settings") n.textContent = "Plans";
-  });
-  setRow.parentElement.insertBefore(row, setRow);
+  /* v457: neutralised - the first module already builds the real Plans row.
+     This clone shadowed the genuine Settings row via data-view/id and
+     sat directly above it, stealing taps. */
+  row.removeAttribute("data-view");
+  row.removeAttribute("id");
+  row.removeAttribute("class");
+  row.style.display = "none";
   row.addEventListener("click", function (e) {
     e.stopPropagation(); if (window.__openPlans) window.__openPlans();
   });

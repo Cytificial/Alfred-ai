@@ -24,7 +24,10 @@
   <link rel="icon" type="image/png" href="/assets/favicon-32.png?v=1">
 <link rel="apple-touch-icon" href="/icons/alfred-mark-1790692049-192.png">
 <style>.pw{padding-right:16px!important;}</style>
-</head>
+<style>.form-err{display:none;margin:0 0 12px;padding:9px 12px;border-radius:10px;
+background:rgba(255,86,110,.12);border:1px solid rgba(255,86,110,.38);
+color:#ff9db0;font-size:12.5px;line-height:1.45;text-align:left}
+.form-err.show{display:block}</style></head>
 <body>
 
 <!-- ============ 1. LOADING ============ -->
@@ -58,7 +61,7 @@
       <label class="fld"><span class="lbl">Email address</span><input type="email" placeholder="you@example.com" autocomplete="email"/></label>
       <div class="fld"><span class="lbl">Password</span><span class="inp-wrap"><input type="text" class="pw" placeholder="Enter your password" autocomplete="current-password" style="-webkit-text-security:disc;text-security:disc;" data-pw="1"/></span></div>
       <div class="row"><label class="chk"><input type="checkbox" id="ga-rem"/><span class="box"></span>Remember me</label><a href="mailto:support@alfredai.com?subject=Password%20reset" class="lnk">Forgot password?</a></div>
-      <button class="btn-main" type="submit"><span>Sign In</span><span class="chev">&#10095;</span></button>
+<p id="err" class="form-err" role="alert" aria-live="polite"></p>      <button class="btn-main" type="submit"><span>Sign In</span><span class="chev">&#10095;</span></button>
     </form>
     <p id="v248-disc" style="text-align:center;font:11px system-ui;color:rgba(232,242,255,.45);margin:6px 0 0">Alfred can make mistakes. Verify important info.</p><div class="divider"><i></i><span>Or continue with</span><i></i></div>
     <div class="socials">
@@ -84,7 +87,7 @@
       <label class="fld"><span class="lbl">Email address</span><input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email"/></label>
       <div class="fld"><span class="lbl">Password</span><span class="inp-wrap"><input type="text" class="pw" placeholder="Create a strong password" autocomplete="new-password" style="-webkit-text-security:disc;text-security:disc;" data-pw="1"/></span></div>
       <label class="chk terms"><input type="checkbox"/><span class="box"></span><span class="t">I agree to the <a href="/terms.html" target="_blank" rel="noopener noreferrer" class="lnk">Terms of Service</a> &amp; <a href="/privacy.html" target="_blank" rel="noopener noreferrer" class="lnk">Privacy Policy</a></span></label>
-      <button class="btn-main" type="submit"><span>Create Account</span><span class="chev">&#10095;</span></button>
+<p id="err" class="form-err" role="alert" aria-live="polite"></p>      <button class="btn-main" type="submit"><span>Create Account</span><span class="chev">&#10095;</span></button>
     </form>
     <div class="divider"><i></i><span>Or sign up with</span><i></i></div>
     <div class="socials">
@@ -266,5 +269,6 @@
 
 <script src="js/pw-reveal.js"></script>
 <script src="js/view-guard.js"></script>
+<script src="js/plans-nav.js"></script>
 </body>
 </html>
