@@ -57,7 +57,8 @@ def _fail_ok(email):  # v356: per-email brute-force gate - 8 attempts / 15 min
     with RLOCK:
         q = [t for t in _fail.get(email, []) if now - t < 900]
         if len(q) >= 8: _fail[email] = q; return False
-        q.append(now); _fail[email] = q; return True
+        _fail[email] = q
+        return True  # v443: check-only - successes must not count as failures
 
 # ===== v359: per-email brute-force gate (durable, idempotent per request) =====
 import threading as _thg9
@@ -155,11 +156,18 @@ def maybe_handle(handler, method):
         name  = (body.get("name") or "").strip()
         if not EMAIL_RE.match(email): _json(handler, 400, {"ok": False, "error": "Enter a valid email address."}); return True
         if len(pw) < 8: _json(handler, 400, {"ok": False, "error": "Password must be at least 8 characters."}); return True
+        if len(pw) > 256: _json(handler, 400, {"ok": False, "error": "Password must be 256 characters or fewer."}); return True
 
         register = path.endswith("/register")
         if register and not (2 <= len(name) <= 40):
             _json(handler, 400, {"ok": False, "error": "Enter your name."}); return True
 
+        # v444: PBKDF2 (120k iters) runs OUTSIDE the process-wide lock so
+        # concurrent logins do not serialise behind one another.
+        _pc = _conn()
+        _pre = _pc.execute("SELECT id,name,pw_hash,salt,plan FROM users WHERE email=?", (email,)).fetchone()
+        _pc.close()
+        _calc = _hash_pw(pw, _pre[3]) if _pre else _hash_pw(pw, secrets.token_hex(16))
         with LOCK:
             c = _conn()
             c.execute("DELETE FROM sessions WHERE expires < ?", (time.time(),))
@@ -177,7 +185,7 @@ def maybe_handle(handler, method):
             else:
                 if row:
                     uid, uname, plan = row[0], row[1], row[4]
-                    if not hmac.compare_digest(row[2], _hash_pw(pw, row[3])):
+                    if not hmac.compare_digest(row[2], _calc):
                         # v442: release outer write lock BEFORE egate check (prevents 10s stall)
                         try: c.rollback()
                         except Exception: pass
@@ -189,7 +197,7 @@ def maybe_handle(handler, method):
                             _json(handler, 429, {"ok": False, "error": "Too many attempts for this account. Wait 15 minutes."}); return True
                         _json(handler, 401, {"ok": False, "error": "Email or password is incorrect."}); return True
                 else:
-                    _hash_pw(pw, secrets.token_hex(16))  # timing equalizer
+                    pass  # timing equalizer already ran above, outside the lock
                     # v442: release outer write lock BEFORE egate check
                     try: c.rollback()
                     except Exception: pass
@@ -206,7 +214,8 @@ def maybe_handle(handler, method):
             c.execute("INSERT OR REPLACE INTO sessions(token_hash,user_id,expires) VALUES(?,?,?)",
                       (hashlib.sha256(tok.encode()).hexdigest(), uid, exp))
             c.commit(); c.close()
-        cookie = "alfred_session=%s; Path=/; HttpOnly; SameSite=Lax; Max-Age=%d" % (tok, days * 86400)
+        _sec = "; Secure" if os.environ.get("ALFRED_HTTPS") == "1" else ""
+        cookie = "alfred_session=%s; Path=/; HttpOnly; SameSite=Lax%s; Max-Age=%d" % (tok, _sec, days * 86400)
         _json(handler, 200, {"ok": True, "user": {"name": uname, "email": email, "plan": plan}, "token": tok}, cookie)
         return True
     except Exception as e:
