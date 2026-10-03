@@ -561,7 +561,10 @@ window.__v159="1"; window.__v161a="1"; window.__v162="1"; window.__v158c2="1"; w
       var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null), n;
       while ((n = w.nextNode())) {
         var v = (n.nodeValue || "").trim();
-        if (/^(Free|Pro|Ultra)$/.test(v)) {
+        /* v460: only ever touch the app header - this used to rewrite any
+           Free/Pro/Ultra heading that scrolled into the top 170px */
+        if (/^(Free|Pro|Ultra)$/.test(v) &&
+            !n.parentElement.closest("#view-pay,#vadm,#land,#login,#register,.pay-modal,.pay-card")) {
           var r = n.parentElement.getBoundingClientRect();
           if (r.top > -10 && r.top < 170 && r.width < innerWidth * 0.9) { planNode = n; return; }
         }

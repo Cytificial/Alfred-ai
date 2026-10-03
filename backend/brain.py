@@ -1171,6 +1171,19 @@ def _v157_usage_install():
     def _route_v157(self):
         try:
             p = urllib.parse.urlparse(self.path).path
+            if self.command == "GET" and p == "/api/entitlements":
+                try:
+                    _u = self.auth_user()
+                    if not _u:
+                        self.json_out(401, {"ok": False, "error": "Please sign in."})
+                        return
+                    import tiers as _t
+                    self.json_out(200, _t.entitlements_for(_u.get("email") or ""))
+                    return
+                except Exception as _ee:
+                    print("[v463] entitlements failed: %r" % (_ee,), flush=True)
+                    self.json_out(500, {"ok": False, "error": "entitlements unavailable"})
+                    return
             if self.command == "GET" and p == "/api/usage":
                 user = self.auth_user()
                 if not user:

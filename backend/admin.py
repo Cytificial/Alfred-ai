@@ -126,16 +126,36 @@ def maybe_handle(handler, method):
         return _send(handler, 200, {"ok": True, "users": users, "byPlan": by,
                                     "logs": logs, "engine": _engine(), "brain": _cfg()})
 
+    if method == "GET" and p == "/api/admin/tiers":
+        try:
+            import tiers as _t
+            return _send(handler, 200, {"ok": True, "tiers": _t.all_tiers(),
+                                        "audit": _t.audit_recent(40)})
+        except Exception as e:
+            return _send(handler, 500, {"ok": False, "error": repr(e)[:160]})
+
     if method == "POST" and p == "/api/admin/users/plan":
         b = _body(handler)
-        plan = str(b.get("plan", "")).capitalize()
+        plan = str(b.get("plan", "")).strip()
         email = str(b.get("email", "")).strip().lower()
-        if plan not in PLANS or not email:
-            return _send(handler, 400, {"ok": False, "error": "need email + plan Free/Pro/Ultra"})
-        db = sqlite3.connect(DBP)
-        n = db.execute("UPDATE users SET plan=? WHERE lower(email)=?", (plan, email)).rowcount
-        db.commit(); db.close()
-        return _send(handler, 200, {"ok": n > 0, "plan": plan})
+        if not email:
+            return _send(handler, 400, {"ok": False, "error": "need an email"})
+        actor = ""
+        try:
+            m = _me(handler)
+            actor = (m or {}).get("email") or ""
+        except Exception:
+            pass
+        try:
+            import tiers as _t
+            t = _t.set_plan(email, plan, actor)
+        except Exception as e:
+            return _send(handler, 500, {"ok": False, "error": repr(e)[:160]})
+        if t is None:
+            return _send(handler, 400, {"ok": False,
+                "error": "unknown tier or user - pick Free, Pro or Ultra"})
+        return _send(handler, 200, {"ok": True, "plan": t["name"], "tier": t["id"],
+                                    "greeting": t["greeting"], "theme": t["theme"]})
 
     if method == "POST" and p == "/api/admin/users/delete":
         b = _body(handler)
