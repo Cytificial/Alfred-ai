@@ -56,7 +56,7 @@
     <div class="head"><h2><span class="glowdot"></span>Welcome Back</h2><p>Sign in to continue your journey</p></div>
     <form id="login-form" novalidate autocomplete="off">
       <label class="fld"><span class="lbl">Email address</span><input type="email" placeholder="you@example.com" autocomplete="email"/></label>
-      <div class="fld"><span class="lbl">Password</span><span class="inp-wrap"><input type="text" class="pw" placeholder="Enter your password" autocomplete="off" style="-webkit-text-security:disc;text-security:disc;" data-pw="1"/></span></div>
+      <div class="fld"><span class="lbl">Password</span><span class="inp-wrap"><input type="text" class="pw" placeholder="Enter your password" autocomplete="current-password" style="-webkit-text-security:disc;text-security:disc;" data-pw="1"/></span></div>
       <div class="row"><label class="chk"><input type="checkbox"/><span class="box"></span>Remember me</label><a href="mailto:support@alfredai.com?subject=Password%20reset" class="lnk">Forgot password?</a></div>
       <button class="btn-main" type="submit"><span>Sign In</span><span class="chev">&#10095;</span></button>
     </form>
@@ -82,7 +82,7 @@
     <form id="register-form" novalidate>
       <label class="fld"><span class="lbl">Full Name</span><input type="text" id="reg-name" placeholder="Your name" autocomplete="name"/></label>
       <label class="fld"><span class="lbl">Email address</span><input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email"/></label>
-      <div class="fld"><span class="lbl">Password</span><span class="inp-wrap"><input type="text" class="pw" placeholder="Create a strong password" autocomplete="off" style="-webkit-text-security:disc;text-security:disc;" data-pw="1"/></span></div>
+      <div class="fld"><span class="lbl">Password</span><span class="inp-wrap"><input type="text" class="pw" placeholder="Create a strong password" autocomplete="new-password" style="-webkit-text-security:disc;text-security:disc;" data-pw="1"/></span></div>
       <label class="chk terms"><input type="checkbox"/><span class="box"></span><span class="t">I agree to the <a href="/terms.html" target="_blank" rel="noopener noreferrer" class="lnk">Terms of Service</a> &amp; <a href="/privacy.html" target="_blank" rel="noopener noreferrer" class="lnk">Privacy Policy</a></span></label>
       <button class="btn-main" type="submit"><span>Create Account</span><span class="chev">&#10095;</span></button>
     </form>
@@ -264,5 +264,6 @@
 <script src="js/v392-think.js?v=392c"></script>
 <script>if ("serviceWorker" in navigator) { addEventListener("load", function () { navigator.serviceWorker.register("/sw.js").catch(function(){}); }); }</script>
 
+<script src="js/pw-reveal.js"></script>
 </body>
 </html>

@@ -8673,7 +8673,7 @@ try { /* v163proc: native thinking card */
   /* safety net: any password field flipped to text gets snapped back */
   setInterval(function () {
     document.querySelectorAll('input.pw').forEach(function (p) {
-      if (p.type !== "password") p.type = "password";
+      /* v197 snapper disabled - it undid the password-reveal toggle every 400ms */
     });
   }, 400);
 })();
@@ -13553,7 +13553,8 @@ try { /* v163proc: native thinking card */
   function stamp() {
     try {
       if (document.title !== "Alfred AI - v1") document.title = "Alfred AI - v1";
-      var c = document.getElementById("__v354chip");
+      return;
+    var c = document.getElementById("__v354chip");
       if (!c) {
         c = document.createElement("div");
         c.id = "__v354chip";
