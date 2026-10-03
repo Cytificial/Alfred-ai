@@ -94,7 +94,7 @@ try { window.__v155b = "1"; } catch (e) {}
       var lo = el("loading");
       function finish() {
         if (seq !== routeSeq) return;
-        if (authed) { show("app"); try { if ((location.hash || "").indexOf("chat") === -1) location.hash = "#/chat"; } catch (e) {} }
+        if (authed) { show("app"); try { if (!/^#\/?(chat|explore|modules|history|plans|settings)$/i.test(location.hash || "")) location.hash = "#/chat"; } catch (e) {} }
         else if (window.__v285route) window.__v285route(); else show("login");
         try { lo.style.opacity = ""; lo.style.transition = ""; } catch (e) {}
         shown = true; window.__v203shown = true; landing = false;
@@ -275,7 +275,7 @@ try{ localStorage.setItem("alfred_plan_server","1"); }catch(e){}
     hideGate();
     var h = String(location.hash || "").toLowerCase();
     if (!h || h === "#" || h === "#/" || h.indexOf("login") !== -1) {
-      try { location.hash = "#/chat"; } catch (e) {}
+      try { if (!/^#\/?(chat|explore|modules|history|plans|settings)$/i.test(location.hash || "")) location.hash = "#/chat"; } catch (e) {}
     }
 
   }
@@ -541,7 +541,7 @@ window.__v159="1"; window.__v161a="1"; window.__v162="1"; window.__v158c2="1"; w
         try { sessionStorage.setItem("v163rl", "1"); } catch (e) {}
         /* v203: no reload */
       }
-    } else location.replace("/#/chat");
+    } else if (!/^#\/?(chat|explore|modules|history|plans|settings)$/i.test(location.hash || "")) location.replace("/#/chat");
   }
   function usage(cb) {
     fetch(API + "/api/usage", { credentials: "include", headers: { "X-Alfred-Token": tok() } })
@@ -5133,7 +5133,9 @@ window.__v152 = "1"; /* v154 retires v152 */
     var found = null, score = -1;
     [].slice.call(document.querySelectorAll('[id^="view-"]')).forEach(function (el) {
       var cs = getComputedStyle(el), r = el.getBoundingClientRect();
-      if (cs.display === "none" || cs.visibility === "hidden" || !r.width || !r.height) return;
+      /* v449: geometry is unreliable while .views is hidden - fall back to the show class */
+      if (cs.display === "none" || cs.visibility === "hidden") return;
+      if (!r.width || !r.height) { if (!el.classList.contains("show")) return; }
       var route = fromId(el.id); if (!route) return;
       var n = (el.classList.contains("active") || el.classList.contains("show")) ? 2 : 1;
       if (n > score) { found = route; score = n; }
@@ -5155,6 +5157,11 @@ window.__v152 = "1"; /* v154 retires v152 */
   function navClick(route) {
     var aliases = route === "plans" ? ["plans", "plan", "pricing"] : [route];
     var root = sidebar();
+    /* v448: match the real nav item by data-view - text matching misses */
+    try {
+      var byAttr = document.querySelector('[data-view="' + route + '"]');
+      if (byAttr) { byAttr.click(); return true; }
+    } catch (e) {}
     var clickables = [].slice.call(root.querySelectorAll("a,button,[role='button'],[onclick]"));
     var hit = clickables.filter(function (el) {
       return aliases.indexOf((el.textContent || "").replace(/\s+/g, " ").trim().toLowerCase()) >= 0;
@@ -8282,7 +8289,7 @@ try { /* v163proc: native thinking card */
           if (!j || !j.ok || !j.token) return;
           if (j.user && /^(free|pro|ultra)$/i.test(String(j.user.plan || ""))) sync(j.user.plan);
           var h = location.hash || "";
-          if (!/login/i.test(h) && !/chat/i.test(h)) location.hash = "#/chat";
+          if (!/^#\/?(chat|explore|modules|history|plans|settings)$/i.test(location.hash || "")) location.hash = "#/chat";
         }).catch(function () {});
       }).catch(function () {});
     }
@@ -8506,7 +8513,7 @@ try { /* v163proc: native thinking card */
         if (j && j.ok && j.user) {
           try { localStorage.setItem("alfred_authed", "1"); } catch (e) {}
           if (h === "" || h === "#" || h === "#/" || h.indexOf("login") > -1) {
-            try { location.hash = "#/chat"; } catch (e) {}
+            try { if (!/^#\/?(chat|explore|modules|history|plans|settings)$/i.test(location.hash || "")) location.hash = "#/chat"; } catch (e) {}
           }
         }
       }).catch(function () { checking = false; });
@@ -10564,7 +10571,7 @@ try { /* v163proc: native thinking card */
             var c = [].slice.call(document.querySelectorAll(".nav-item")).filter(function (r) { return (r.textContent || "").trim() === "Chat"; })[0];
             if (c) c.click(); else location.hash = "#/chat";
           } else {
-            [].slice.call(document.querySelectorAll(".view")).forEach(function (v) { v.classList.toggle("show", /login/i.test(v.id)); });
+            try { location.hash = "#/login"; } catch (e) {}
             [].slice.call(document.querySelectorAll(".nav-item")).forEach(function (r) { r.classList.remove("active"); });
           }
         }).catch(function () { L.style.display = "none"; });
@@ -10886,7 +10893,7 @@ try { /* v163proc: native thinking card */
     var b = document.createElement("button"); b.className = "navin"; b.textContent = "Sign in";
     b.addEventListener("click", function () {
       L.style.display = "none";
-      [].slice.call(document.querySelectorAll(".view")).forEach(function (v) { v.classList.toggle("show", /login/i.test(v.id)); });
+      try { location.hash = "#/login"; } catch (e) {}
       [].slice.call(document.querySelectorAll(".nav-item")).forEach(function (r) { r.classList.remove("active"); });
     });
     nav.appendChild(b);
@@ -11121,7 +11128,7 @@ try { /* v163proc: native thinking card */
       var b = document.createElement("button"); b.className = "navin"; b.textContent = "Sign in";
       b.addEventListener("click", function () {
         L.style.display = "none";
-        [].slice.call(document.querySelectorAll(".view")).forEach(function (v) { v.classList.toggle("show", /login/i.test(v.id)); });
+        try { location.hash = "#/login"; } catch (e) {}
       });
       nav.appendChild(b);
     }
@@ -11253,7 +11260,7 @@ try { /* v163proc: native thinking card */
             r.classList.toggle("active", /plan/i.test(r.getAttribute("data-view") || ""));
           });
         } else {
-          [].slice.call(document.querySelectorAll(".view")).forEach(function (v) { v.classList.toggle("show", /login/i.test(v.id)); });
+          try { location.hash = "#/login"; } catch (e) {}
         }
       });
       t.appendChild(b);

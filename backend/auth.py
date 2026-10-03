@@ -6,6 +6,14 @@ ITERS = 120000
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 _rate, RLOCK = {}, threading.Lock()
 
+# v445: addresses reserved for administration cannot be claimed by public
+# registration, otherwise anyone could register your admin email and take over.
+_RESERVED = frozenset(
+    e.strip().lower()
+    for e in os.environ.get("ALFRED_ADMIN_EMAIL", "").split(",")
+    if e.strip()
+)
+
 def _conn():
     c = sqlite3.connect(DB, timeout=3)
     c.execute("""CREATE TABLE IF NOT EXISTS users(
@@ -154,6 +162,12 @@ def maybe_handle(handler, method):
             _json(handler, 429, {"ok": False, "error": "Too many attempts for this account. Wait 15 minutes."}); return True
         pw    = body.get("password") or ""
         name  = (body.get("name") or "").strip()
+        register = path.endswith("/register")
+        if register and email in _RESERVED:
+            _json(handler, 403, {"ok": False,
+                "error": "This address is reserved and cannot be registered."})
+            return True
+
         if not EMAIL_RE.match(email): _json(handler, 400, {"ok": False, "error": "Enter a valid email address."}); return True
         if len(pw) < 8: _json(handler, 400, {"ok": False, "error": "Password must be at least 8 characters."}); return True
         if len(pw) > 256: _json(handler, 400, {"ok": False, "error": "Password must be 256 characters or fewer."}); return True
